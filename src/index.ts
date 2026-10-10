@@ -3,21 +3,18 @@
 //   npm start -- tools     — 🧰 інструменти тижня
 //   npm start -- story     — 🔥 вау-історія тижня
 //   npm start -- saves     — 📌 збережи собі
-//   npm start -- monthly   — 📅 топ місяця
 import "dotenv/config";
 import { prisma } from "./db.ts";
 import { runNews } from "./modes/news.ts";
 import { runTools } from "./modes/tools.ts";
 import { runStory } from "./modes/story.ts";
 import { runSaves } from "./modes/saves.ts";
-import { runMonthly } from "./modes/monthly.ts";
 
 const MODES = {
   news: () => runNews(),
   tools: () => runTools({ dryRun: false, send: true }),
   story: () => runStory({ dryRun: false, send: true }),
   saves: () => runSaves({ dryRun: false, send: true }),
-  monthly: () => runMonthly({ dryRun: false, send: true }),
 } as const;
 
 const mode = (process.argv[2] || process.env.MODE || "news") as keyof typeof MODES;
