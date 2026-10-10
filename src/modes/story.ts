@@ -1,6 +1,6 @@
 // 🔥 Вау-історія тижня: для кожного акаунта — найсильніша історія (герой, цифри, поворот) зі статей за 7 днів.
 import { prisma } from "../db.ts";
-import { askJson, AUDIENCE, LANGUAGE } from "../gpt.ts";
+import { askJson, AUDIENCE, CLEAR_START, LANGUAGE } from "../gpt.ts";
 import { extractText } from "../extractText.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
 import { sendCard, sendHook, sendToTelegram } from "../sendToTelegram.ts";
@@ -18,6 +18,8 @@ const SYSTEM_PROMPT = `${AUDIENCE}
 Будова:
 - перший рядок — гачок, через який неможливо не дочитати: найнесподіваніший факт, цифра або контраст
   («один ролик на день і 4 мільйони підписників за рік»), без заголовка, без «Сьогодні розповім…»;
+  гачок має бути зрозумілим без контексту — простими словами, хто і що зробив;
+${CLEAR_START}
 - далі коротко, хто герой і з чого все почалось;
 - потім як розвивались події — з конкретними цифрами, рішеннями, помилками, поворотом;
 - наприкінці — що з цього може забрати собі автор (1–2 речення, без моралізаторства).
