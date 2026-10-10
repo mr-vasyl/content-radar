@@ -1,14 +1,17 @@
 // Точка входу. Режим береться з аргументу або змінної MODE (її передає GitHub Actions):
 //   npm start              — новини (за замовчуванням)
 //   npm start -- tools     — 🧰 інструменти тижня
+//   npm start -- story     — 🔥 вау-історія тижня
 import "dotenv/config";
 import { prisma } from "./db.ts";
 import { runNews } from "./modes/news.ts";
 import { runTools } from "./modes/tools.ts";
+import { runStory } from "./modes/story.ts";
 
 const MODES = {
   news: () => runNews(),
   tools: () => runTools({ dryRun: false, send: true }),
+  story: () => runStory({ dryRun: false, send: true }),
 } as const;
 
 const mode = (process.argv[2] || process.env.MODE || "news") as keyof typeof MODES;

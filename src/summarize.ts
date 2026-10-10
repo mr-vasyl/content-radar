@@ -26,6 +26,7 @@ export interface Analysis {
   stream: (typeof STREAMS)[number];
   account: Account;
   reason: string;
+  story_score: number; // 0–10: чи вийде з цього вау-історія
   post: string; // порожній, якщо score < MIN_SCORE
 }
 
@@ -57,6 +58,10 @@ const SYSTEM_PROMPT = `${AUDIENCE}
 
 Обери потік (stream) і канал (account), куди стаття пасує найкраще. Підказка про канал джерела дана, але вирішуй за змістом.
 reason — одне коротке речення українською (до 20 слів): чому така оцінка.
+story_score — окремо від score, від 0 до 10: наскільки з цієї статті вийде захоплива історія для автора.
+Потрібні: конкретний герой (людина, автор, маленька команда), конкретні цифри (гроші, підписники, продажі, час),
+поворот або несподіваний результат, урок, який можна забрати собі. 0 — історії немає (оновлення продукту, гайд, новина компанії);
+5 — є герой і цифри, але без інтриги; 8+ — хочеться дочитати й переслати.
 
 2. Якщо оцінка ${MIN_SCORE} або вище — НАПИШИ ПОСТ (post) українською.
 
@@ -83,12 +88,13 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "post"],
+  required: ["score", "stream", "account", "reason", "story_score", "post"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
     account: { type: "string", enum: Object.keys(ACCOUNTS) },
     reason: { type: "string" },
+    story_score: { type: "integer", minimum: 0, maximum: 10 },
     post: { type: "string" },
   },
 } as const;

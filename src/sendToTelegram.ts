@@ -26,8 +26,19 @@ export async function sendToTelegram(text: string): Promise<void> {
 
 // Картка для форматів, що не прив'язані до однієї статті (добірки, топи).
 // Беззвучно — щоб пост під нею пересилався без неї.
-export async function sendCard(lines: string[]): Promise<void> {
-  await telegram.sendMessage(chatId, lines.map(escapeHtml).join("\n").replace(/^(.+)$/m, "<b>$1</b>"), {
+export async function sendCard(lines: string[], link?: { url: string; label: string }): Promise<void> {
+  let text = lines.map(escapeHtml).join("\n").replace(/^(.+)$/m, "<b>$1</b>");
+  if (link) text += `\n<a href="${escapeHtml(link.url)}">${escapeHtml(link.label)}</a>`;
+  await telegram.sendMessage(chatId, text, {
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    disable_notification: true,
+  });
+}
+
+// Короткий гачок для Threads — окремим беззвучним повідомленням, текст копіюється одним дотиком.
+export async function sendHook(hook: string): Promise<void> {
+  await telegram.sendMessage(chatId, `🪝 <i>Гачок для Threads</i>\n\n${escapeHtml(hook)}`, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true,

@@ -6,9 +6,9 @@ on:
   workflow_dispatch: # запуск з Supabase за розкладом і кнопка "Run workflow" вручну
     inputs:
       mode:
-        description: "Режим: news — новини, tools — інструменти тижня"
+        description: "Режим: news — новини, tools — інструменти тижня, story — вау-історія"
         type: choice
-        options: [news, tools]
+        options: [news, tools, story]
         default: news
 
 # Якщо попередній запуск ще працює — новий чекає, а не біжить паралельно (щоб не було дублів)

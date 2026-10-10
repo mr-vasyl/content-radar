@@ -1,6 +1,7 @@
 // Тестовий прогін без запису в базу. Зручно для налаштування промптів.
 //   npm run preview [N] [send]        — новини: N останніх статей з кожного джерела (за замовч. 1)
 //   npm run preview tools [send]      — 🧰 інструменти тижня
+//   npm run preview story [send]      — 🔥 вау-історія тижня
 // "send" — ще й надіслати в бот.
 import "dotenv/config";
 import { sources } from "./sources.ts";
@@ -10,9 +11,10 @@ import { extractText } from "./extractText.ts";
 import { analyze, MIN_SCORE } from "./summarize.ts";
 import { sendMeta, sendToTelegram } from "./sendToTelegram.ts";
 import { runTools } from "./modes/tools.ts";
+import { runStory } from "./modes/story.ts";
 import { prisma } from "./db.ts";
 
-const MODES = { tools: runTools } as const;
+const MODES = { tools: runTools, story: runStory } as const;
 
 const arg = process.argv[2] ?? "1";
 const send = process.argv[3] === "send";
