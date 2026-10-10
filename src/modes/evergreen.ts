@@ -11,7 +11,7 @@ import { fetchArticles, type Article } from "../fetchArticles.ts";
 import { ruleRejectReason } from "../ruleFilter.ts";
 import { extractText } from "../extractText.ts";
 import { alreadyRan, markRan } from "../formatLog.ts";
-import { sendCard, sendToTelegram } from "../sendToTelegram.ts";
+import { sendPost } from "../sendToTelegram.ts";
 import { ACCOUNTS, MIN_SCORE } from "../summarize.ts";
 import type { Account } from "../sources.ts";
 import type { RunOptions } from "./types.ts";
@@ -213,11 +213,10 @@ export async function runEvergreen({ dryRun, send }: RunOptions): Promise<void> 
 
   console.log(`\n♻️ ${item.score}/10 [${item.account}] ${item.title}\n\n${item.post}`);
   if (send) {
-    await sendCard([`♻️ Евергрін · ${ACCOUNTS[item.account]} · ${item.score}/10`, `${item.source} · ${item.reason}`], {
-      url: item.url,
-      label: "Оригінал",
+    await sendPost(item.post, {
+      lines: [`♻️ Евергрін · ${ACCOUNTS[item.account]} · ⭐ ${item.score}/10`, item.title],
+      link: { url: item.url, label: `Оригінал · ${item.source}` },
     });
-    await sendToTelegram(item.post);
   }
   if (!dryRun) {
     await prisma.article.update({ where: { url: item.url }, data: { status: "evergreen_sent" } });

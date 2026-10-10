@@ -4,7 +4,8 @@ import { filterNew, record } from "../dedup.ts";
 import { ruleRejectReason } from "../ruleFilter.ts";
 import { extractText } from "../extractText.ts";
 import { analyze, MIN_SCORE } from "../summarize.ts";
-import { sendMeta, sendToTelegram } from "../sendToTelegram.ts";
+import { sendPost } from "../sendToTelegram.ts";
+import { ACCOUNTS } from "../summarize.ts";
 
 // Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
 // всім своїм архівом. Ті, що не влізли, нікуди не записуються й чекають наступного запуску
@@ -56,8 +57,10 @@ export async function runNews(): Promise<void> {
       const analysis = await analyze(a, await extractText(a.url));
 
       if (analysis.score >= MIN_SCORE) {
-        await sendMeta(a, analysis);
-        await sendToTelegram(analysis.post);
+        await sendPost(analysis.post, {
+          lines: [`📰 ${ACCOUNTS[analysis.account]} · ⭐ ${analysis.score}/10 · ${analysis.stream}`, a.title],
+          link: { url: a.url, label: `Оригінал · ${a.source}` },
+        });
         await record(a, "sent", { analysis }); // тільки після успішної відправки
         sent++;
         console.log(`✓ ${analysis.score}/10 ${a.title}`);

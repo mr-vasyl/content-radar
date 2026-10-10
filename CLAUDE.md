@@ -7,10 +7,31 @@ Telegram-канал або копіює в Threads. Автопублікації
 Окремий від SkyNovix проєкт (SkyNovix — основна платформа власника, тут її коду немає).
 Спілкування з власником — українською, пояснення простими словами.
 
-## Пайплайн (`src/index.ts`)
+## Режими (`src/index.ts` → `src/modes/*`)
+
+Режим — аргумент `npm start -- <mode>` або env `MODE` (його передає `workflow_dispatch` input).
+
+| mode | коли (Київ) | що |
+|---|---|---|
+| `news` | щодня 8:17–22:17, кожні 2 год | новини з RSS (пайплайн нижче) |
+| `tools` | пн 10:47 | 🧰 5 інструментів тижня для Tools і Creators: GitHub Trending + пошук за темами + HF Spaces (`toolSources.ts`); цифри й посилання підставляє код |
+| `story` | ср 12:47 | 🔥 вау-історія на акаунт: стаття тижня з найвищим `storyScore` → історія + 🪝 гачок для Threads |
+| `evergreen` | вт, чт 16:47 | ♻️ скарбничка зі старих статей архівів (status `evergreen`/`evergreen_sent`/`evergreen_rejected`) |
+| `saves` | не в розкладі (чекає рішення власника) | 📌 безкоштовні ресурси тижня з БД |
+
+«Топ місяця» робили й прибрали — власник: лише повторює вже надіслане.
+Періодичні формати — о :47, щоб не стартувати разом з новинами. Захист від повторів — таблиці `FormatRun`, `FeaturedItem` (`formatLog.ts`).
+
+Кожен пост — ОДНЕ повідомлення: текст поста, під рискою `———` курсивом службовий підпис (формат/акаунт/оцінка, назва статті,
+посилання на оригінал) — `sendPost` у `sendToTelegram.ts`. Власник так захотів (менше повідомлень); пост копіює до риски.
+
+Спільні для всіх промптів `AUDIENCE`, `VOICE`, `CLEAR_START` (заголовок і перший абзац — простими словами, одразу ясно про що),
+`LANGUAGE` — у `src/gpt.ts`.
+
+## Пайплайн новин (`src/modes/news.ts`)
 
 RSS усіх джерел → лише статті ≤ 3 днів → дедуп по url (Supabase) → правила (`ruleFilter.ts`)
-→ до 25 найсвіжіших на GPT → оцінка ≥ `MIN_SCORE` → у бот: беззвучна картка + пост.
+→ до 25 найсвіжіших на GPT → оцінка ≥ `MIN_SCORE` → у бот.
 
 - Кожне рішення пишеться в таблицю `Article` (`status`: sent / rejected_rules / rejected_ai, + score, stream, account, reason).
 - Стаття записується лише ПІСЛЯ успішної обробки — якщо GPT чи Telegram впали, наступний запуск спробує знову.
@@ -21,7 +42,8 @@ RSS усіх джерел → лише статті ≤ 3 днів → деду�
 
 - `src/sources.ts` — джерела з акаунтом (`creators` | `tools` | `knowledge`). Нові перевіряти `npm run check-sources [групи]` (`scripts/checkSources.ts`).
 - `src/summarize.ts` — промпт, схема JSON-відповіді, модель, `MIN_SCORE`, 7 потоків контенту.
-- `src/sendToTelegram.ts` — `**жирний**`/`_курсив_` → Telegram HTML (з екрануванням); картка `sendMeta`.
+- `src/sendToTelegram.ts` — `**жирний**`/`_курсив_` → Telegram HTML (з екрануванням); `sendPost` (пост + підпис), `sendHook`.
+- `src/digest.ts` — спільний збирач добірок зі статей у БД (saves, evergreen-подібні).
 - `src/extractText.ts` — повний текст через Readability + jsdom (вікно jsdom обов'язково закривати, інакше процес висне).
 - `src/fetchArticles.ts` — стрічки качаються через `fetch` + `parseString` (не `parseURL`: gzip і 406 на деяких сайтах).
 - `.github/workflows/radar.yml` — сам запуск (лише `workflow_dispatch`), при збої шле повідомлення в бот.
@@ -46,6 +68,7 @@ RSS усіх джерел → лише статті ≤ 3 днів → деду�
 
 - `npm start` — повний прогін (пише в БД і шле в бот).
 - `npm run preview [N] [send]` — N статей з кожного джерела без БД; `send` — ще й у бот. Для налаштування промпту.
+- `npm run preview <tools|story|saves|evergreen> [send]` — тест формату без запису в БД.
 - `npm run check-sources [група…]` — перевірка кандидатів у джерела.
 - `npm run typecheck`
 - Міграції: `npx prisma migrate dev --name <назва>`, потім `npx prisma generate`.

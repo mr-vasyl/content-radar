@@ -3,7 +3,7 @@ import { prisma } from "../db.ts";
 import { askJson, AUDIENCE, CLEAR_START, LANGUAGE } from "../gpt.ts";
 import { extractText } from "../extractText.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
-import { sendCard, sendHook, sendToTelegram } from "../sendToTelegram.ts";
+import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { ACCOUNTS } from "../summarize.ts";
 import type { Account } from "../sources.ts";
 import type { RunOptions } from "./types.ts";
@@ -95,11 +95,10 @@ export async function runStory({ dryRun, send }: RunOptions): Promise<void> {
     console.log(`\n🔥 ${account} (story ${row.storyScore ?? "—"}/10, score ${row.score}/10) ${row.title}\n\n${story}\n\n🪝 ${out.hook}`);
 
     if (send) {
-      await sendCard(
-        [`🔥 Вау-історія · ${ACCOUNTS[account]}`, `${row.source} · історія ${row.storyScore ?? "—"}/10`],
-        { url: row.url, label: "Оригінал" },
-      );
-      await sendToTelegram(story);
+      await sendPost(story, {
+        lines: [`🔥 Вау-історія · ${ACCOUNTS[account]} · історія ${row.storyScore ?? "—"}/10`, row.title],
+        link: { url: row.url, label: `Оригінал · ${row.source}` },
+      });
       await sendHook(out.hook.trim());
     }
     if (!dryRun) {

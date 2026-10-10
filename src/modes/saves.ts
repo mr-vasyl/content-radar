@@ -3,7 +3,7 @@ import { prisma } from "../db.ts";
 import { extractText } from "../extractText.ts";
 import { writeDigest, type DigestCandidate } from "../digest.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
-import { sendCard, sendToTelegram } from "../sendToTelegram.ts";
+import { sendPost } from "../sendToTelegram.ts";
 import type { RunOptions } from "./types.ts";
 
 const DAYS = 7;
@@ -54,8 +54,7 @@ export async function runSaves({ dryRun, send }: RunOptions): Promise<void> {
   console.log(`\n📌 Збережи собі:\n${digest.post}\n[${digest.post.replace(/\*\*/g, "").length} символів]`);
 
   if (send) {
-    await sendCard(["📌 Збережи собі", `Безкоштовні ресурси й можливості · ${week}`]);
-    await sendToTelegram(digest.post);
+    await sendPost(digest.post, { lines: [`📌 Збережи собі · ${week}`, "Безкоштовні ресурси й можливості тижня"] });
   }
   if (!dryRun) {
     await markFeatured("saves", digest.chosen.map((c) => c.key));

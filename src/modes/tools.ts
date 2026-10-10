@@ -2,7 +2,7 @@
 import { askJson, AUDIENCE, LANGUAGE } from "../gpt.ts";
 import { collectToolCandidates, withReadmes, type ToolCandidate } from "../toolSources.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
-import { sendCard, sendToTelegram } from "../sendToTelegram.ts";
+import { sendPost } from "../sendToTelegram.ts";
 import { ACCOUNTS } from "../summarize.ts";
 import type { RunOptions } from "./types.ts";
 
@@ -129,8 +129,7 @@ export async function runTools({ dryRun, send }: RunOptions): Promise<void> {
     console.log(`\n🧰 ${account}:\n${post}\n[${post.replace(/\*\*/g, "").length} символів]`);
 
     if (send) {
-      await sendCard([`🧰 Інструменти тижня · ${ACCOUNTS[account]}`, `GitHub і Hugging Face · ${week}`]);
-      await sendToTelegram(post);
+      await sendPost(post, { lines: [`🧰 Інструменти тижня · ${ACCOUNTS[account]} · ${week}`, "GitHub і Hugging Face"] });
     }
     if (!dryRun) {
       await markFeatured("tools", chosen.map((c) => c.key));
