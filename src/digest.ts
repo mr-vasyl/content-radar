@@ -42,7 +42,7 @@ const schema = (max: number) => ({
     intro: { type: "string" },
     items: {
       type: "array",
-      minItems: 3,
+      minItems: 0, // не змушуємо — інакше GPT натягує непідходящі пункти; замало → добірку пропускаємо
       maxItems: max,
       items: {
         type: "object",
@@ -64,7 +64,7 @@ export async function writeDigest(task: string, candidates: DigestCandidate[], c
 
 ${task}
 
-Обери від 3 до ${n} пунктів зі списку — лише ті, що справді підходять під завдання. Краще менше, ніж натягувати.
+Обери до ${n} пунктів зі списку — лише ті, що справді підходять під завдання. Краще менше (навіть 0), ніж натягувати.
 Для кожного:
 - key — точно як у списку;
 - name — коротка назва пункту українською (до 60 символів): назва ресурсу/інструмента/події, без лапок і емодзі;
@@ -85,7 +85,10 @@ ${LANGUAGE}`;
 
   const byKey = new Map(candidates.map((c) => [c.key, c]));
   const picked = out.items.filter((it) => byKey.has(it.key));
-  if (picked.length < 3) throw new Error(`GPT обрав замало валідних пунктів (${picked.length} з ${n})`);
+  if (picked.length < 3) {
+    console.log(`Добірка: підходящих пунктів лише ${picked.length} — пропускаю`);
+    return null;
+  }
 
   const lines = picked.map((it, i) => {
     const c = byKey.get(it.key)!;
