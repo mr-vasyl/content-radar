@@ -9,10 +9,24 @@ export interface Article {
   content: string; // текст/опис статті з RSS, піде в GPT
 }
 
-const parser = new Parser({ timeout: 15000 });
+const parser = new Parser();
+
+// Качаємо самі через fetch, а не parser.parseURL: fetch розпаковує gzip
+// і шле нормальні заголовки — деякі сайти без цього віддають 406 або "сміття".
+export async function loadFeed(url: string) {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; ContentRadar/1.0)",
+      Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+    },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Status code ${res.status}`);
+  return parser.parseString(await res.text());
+}
 
 export async function fetchArticles(source: Source): Promise<Article[]> {
-  const feed = await parser.parseURL(source.url);
+  const feed = await loadFeed(source.url);
 
   return feed.items
     .filter((item) => item.link && item.title)

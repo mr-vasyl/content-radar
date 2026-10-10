@@ -15,7 +15,12 @@ export async function extractText(url: string): Promise<string | null> {
     const html = await res.text();
     // VirtualConsole без підписки глушить шум jsdom про CSS, який він не вміє парсити
     const dom = new JSDOM(html, { url, virtualConsole: new VirtualConsole() });
-    const text = new Readability(dom.window.document).parse()?.textContent?.trim();
+    let text: string | undefined;
+    try {
+      text = new Readability(dom.window.document).parse()?.textContent?.trim();
+    } finally {
+      dom.window.close(); // інакше jsdom тримає процес живим
+    }
 
     if (!text || text.length < 300) return null;
     return text.replace(/\s+/g, " ").slice(0, MAX_CHARS);

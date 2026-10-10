@@ -12,5 +12,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src", "prisma7.config.ts"]
+  "include": ["src", "scripts", "prisma7.config.ts"]
 }

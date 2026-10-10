@@ -5,7 +5,8 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "typecheck": "tsc",
-    "preview": "tsx src/preview.ts"
+    "preview": "tsx src/preview.ts",
+    "check-sources": "tsx scripts/checkSources.ts"
   },
   "keywords": [],
   "author": "",
