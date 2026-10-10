@@ -6,7 +6,7 @@ const openai = new OpenAI(); // ключ береться з OPENAI_API_KEY
 const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
 // Нижче цієї оцінки пост не пишемо (економія токенів) і не надсилаємо.
-export const MIN_SCORE = Number(process.env.MIN_SCORE || 5);
+export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
 
 export const STREAMS = [
   "Новинки та запуски",
