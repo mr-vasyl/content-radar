@@ -5,13 +5,13 @@
 //   status "evergreen_sent"     — надіслано
 //   status "evergreen_rejected" — не підходить (застаріло / не наше), більше не перевіряємо
 import { prisma } from "../db.ts";
-import { askJson, AUDIENCE, LANGUAGE, VOICE } from "../gpt.ts";
+import { askJson, AUDIENCE, HOOK_RULES, HOOK_SCORE, LANGUAGE, VOICE } from "../gpt.ts";
 import { sources } from "../sources.ts";
 import { fetchArticles, type Article } from "../fetchArticles.ts";
 import { ruleRejectReason } from "../ruleFilter.ts";
 import { extractText } from "../extractText.ts";
 import { alreadyRan, markRan } from "../formatLog.ts";
-import { sendPost } from "../sendToTelegram.ts";
+import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { ACCOUNTS, MIN_SCORE } from "../summarize.ts";
 import type { Account } from "../sources.ts";
 import type { RunOptions } from "./types.ts";
@@ -72,17 +72,21 @@ ${VOICE}
 - можна почати з короткого жирного заголовка в один рядок;
 - жодної іншої розмітки — без списків, курсиву, решіток і посилань;
 ${LANGUAGE}
-Якщо оцінка нижче ${MIN_SCORE} — post порожній рядок.`;
+Якщо оцінка нижче ${MIN_SCORE} — post порожній рядок.
+
+3. Якщо оцінка ${HOOK_SCORE} або вище — напиши ще ${HOOK_RULES}
+Якщо оцінка нижче ${HOOK_SCORE} — hook порожній рядок.`;
 
 const DEEP_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "account", "reason", "post"],
+  required: ["score", "account", "reason", "post", "hook"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     account: { type: "string", enum: Object.keys(ACCOUNTS) },
     reason: { type: "string" },
     post: { type: "string" },
+    hook: { type: "string" },
   },
 } as const;
 
@@ -91,6 +95,7 @@ interface Deep {
   account: Account;
   reason: string;
   post: string;
+  hook: string;
 }
 
 interface PoolItem {
@@ -101,10 +106,11 @@ interface PoolItem {
   account: Account;
   reason: string;
   post: string;
+  hook: string | null;
 }
 
-async function save(a: Article, status: string, extra: Partial<{ score: number; account: string; reason: string; post: string }>) {
-  const data = { status, score: extra.score ?? null, account: extra.account ?? null, reason: extra.reason ?? null, post: extra.post ?? null };
+async function save(a: Article, status: string, extra: Partial<{ score: number; account: string; reason: string; post: string; hook: string | null }>) {
+  const data = { status, score: extra.score ?? null, account: extra.account ?? null, reason: extra.reason ?? null, post: extra.post ?? null, hook: extra.hook ?? null };
   await prisma.article.upsert({
     where: { url: a.url },
     update: data,
@@ -173,8 +179,9 @@ async function refillPool(dryRun: boolean): Promise<PoolItem[]> {
       console.log(`${ok ? "✓" : "·"} ${d.score}/10 [${d.account}] ${a.source}: ${a.title} — ${d.reason}`);
       if (ok) {
         const post = `${d.post.trim()}\n\n_За матеріалами: ${a.source}_`;
-        added.push({ url: a.url, title: a.title, source: a.source, score: d.score, account: d.account, reason: d.reason, post });
-        if (!dryRun) await save(a, "evergreen", { score: d.score, account: d.account, reason: d.reason, post });
+        const hook = d.score >= HOOK_SCORE && d.hook.trim() ? d.hook.trim() : null;
+        added.push({ url: a.url, title: a.title, source: a.source, score: d.score, account: d.account, reason: d.reason, post, hook });
+        if (!dryRun) await save(a, "evergreen", { score: d.score, account: d.account, reason: d.reason, post, hook });
       } else if (!dryRun) {
         await save(a, "evergreen_rejected", { score: d.score, account: d.account, reason: d.reason });
       }
@@ -217,6 +224,7 @@ export async function runEvergreen({ dryRun, send }: RunOptions): Promise<void> 
       lines: [`♻️ Евергрін · ${ACCOUNTS[item.account]} · ⭐ ${item.score}/10`, item.title],
       link: { url: item.url, label: `Оригінал · ${item.source}` },
     });
+    if (item.hook) await sendHook(item.hook);
   }
   if (!dryRun) {
     await prisma.article.update({ where: { url: item.url }, data: { status: "evergreen_sent" } });

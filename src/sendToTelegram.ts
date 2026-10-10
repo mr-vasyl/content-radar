@@ -37,7 +37,8 @@ export async function sendPost(post: string, footer?: Footer): Promise<void> {
 
 // Короткий гачок для Threads — окремим беззвучним повідомленням, текст копіюється одним дотиком.
 export async function sendHook(hook: string): Promise<void> {
-  await telegram.sendMessage(chatId, `🪝 <i>Гачок для Threads</i>\n\n${escapeHtml(hook)}`, {
+  const plain = hook.replace(/\*\*/g, "").trim(); // Threads розмітку не показує
+  await telegram.sendMessage(chatId, `🪝 <i>Гачок для Threads</i>\n\n${escapeHtml(plain)}`, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true,

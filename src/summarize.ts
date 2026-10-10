@@ -1,6 +1,6 @@
 import type { Article } from "./fetchArticles.ts";
 import type { Account } from "./sources.ts";
-import { askJson, AUDIENCE, LANGUAGE, VOICE } from "./gpt.ts";
+import { askJson, AUDIENCE, HOOK_RULES, HOOK_SCORE, LANGUAGE, VOICE } from "./gpt.ts";
 
 // Нижче цієї оцінки пост не пишемо (економія токенів) і не надсилаємо.
 export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
@@ -28,6 +28,7 @@ export interface Analysis {
   reason: string;
   story_score: number; // 0–10: чи вийде з цього вау-історія
   post: string; // порожній, якщо score < MIN_SCORE
+  hook: string; // порожній, якщо score < HOOK_SCORE
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -83,12 +84,15 @@ ${LANGUAGE}
 
 Як мінімум для чернеток виглядає дуже зручно. А ви вже пробували AI-іконки у своїх проєктах?"
 
-Якщо оцінка нижче ${MIN_SCORE} — post порожній рядок.`;
+Якщо оцінка нижче ${MIN_SCORE} — post порожній рядок.
+
+3. Якщо оцінка ${HOOK_SCORE} або вище — напиши ще ${HOOK_RULES}
+Якщо оцінка нижче ${HOOK_SCORE} — hook порожній рядок.`;
 
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "story_score", "post"],
+  required: ["score", "stream", "account", "reason", "story_score", "post", "hook"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -96,6 +100,7 @@ const SCHEMA = {
     reason: { type: "string" },
     story_score: { type: "integer", minimum: 0, maximum: 10 },
     post: { type: "string" },
+    hook: { type: "string" },
   },
 } as const;
 
@@ -112,5 +117,6 @@ export async function analyze(article: Article, fullText: string | null): Promis
     throw new Error(`GPT поставив ${result.score}, але не написав пост для ${article.url}`);
   }
   if (result.post) result.post = `${result.post.trim()}\n\n_За матеріалами: ${article.source}_`;
+  result.hook = result.score >= HOOK_SCORE ? result.hook.trim() : "";
   return result;
 }

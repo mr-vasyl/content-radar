@@ -1,6 +1,6 @@
 // 🔥 Вау-історія тижня: для кожного акаунта — найсильніша історія (герой, цифри, поворот) зі статей за 7 днів.
 import { prisma } from "../db.ts";
-import { askJson, AUDIENCE, CLEAR_START, LANGUAGE } from "../gpt.ts";
+import { askJson, AUDIENCE, CLEAR_START, HOOK_RULES, LANGUAGE } from "../gpt.ts";
 import { extractText } from "../extractText.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
@@ -33,8 +33,7 @@ ${CLEAR_START}
 - не вигадуй особистий досвід і нічого, чого немає в тексті; якщо деталі немає — просто не згадуй її.
 ${LANGUAGE}
 
-Окремо напиши hook — короткий самостійний пост-гачок для Threads (до 280 символів): одна чіпка думка або питання,
-що інтригує й змушує зайти в профіль; можна маленькими літерами в розмовному стилі; без хештегів і посилань.`;
+Окремо напиши ${HOOK_RULES}`;
 
 const SCHEMA = {
   type: "object",
