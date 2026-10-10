@@ -27,7 +27,7 @@ for (const source of sources) {
     const r = await analyze(a, fullText);
     console.log(`\n${r.score >= MIN_SCORE ? "✓" : "·"} ${r.score}/10 [${r.account} · ${r.stream}] ${a.source}: ${a.title}`);
     console.log(`  ${r.reason}${fullText ? "" : "  (лише анонс з RSS)"}`);
-    if (r.post) console.log(`\n${r.post}`);
+    if (r.post) console.log(`\n${r.post}\n[${r.post.slice(0, r.post.lastIndexOf("\n\n")).replace(/\*\*/g, "").length} символів]`);
     if (send && r.score >= MIN_SCORE) {
       await sendMeta(a, r);
       await sendToTelegram(r.post);

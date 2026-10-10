@@ -24,6 +24,9 @@ export const sources: Source[] = [
   { name: "Tubefilter", url: "https://www.tubefilter.com/feed/", account: "creators" },
   { name: "The Verge", url: "https://www.theverge.com/rss/creators/index.xml", account: "creators" },
   { name: "Social Media Today", url: "https://www.socialmediatoday.com/feeds/news/", account: "creators" },
+  { name: "Passionfruit", url: "https://passionfru.it/feed/", account: "creators" },
+  { name: "Streams Charts", url: "https://streamscharts.com/feed", account: "creators" },
+  { name: "Creator Economy", url: "https://creatoreconomy.so/feed", account: "creators" },
 
   // 💻 Digital Tools — AI, розробка, геймдев
   { name: "TechCrunch", url: "https://techcrunch.com/category/artificial-intelligence/feed/", account: "tools" },
@@ -32,6 +35,13 @@ export const sources: Source[] = [
   { name: "Hugging Face", url: "https://huggingface.co/blog/feed.xml", account: "tools" },
   { name: "Game Developer", url: "https://www.gamedeveloper.com/rss.xml", account: "tools" },
 
-  // ✍️ Digital Knowledge — письменники, викладачі (джерел поки мало)
+  // ✍️ Digital Knowledge — письменники, самвидав, розсилки, автори курсів
   { name: "Jane Friedman", url: "https://janefriedman.com/feed/", account: "knowledge" },
+  { name: "ALLi", url: "https://selfpublishingadvice.org/feed/", account: "knowledge" },
+  { name: "Writer's Digest", url: "https://www.writersdigest.com/feed", account: "knowledge" },
+  { name: "Written Word Media", url: "https://www.writtenwordmedia.com/feed/", account: "knowledge" },
+  { name: "BookBub", url: "https://insights.bookbub.com/feed/", account: "knowledge" },
+  { name: "Draft2Digital", url: "https://www.draft2digital.com/blog/feed/", account: "knowledge" },
+  { name: "Substack", url: "https://on.substack.com/feed", account: "knowledge" },
+  { name: "eLearning Industry", url: "https://elearningindustry.com/feed", account: "knowledge" },
 ];

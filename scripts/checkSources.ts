@@ -54,7 +54,41 @@ const candidates: Candidate[] = [
   { name: "Social Media Today", group: "creators", feeds: ["https://www.socialmediatoday.com/feeds/news/"] },
   { name: "The Verge Creators", group: "creators", feeds: ["https://www.theverge.com/rss/creators/index.xml"] },
   { name: "Kit (ConvertKit) Blog", group: "creators", feeds: ["https://kit.com/resources/blog/rss.xml"], home: "https://kit.com/resources/blog" },
+  { name: "Patreon Blog", group: "monetize", feeds: ["https://blog.patreon.com/rss.xml", "https://news.patreon.com/rss.xml"], home: "https://news.patreon.com/" },
+  { name: "Ko-fi Blog", group: "monetize", feeds: ["https://ko-fi.com/blog/rss"], home: "https://ko-fi.com/blog" },
+  { name: "Creator Economy (Peter Yang)", group: "monetize", feeds: ["https://creatoreconomy.so/feed"] },
+  { name: "The Publish Press", group: "monetize", feeds: ["https://www.thepublishpress.com/feed", "https://thepublishpress.com/feed/"], home: "https://www.thepublishpress.com/" },
+  { name: "Passionfruit", group: "monetize", feeds: ["https://passionfru.it/feed/"], home: "https://passionfru.it/" },
+  { name: "Digiday", group: "monetize", feeds: ["https://digiday.com/feed/"] },
+  { name: "Streams Charts", group: "monetize", feeds: ["https://streamscharts.com/news/rss", "https://streamscharts.com/rss"], home: "https://streamscharts.com/news" },
+  { name: "Game Developer (indie)", group: "monetize", feeds: ["https://www.gamedeveloper.com/business/rss.xml"] },
+
+  // Knowledge: письменники, самвидав, розсилки
+  { name: "The Creative Penn", group: "knowledge", feeds: ["https://www.thecreativepenn.com/feed/"] },
+  { name: "ALLi Self-Publishing Advice", group: "knowledge", feeds: ["https://selfpublishingadvice.org/feed/"] },
+  { name: "Written Word Media", group: "knowledge", feeds: ["https://www.writtenwordmedia.com/feed/"] },
+  { name: "BookBub Insights", group: "knowledge", feeds: ["https://insights.bookbub.com/feed/"] },
+  { name: "Draft2Digital", group: "knowledge", feeds: ["https://www.draft2digital.com/blog/feed/"], home: "https://www.draft2digital.com/blog/" },
+  { name: "Writer's Digest", group: "knowledge", feeds: ["https://www.writersdigest.com/.rss/full/"], home: "https://www.writersdigest.com/" },
+  { name: "Publishers Weekly", group: "knowledge", feeds: ["https://www.publishersweekly.com/pw/feeds/recent/index.xml"], home: "https://www.publishersweekly.com/" },
+  { name: "The Book Designer", group: "knowledge", feeds: ["https://www.thebookdesigner.com/feed/"] },
+  { name: "On Substack", group: "knowledge", feeds: ["https://on.substack.com/feed"] },
+  { name: "beehiiv Blog", group: "knowledge", feeds: ["https://blog.beehiiv.com/feed", "https://www.beehiiv.com/blog/rss.xml"], home: "https://www.beehiiv.com/blog" },
+  { name: "Ghost Blog", group: "knowledge", feeds: ["https://ghost.org/blog/rss/"] },
+  { name: "Nieman Lab", group: "knowledge", feeds: ["https://www.niemanlab.org/feed/"] },
+  // Knowledge: викладачі, курси, експерти
+  { name: "Thinkific Blog", group: "knowledge", feeds: ["https://www.thinkific.com/blog/feed/"] },
+  { name: "Podia Blog", group: "knowledge", feeds: ["https://www.podia.com/articles/feed", "https://www.podia.com/articles/rss"], home: "https://www.podia.com/articles" },
+  { name: "Kajabi Blog", group: "knowledge", feeds: ["https://www.kajabi.com/blog/rss.xml"], home: "https://www.kajabi.com/blog" },
+  { name: "Class Central", group: "knowledge", feeds: ["https://www.classcentral.com/report/feed/"] },
+  { name: "EdSurge", group: "knowledge", feeds: ["https://www.edsurge.com/articles_rss"], home: "https://www.edsurge.com/" },
+  { name: "eLearning Industry", group: "knowledge", feeds: ["https://elearningindustry.com/feed"] },
+  { name: "Ness Labs", group: "knowledge", feeds: ["https://nesslabs.com/feed"] },
 ];
+
+// npm run check-sources knowledge monetize — перевірити лише ці групи
+const onlyGroups = process.argv.slice(2);
+if (onlyGroups.length) candidates.splice(0, candidates.length, ...candidates.filter((c) => onlyGroups.includes(c.group)));
 
 const DAY = 24 * 60 * 60 * 1000;
 const SAMPLE = 3;
