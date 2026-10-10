@@ -24,7 +24,7 @@ RSS усіх джерел → лише статті ≤ 3 днів → деду�
 - `src/sendToTelegram.ts` — `**жирний**`/`_курсив_` → Telegram HTML (з екрануванням); картка `sendMeta`.
 - `src/extractText.ts` — повний текст через Readability + jsdom (вікно jsdom обов'язково закривати, інакше процес висне).
 - `src/fetchArticles.ts` — стрічки качаються через `fetch` + `parseString` (не `parseURL`: gzip і 406 на деяких сайтах).
-- `.github/workflows/radar.yml` — розклад, при збої шле повідомлення в бот.
+- `.github/workflows/radar.yml` — сам запуск (лише `workflow_dispatch`), при збої шле повідомлення в бот.
 
 ## Рішення й домовленості
 
@@ -32,7 +32,12 @@ RSS усіх джерел → лише статті ≤ 3 днів → деду�
 - `MIN_SCORE` = 5 (env). Тиждень калібрування з 2026-10-10 — потім переглянути статистику в БД і поріг.
 - Пост: 500–1000 символів, живий тон блогера, 2–4 абзаци, 1–3 жирних виділення, підпис «За матеріалами: <платформа>» без лінка. У Threads ліміт 500 — власник скорочує сам.
 - Аудиторія: ті, хто продає цифрові продукти, і ті, хто монетизує контент (блогери, стрімери, подкастери, автори на Patreon/Ko-fi/Boosty). Три акаунти: Creators, Tools, Knowledge.
-- Розклад: кожні 2 год о :17, 05–19 UTC (8:17–22:17 Київ влітку). Не о :00 — перший слот о 16:00 GitHub пропустив через навантаження на початку години. Репо приватне — 60-денне автовимкнення cron не стосується.
+- Розклад: кожні 2 год о :17, 05–19 UTC (8:17–22:17 Київ влітку). Живе в Supabase: `pg_cron` + `pg_net` викликають
+  GitHub API `workflow_dispatch` (вбудований `schedule` GitHub для цього репо не спрацював жодного разу).
+  Налаштовується `npm run setup-cron` (`scripts/setupCron.ts`), токен — у Supabase Vault.
+  ⚠️ Токен `GITHUB_DISPATCH_TOKEN` (fine-grained, Actions: Read and write, лише content-radar) діє до 2027-10-10.
+  Після цього: новий токен → `.env` → `npm run setup-cron`.
+- Supabase free пауза після 7 днів без активності не загрожує: бот і pg_cron звертаються до БД щодня. Репо приватне — 60-денне автовимкнення cron не стосується.
 - Prisma закріплена на 7.10.0 (тег `latest` на npm вказує на 8.0.0-rc — не оновлювати без потреби). Клієнт генерується в `generated/prisma` (у .gitignore; у CI — `npx prisma generate`).
 - TypeScript 7 → запуск через `tsx`, не `ts-node`.
 
@@ -48,3 +53,4 @@ RSS усіх джерел → лише статті ≤ 3 днів → деду�
 
 `DATABASE_URL` (Supabase, Session pooler, порт 5432), `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` —
 у `.env` локально і в GitHub Secrets для Actions. При зміні ключа — оновлювати обидва місця.
+`GITHUB_DISPATCH_TOKEN` — лише в `.env` і Supabase Vault (у GitHub Secrets не потрібен).

@@ -6,7 +6,8 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc",
     "preview": "tsx src/preview.ts",
-    "check-sources": "tsx scripts/checkSources.ts"
+    "check-sources": "tsx scripts/checkSources.ts",
+    "setup-cron": "tsx scripts/setupCron.ts"
   },
   "keywords": [],
   "author": "",
