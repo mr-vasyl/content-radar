@@ -60,7 +60,7 @@ export async function runNews(): Promise<void> {
         await sendPost(analysis.post, {
           lines: [`📰 ${ACCOUNTS[analysis.account]} · ⭐ ${analysis.score}/10 · ${analysis.stream}`, a.title],
           link: { url: a.url, label: `Оригінал · ${a.source}` },
-        });
+        }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
         if (analysis.hook) await sendHook(analysis.hook);
         await record(a, "sent", { analysis }); // тільки після успішної відправки
         sent++;

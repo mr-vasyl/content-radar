@@ -7,7 +7,8 @@
     "typecheck": "tsc",
     "preview": "tsx src/preview.ts",
     "check-sources": "tsx scripts/checkSources.ts",
-    "setup-cron": "tsx scripts/setupCron.ts"
+    "setup-cron": "tsx scripts/setupCron.ts",
+    "stats": "tsx scripts/stats.ts"
   },
   "keywords": [],
   "author": "",

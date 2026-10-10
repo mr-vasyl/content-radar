@@ -129,7 +129,11 @@ export async function runTools({ dryRun, send }: RunOptions): Promise<void> {
     console.log(`\n🧰 ${account}:\n${post}\n[${post.replace(/\*\*/g, "").length} символів]`);
 
     if (send) {
-      await sendPost(post, { lines: [`🧰 Інструменти тижня · ${ACCOUNTS[account]} · ${week}`, "GitHub і Hugging Face"] });
+      await sendPost(
+        post,
+        { lines: [`🧰 Інструменти тижня · ${ACCOUNTS[account]} · ${week}`, "GitHub і Hugging Face"] },
+        dryRun ? undefined : { format: "tools", title: digest.title, account },
+      );
     }
     if (!dryRun) {
       await markFeatured("tools", chosen.map((c) => c.key));

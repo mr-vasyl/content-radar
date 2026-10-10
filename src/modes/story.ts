@@ -97,7 +97,7 @@ export async function runStory({ dryRun, send }: RunOptions): Promise<void> {
       await sendPost(story, {
         lines: [`🔥 Вау-історія · ${ACCOUNTS[account]} · історія ${row.storyScore ?? "—"}/10`, row.title],
         link: { url: row.url, label: `Оригінал · ${row.source}` },
-      });
+      }, dryRun ? undefined : { format: "story", title: row.title, url: row.url, source: row.source, account, score: row.storyScore ?? undefined });
       await sendHook(out.hook.trim());
     }
     if (!dryRun) {

@@ -6,6 +6,7 @@
 //   npm start -- evergreen — ♻️ евергрін
 import "dotenv/config";
 import { prisma } from "./db.ts";
+import { pollReactions } from "./reactions.ts";
 import { runNews } from "./modes/news.ts";
 import { runTools } from "./modes/tools.ts";
 import { runStory } from "./modes/story.ts";
@@ -26,6 +27,14 @@ async function main() {
   const run = MODES[mode];
   if (!run) throw new Error(`Невідомий режим "${mode}". Доступні: ${Object.keys(MODES).join(", ")}`);
   console.log(`Режим: ${mode}`);
+
+  // Спершу забираємо твої реакції на пости — збій тут не повинен зупиняти основну роботу
+  try {
+    await pollReactions();
+  } catch (err) {
+    console.error("Не вдалося забрати реакції:", (err as Error).message);
+  }
+
   await run();
 }
 

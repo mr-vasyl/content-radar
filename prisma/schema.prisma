@@ -27,6 +27,27 @@ model Article {
   hook        String?   // 🪝 короткий пост-гачок для Threads (лише для оцінок HOOK_SCORE+)
 }
 
+// Кожен надісланий у бот пост — щоб зіставити твою реакцію (👍) з постом.
+model SentMessage {
+  id        Int       @id @default(autoincrement())
+  messageId Int       @unique // message_id у Telegram
+  format    String    // news | tools | story | evergreen | saves
+  title     String
+  url       String?   // оригінал статті (для добірок — немає)
+  source    String?
+  account   String?
+  score     Int?
+  reaction  String?   // останній емодзі-реакція власника; null — реакції немає
+  reactedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// Дрібні службові значення між запусками (напр. offset для getUpdates).
+model BotState {
+  key   String @id
+  value String
+}
+
 // Що вже потрапляло в добірки (інструменти, ресурси) — щоб не повторювати тиждень у тиждень.
 model FeaturedItem {
   id         Int      @id @default(autoincrement())

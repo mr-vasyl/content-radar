@@ -223,7 +223,7 @@ export async function runEvergreen({ dryRun, send }: RunOptions): Promise<void> 
     await sendPost(item.post, {
       lines: [`♻️ Евергрін · ${ACCOUNTS[item.account]} · ⭐ ${item.score}/10`, item.title],
       link: { url: item.url, label: `Оригінал · ${item.source}` },
-    });
+    }, dryRun ? undefined : { format: "evergreen", title: item.title, url: item.url, source: item.source, account: item.account, score: item.score });
     if (item.hook) await sendHook(item.hook);
   }
   if (!dryRun) {

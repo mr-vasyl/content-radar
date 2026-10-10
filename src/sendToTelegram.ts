@@ -1,6 +1,7 @@
 import { Telegram } from "telegraf";
+import { prisma } from "./db.ts";
 
-const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
+export const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
 const chatId = process.env.TELEGRAM_CHAT_ID!;
 
 function escapeHtml(s: string): string {
@@ -20,19 +21,43 @@ export interface Footer {
   link?: { url: string; label: string }; // посилання на оригінал
 }
 
+// Що записати про пост, щоб потім зіставити з ним твою реакцію
+export interface Track {
+  format: "news" | "tools" | "story" | "evergreen" | "saves";
+  title: string;
+  url?: string;
+  source?: string;
+  account?: string;
+  score?: number;
+}
+
 // Одне повідомлення: зверху пост, під рискою — службовий підпис (акаунт, оцінка, назва, джерело).
 // Пост копіюється до риски; при пересиланні підпис піде разом із постом.
-export async function sendPost(post: string, footer?: Footer): Promise<void> {
+// track — записати пост у SentMessage (у тестових прогонах не передаємо).
+export async function sendPost(post: string, footer?: Footer, track?: Track): Promise<void> {
   let text = toTelegramHtml(post);
   if (footer) {
     const meta = footer.lines.map(escapeHtml);
     if (footer.link) meta.push(`<a href="${escapeHtml(footer.link.url)}">${escapeHtml(footer.link.label)}</a>`);
     text += `\n\n———\n<i>${meta.join("\n")}</i>`;
   }
-  await telegram.sendMessage(chatId, text, {
+  const msg = await telegram.sendMessage(chatId, text, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
   });
+  if (track) {
+    await prisma.sentMessage.create({
+      data: {
+        messageId: msg.message_id,
+        format: track.format,
+        title: track.title,
+        url: track.url ?? null,
+        source: track.source ?? null,
+        account: track.account ?? null,
+        score: track.score ?? null,
+      },
+    });
+  }
 }
 
 // Короткий гачок для Threads — окремим беззвучним повідомленням, текст копіюється одним дотиком.

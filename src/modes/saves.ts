@@ -54,7 +54,11 @@ export async function runSaves({ dryRun, send }: RunOptions): Promise<void> {
   console.log(`\n📌 Збережи собі:\n${digest.post}\n[${digest.post.replace(/\*\*/g, "").length} символів]`);
 
   if (send) {
-    await sendPost(digest.post, { lines: [`📌 Збережи собі · ${week}`, "Безкоштовні ресурси й можливості тижня"] });
+    await sendPost(
+      digest.post,
+      { lines: [`📌 Збережи собі · ${week}`, "Безкоштовні ресурси й можливості тижня"] },
+      dryRun ? undefined : { format: "saves", title: `Збережи собі ${week}` },
+    );
   }
   if (!dryRun) {
     await markFeatured("saves", digest.chosen.map((c) => c.key));
