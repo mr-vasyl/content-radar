@@ -26,6 +26,18 @@ export async function loadFeed(url: string) {
   return parser.parseString(await res.text());
 }
 
+// Деякі стрічки лишають у заголовках HTML-сутності: &#8217; &amp; &quot; …
+function decodeEntities(s: string): string {
+  const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+  return s.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (m, code: string) => {
+    if (code[0] === "#") {
+      const n = code[1]?.toLowerCase() === "x" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return Number.isNaN(n) ? m : String.fromCodePoint(n);
+    }
+    return named[code.toLowerCase()] ?? m;
+  });
+}
+
 export async function fetchArticles(source: Source): Promise<Article[]> {
   const feed = await loadFeed(source.url);
 
@@ -34,7 +46,7 @@ export async function fetchArticles(source: Source): Promise<Article[]> {
     .map((item) => ({
       source: source.name,
       account: source.account,
-      title: item.title!.trim(),
+      title: decodeEntities(item.title!.trim()),
       url: item.link!,
       publishedAt: item.isoDate ? new Date(item.isoDate) : null,
       content: (item.contentSnippet ?? item.content ?? "").trim(),

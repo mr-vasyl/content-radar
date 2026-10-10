@@ -15,4 +15,11 @@ model Article {
   source      String
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
+
+  // що з нею сталося: sent | rejected_rules | rejected_ai | skipped
+  status      String    @default("sent")
+  score       Int?      // оцінка GPT 1–10
+  stream      String?   // потік контенту (новинки, ресурси, заробіток…)
+  account     String?   // creators | tools | knowledge
+  reason      String?   // чому така оцінка / чому відсіяно правилами
 }

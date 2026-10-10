@@ -1,14 +1,15 @@
 import "dotenv/config";
 import { sources } from "./sources.ts";
 import { fetchArticles, type Article } from "./fetchArticles.ts";
-import { filterNew, markSeen } from "./dedup.ts";
+import { filterNew, record } from "./dedup.ts";
+import { ruleRejectReason } from "./ruleFilter.ts";
 import { extractText } from "./extractText.ts";
-import { summarize } from "./summarize.ts";
-import { sendToTelegram } from "./sendToTelegram.ts";
+import { analyze, MIN_SCORE } from "./summarize.ts";
+import { sendMeta, sendToTelegram } from "./sendToTelegram.ts";
 import { prisma } from "./db.ts";
 
-// Не більше стількох постів за один запуск — щоб нове джерело не завалило бота
-// всім своїм архівом. Решта прийде наступними запусками.
+// Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
+// всім своїм архівом. Старіші, що не влізли, позначаються як пропущені.
 const MAX_PER_RUN = 15;
 
 // Старіше — не новина. Деякі стрічки (Figma, Hugging Face) віддають увесь архів.
@@ -19,9 +20,7 @@ async function main() {
 
   for (const source of sources) {
     try {
-      const articles = await fetchArticles(source);
-      console.log(`${source.name}: ${articles.length} статей у стрічці`);
-      all.push(...articles);
+      all.push(...(await fetchArticles(source)));
     } catch (err) {
       // одне зламане джерело не повинно зупиняти інші
       console.error(`Помилка з джерелом ${source.name}:`, err);
@@ -30,32 +29,49 @@ async function main() {
 
   const cutoff = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
   const recent = all.filter((a) => !a.publishedAt || a.publishedAt.getTime() >= cutoff);
-
   const fresh = await filterNew(recent);
-  // від старіших до новіших, щоб у чаті йшли по порядку
-  fresh.sort((a, b) => (a.publishedAt?.getTime() ?? 0) - (b.publishedAt?.getTime() ?? 0));
-  const batch = fresh.slice(-MAX_PER_RUN);
-  console.log(`\nСвіжих (≤${MAX_AGE_DAYS} дн.): ${recent.length} з ${all.length}, нових: ${fresh.length}, відправляю ${batch.length}`);
 
+  // 1. прості правила — без GPT
+  const candidates: Article[] = [];
+  for (const a of fresh) {
+    const why = ruleRejectReason(a);
+    if (why) await record(a, "rejected_rules", { reason: why });
+    else candidates.push(a);
+  }
+
+  // від старіших до новіших, щоб у чаті йшли по порядку
+  candidates.sort((a, b) => (a.publishedAt?.getTime() ?? 0) - (b.publishedAt?.getTime() ?? 0));
+  const batch = candidates.slice(-MAX_PER_RUN);
+  for (const a of candidates.slice(0, -MAX_PER_RUN)) await record(a, "skipped", { reason: "не влізла в ліміт запуску" });
+
+  console.log(
+    `Статей у стрічках: ${all.length}, свіжих: ${recent.length}, нових: ${fresh.length}, ` +
+      `відсіяно правилами: ${fresh.length - candidates.length}, на оцінку GPT: ${batch.length}`,
+  );
+
+  // 2. GPT оцінює і пише пост; 3. надсилаємо те, що пройшло поріг
   let sent = 0;
   for (const a of batch) {
     try {
-      const fullText = await extractText(a.url);
-      const post = await summarize(a, fullText);
-      await sendToTelegram(post);
-      await markSeen(a); // тільки після успішної відправки
-      sent++;
-      console.log(`✓ ${a.title}`);
+      const analysis = await analyze(a, await extractText(a.url));
+
+      if (analysis.score >= MIN_SCORE) {
+        await sendMeta(a, analysis);
+        await sendToTelegram(analysis.post);
+        await record(a, "sent", { analysis }); // тільки після успішної відправки
+        sent++;
+        console.log(`✓ ${analysis.score}/10 ${a.title}`);
+      } else {
+        await record(a, "rejected_ai", { analysis });
+        console.log(`· ${analysis.score}/10 ${a.title} — ${analysis.reason}`);
+      }
     } catch (err) {
-      // не позначаємо — спробуємо ще раз наступного запуску
+      // не записуємо — спробуємо ще раз наступного запуску
       console.error(`✗ ${a.title}:`, err);
     }
   }
 
-  // старіші, що не влізли в ліміт, просто позначаємо — їх уже не наздогнати
-  for (const a of fresh.slice(0, -MAX_PER_RUN)) await markSeen(a);
-
-  console.log(`\nВідправлено: ${sent}/${batch.length}`);
+  console.log(`\nВідправлено: ${sent}/${batch.length} (поріг ${MIN_SCORE}/10)`);
 }
 
 main()

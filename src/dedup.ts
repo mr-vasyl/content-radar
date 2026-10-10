@@ -1,5 +1,6 @@
 import { prisma } from "./db.ts";
 import type { Article } from "./fetchArticles.ts";
+import type { Analysis } from "./summarize.ts";
 
 // Повертає лише ті статті, яких ще немає в базі.
 export async function filterNew(articles: Article[]): Promise<Article[]> {
@@ -19,16 +20,31 @@ export async function filterNew(articles: Article[]): Promise<Article[]> {
   return [...unique.values()];
 }
 
-// Позначає статтю як оброблену, щоб наступний запуск її пропустив.
-export async function markSeen(article: Article): Promise<void> {
+type Status = "sent" | "rejected_rules" | "rejected_ai" | "skipped";
+
+// Записує статтю з рішенням щодо неї — наступний запуск її пропустить.
+export async function record(
+  article: Article,
+  status: Status,
+  extra: { reason?: string; analysis?: Analysis } = {},
+): Promise<void> {
+  const a = extra.analysis;
+  const data = {
+    status,
+    score: a?.score ?? null,
+    stream: a?.stream ?? null,
+    account: a?.account ?? null,
+    reason: a?.reason ?? extra.reason ?? null,
+  };
   await prisma.article.upsert({
     where: { url: article.url },
-    update: {},
+    update: data,
     create: {
       url: article.url,
       title: article.title,
       source: article.source,
       publishedAt: article.publishedAt,
+      ...data,
     },
   });
 }
