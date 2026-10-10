@@ -84,6 +84,69 @@ const candidates: Candidate[] = [
   { name: "EdSurge", group: "knowledge", feeds: ["https://www.edsurge.com/articles_rss"], home: "https://www.edsurge.com/" },
   { name: "eLearning Industry", group: "knowledge", feeds: ["https://elearningindustry.com/feed"] },
   { name: "Ness Labs", group: "knowledge", feeds: ["https://nesslabs.com/feed"] },
+
+  // ── Третя хвиля (2026-10-10): закриваємо прогалини ──
+  // Безкоштовні ресурси й дизайн
+  { name: "Freebiesbug", group: "b3-design", feeds: ["https://freebiesbug.com/feed/"] },
+  { name: "Speckyboy", group: "b3-design", feeds: ["https://speckyboy.com/feed/"] },
+  { name: "Abduzeedo", group: "b3-design", feeds: ["https://abduzeedo.com/rss.xml", "https://abduzeedo.com/feed"], home: "https://abduzeedo.com/" },
+  { name: "Designmodo", group: "b3-design", feeds: ["https://designmodo.com/feed/"] },
+  { name: "Graphic Design Junction", group: "b3-design", feeds: ["https://graphicdesignjunction.com/feed/"] },
+  { name: "Design Week", group: "b3-design", feeds: ["https://www.designweek.co.uk/feed/"] },
+  { name: "Motionographer", group: "b3-design", feeds: ["https://motionographer.com/feed/"] },
+  { name: "Colossal", group: "b3-design", feeds: ["https://www.thisiscolossal.com/feed/"] },
+  { name: "UX Collective", group: "b3-design", feeds: ["https://uxdesign.cc/feed"] },
+  { name: "Sidebar", group: "b3-design", feeds: ["https://sidebar.io/feed.xml"] },
+  // Відео й фото
+  { name: "PremiumBeat", group: "b3-video", feeds: ["https://www.premiumbeat.com/blog/feed/"] },
+  { name: "CineD", group: "b3-video", feeds: ["https://www.cined.com/feed/"] },
+  { name: "Frame.io Insider", group: "b3-video", feeds: ["https://blog.frame.io/feed/"] },
+  { name: "DIY Photography", group: "b3-video", feeds: ["https://www.diyphotography.net/feed/"] },
+  { name: "Motion Array Learn", group: "b3-video", feeds: ["https://motionarray.com/learn/feed/"], home: "https://motionarray.com/learn/" },
+  // YouTube, стрімінг, соцмережі, подкасти
+  { name: "YouTube Official Blog", group: "b3-creators", feeds: ["https://blog.youtube/rss/"], home: "https://blog.youtube/" },
+  { name: "vidIQ Blog", group: "b3-creators", feeds: ["https://vidiq.com/blog/feed/"], home: "https://vidiq.com/blog/" },
+  { name: "TubeBuddy Blog", group: "b3-creators", feeds: ["https://www.tubebuddy.com/blog/feed/"], home: "https://www.tubebuddy.com/blog" },
+  { name: "Social Media Examiner", group: "b3-creators", feeds: ["https://www.socialmediaexaminer.com/feed/"] },
+  { name: "Buffer Blog", group: "b3-creators", feeds: ["https://buffer.com/resources/rss/"], home: "https://buffer.com/resources/" },
+  { name: "Later Blog", group: "b3-creators", feeds: ["https://later.com/blog/feed/"], home: "https://later.com/blog/" },
+  { name: "Hootsuite Blog", group: "b3-creators", feeds: ["https://blog.hootsuite.com/feed/"] },
+  { name: "Twitch Blog", group: "b3-creators", feeds: ["https://blog.twitch.tv/en/rss.xml"], home: "https://blog.twitch.tv/en/" },
+  { name: "Spotify Newsroom", group: "b3-creators", feeds: ["https://newsroom.spotify.com/feed/"] },
+  { name: "Podnews", group: "b3-creators", feeds: ["https://podnews.net/rss"] },
+  { name: "Meta Newsroom", group: "b3-creators", feeds: ["https://about.fb.com/news/feed/"] },
+  { name: "TikTok Newsroom", group: "b3-creators", feeds: ["https://newsroom.tiktok.com/en-us/rss"], home: "https://newsroom.tiktok.com/en-us" },
+  // Продаж цифрових продуктів
+  { name: "Creative Market Blog", group: "b3-sell", feeds: ["https://creativemarket.com/blog/feed"] },
+  { name: "Envato Blog", group: "b3-sell", feeds: ["https://www.envato.com/blog/feed/"] },
+  { name: "Etsy Seller Handbook", group: "b3-sell", feeds: ["https://www.etsy.com/seller-handbook/rss"], home: "https://www.etsy.com/seller-handbook" },
+  { name: "Shutterstock Blog", group: "b3-sell", feeds: ["https://www.shutterstock.com/blog/feed"], home: "https://www.shutterstock.com/blog" },
+  { name: "Lemon Squeezy Blog", group: "b3-sell", feeds: ["https://www.lemonsqueezy.com/blog/rss.xml"], home: "https://www.lemonsqueezy.com/blog" },
+  { name: "Gumroad Blog", group: "b3-sell", feeds: ["https://gumroad.com/blog/feed", "https://gumroad.gumroad.com/feed"], home: "https://gumroad.com/blog" },
+  // AI-інструменти
+  { name: "VentureBeat AI", group: "b3-ai", feeds: ["https://venturebeat.com/category/ai/feed/"] },
+  { name: "Ben's Bites", group: "b3-ai", feeds: ["https://www.bensbites.com/feed"], home: "https://www.bensbites.com/" },
+  { name: "Simon Willison", group: "b3-ai", feeds: ["https://simonwillison.net/atom/everything/"] },
+  { name: "The Decoder", group: "b3-ai", feeds: ["https://the-decoder.com/feed/"] },
+  // Музика
+  { name: "Bedroom Producers Blog", group: "b3-music", feeds: ["https://bedroomproducersblog.com/feed/"] },
+  { name: "Rekkerd", group: "b3-music", feeds: ["https://rekkerd.org/feed/"] },
+  { name: "Attack Magazine", group: "b3-music", feeds: ["https://www.attackmagazine.com/feed/"] },
+  { name: "MusicTech", group: "b3-music", feeds: ["https://musictech.com/feed/"] },
+  { name: "Hypebot", group: "b3-music", feeds: ["https://www.hypebot.com/feed/"] },
+  // Геймдев
+  { name: "How To Market A Game", group: "b3-gamedev", feeds: ["https://howtomarketagame.com/feed/"] },
+  { name: "GameDiscoverCo", group: "b3-gamedev", feeds: ["https://newsletter.gamediscover.co/feed"] },
+  { name: "Godot News", group: "b3-gamedev", feeds: ["https://godotengine.org/rss.xml"] },
+  { name: "Blender Developers", group: "b3-gamedev", feeds: ["https://code.blender.org/feed/"] },
+  { name: "GameDev Pulse (TG)", group: "b3-gamedev", feeds: ["https://rsshub.app/telegram/channel/gamedev"] },
+  // Письменники, розсилки, курси
+  { name: "Self-Publishing Formula", group: "b3-knowledge", feeds: ["https://selfpublishingformula.com/feed/"] },
+  { name: "Writer Unboxed", group: "b3-knowledge", feeds: ["https://writerunboxed.com/feed/"] },
+  { name: "Nathan Bransford", group: "b3-knowledge", feeds: ["https://nathanbransford.com/feed"] },
+  { name: "Inbox Collective", group: "b3-knowledge", feeds: ["https://inboxcollective.com/feed/"] },
+  { name: "Circle Blog", group: "b3-knowledge", feeds: ["https://circle.so/blog/rss.xml"], home: "https://circle.so/blog" },
+  { name: "Mighty Networks", group: "b3-knowledge", feeds: ["https://www.mightynetworks.com/resources/rss.xml"], home: "https://www.mightynetworks.com/resources" },
 ];
 
 // npm run check-sources knowledge monetize — перевірити лише ці групи
