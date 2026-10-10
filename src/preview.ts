@@ -15,6 +15,8 @@ for (const source of sources) {
     const fullText = await extractText(a.url);
     console.log(`\n──── ${a.title}`);
     console.log(`текст: ${fullText ? `${fullText.length} символів зі сторінки` : "лише анонс з RSS"}\n`);
-    console.log(await summarize(a, fullText));
+    const post = await summarize(a, fullText);
+    console.log(post);
+    console.log(`\n[${post.split("\n\n")[0]!.length} символів без підпису]`);
   }
 }
