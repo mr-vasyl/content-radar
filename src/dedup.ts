@@ -35,6 +35,7 @@ export async function record(
     stream: a?.stream ?? null,
     account: a?.account ?? null,
     reason: a?.reason ?? extra.reason ?? null,
+    post: status === "sent" ? (a?.post ?? null) : null,
   };
   await prisma.article.upsert({
     where: { url: article.url },

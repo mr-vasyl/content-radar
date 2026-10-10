@@ -22,4 +22,25 @@ model Article {
   stream      String?   // потік контенту (новинки, ресурси, заробіток…)
   account     String?   // creators | tools | knowledge
   reason      String?   // чому така оцінка / чому відсіяно правилами
+  post        String?   // текст надісланого поста — для тижневих і місячних добірок
+}
+
+// Що вже потрапляло в добірки (інструменти, ресурси) — щоб не повторювати тиждень у тиждень.
+model FeaturedItem {
+  id         Int      @id @default(autoincrement())
+  key        String   // напр. "github:owner/repo", "hf:owner/space", "article:<url>"
+  format     String   // tools | saves | story | evergreen | monthly
+  featuredAt DateTime @default(now())
+
+  @@unique([key, format])
+}
+
+// Який формат за який період уже вийшов — повторний запуск не надішле його двічі.
+model FormatRun {
+  id        Int      @id @default(autoincrement())
+  format    String   // tools | saves | story | evergreen | monthly
+  period    String   // напр. "2026-W41:tools" або "2026-10:creators"
+  createdAt DateTime @default(now())
+
+  @@unique([format, period])
 }

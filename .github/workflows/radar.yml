@@ -4,6 +4,12 @@ on:
   # Розклад живе в Supabase (pg_cron → GitHub API), див. scripts/setupCron.ts.
   # Вбудований schedule GitHub для цього репо не спрацював жодного разу, тому його тут немає.
   workflow_dispatch: # запуск з Supabase за розкладом і кнопка "Run workflow" вручну
+    inputs:
+      mode:
+        description: "Режим: news — новини, tools — інструменти тижня"
+        type: choice
+        options: [news, tools]
+        default: news
 
 # Якщо попередній запуск ще працює — новий чекає, а не біжить паралельно (щоб не було дублів)
 concurrency:
@@ -20,6 +26,8 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      GITHUB_TOKEN: ${{ github.token }} # для пошуку репозиторіїв (вищий ліміт GitHub API)
+      MODE: ${{ inputs.mode || 'news' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -39,4 +47,4 @@ jobs:
         run: |
           curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=⚠️ Content Radar впав. Лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            --data-urlencode "text=⚠️ Content Radar (${MODE}) впав. Лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

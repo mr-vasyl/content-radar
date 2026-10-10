@@ -24,6 +24,16 @@ export async function sendToTelegram(text: string): Promise<void> {
   });
 }
 
+// Картка для форматів, що не прив'язані до однієї статті (добірки, топи).
+// Беззвучно — щоб пост під нею пересилався без неї.
+export async function sendCard(lines: string[]): Promise<void> {
+  await telegram.sendMessage(chatId, lines.map(escapeHtml).join("\n").replace(/^(.+)$/m, "<b>$1</b>"), {
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    disable_notification: true,
+  });
+}
+
 // Службова картка над постом: оцінка, канал, потік, посилання на оригінал.
 // Окремим беззвучним повідомленням — щоб пост пересилався в канал без неї.
 export async function sendMeta(article: Article, a: Analysis): Promise<void> {
