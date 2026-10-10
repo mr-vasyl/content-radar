@@ -11,6 +11,9 @@ import { prisma } from "./db.ts";
 // всім своїм архівом. Решта прийде наступними запусками.
 const MAX_PER_RUN = 15;
 
+// Старіше — не новина. Деякі стрічки (Figma, Hugging Face) віддають увесь архів.
+const MAX_AGE_DAYS = 3;
+
 async function main() {
   const all: Article[] = [];
 
@@ -25,11 +28,14 @@ async function main() {
     }
   }
 
-  const fresh = await filterNew(all);
+  const cutoff = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+  const recent = all.filter((a) => !a.publishedAt || a.publishedAt.getTime() >= cutoff);
+
+  const fresh = await filterNew(recent);
   // від старіших до новіших, щоб у чаті йшли по порядку
   fresh.sort((a, b) => (a.publishedAt?.getTime() ?? 0) - (b.publishedAt?.getTime() ?? 0));
   const batch = fresh.slice(-MAX_PER_RUN);
-  console.log(`\nНових: ${fresh.length} з ${all.length}, відправляю ${batch.length}`);
+  console.log(`\nСвіжих (≤${MAX_AGE_DAYS} дн.): ${recent.length} з ${all.length}, нових: ${fresh.length}, відправляю ${batch.length}`);
 
   let sent = 0;
   for (const a of batch) {

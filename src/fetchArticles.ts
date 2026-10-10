@@ -1,8 +1,9 @@
 import Parser from "rss-parser";
-import type { Source } from "./sources.ts";
+import type { Account, Source } from "./sources.ts";
 
 export interface Article {
   source: string;
+  account: Account;
   title: string;
   url: string;
   publishedAt: Date | null;
@@ -32,6 +33,7 @@ export async function fetchArticles(source: Source): Promise<Article[]> {
     .filter((item) => item.link && item.title)
     .map((item) => ({
       source: source.name,
+      account: source.account,
       title: item.title!.trim(),
       url: item.link!,
       publishedAt: item.isoDate ? new Date(item.isoDate) : null,
