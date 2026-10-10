@@ -10,7 +10,7 @@ import { prisma } from "./db.ts";
 
 // Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
 // всім своїм архівом. Старіші, що не влізли, позначаються як пропущені.
-const MAX_PER_RUN = 15;
+const MAX_PER_RUN = 25;
 
 // Старіше — не новина. Деякі стрічки (Figma, Hugging Face) віддають увесь архів.
 const MAX_AGE_DAYS = 3;
@@ -51,6 +51,7 @@ async function main() {
 
   // 2. GPT оцінює і пише пост; 3. надсилаємо те, що пройшло поріг
   let sent = 0;
+  let failed = 0;
   for (const a of batch) {
     try {
       const analysis = await analyze(a, await extractText(a.url));
@@ -68,10 +69,17 @@ async function main() {
     } catch (err) {
       // не записуємо — спробуємо ще раз наступного запуску
       console.error(`✗ ${a.title}:`, err);
+      failed++;
     }
   }
 
-  console.log(`\nВідправлено: ${sent}/${batch.length} (поріг ${MIN_SCORE}/10)`);
+  console.log(`\nВідправлено: ${sent}/${batch.length} (поріг ${MIN_SCORE}/10), помилок: ${failed}`);
+
+  // Якщо впало все (скінчились гроші на OpenAI, бот заблоковано, ключ невірний) —
+  // позначаємо запуск як збійний, щоб GitHub Actions надіслав попередження.
+  if (all.length === 0 || (batch.length > 0 && failed === batch.length)) {
+    throw new Error(all.length === 0 ? "Жодне джерело не відповіло" : "Усі статті запуску завершились помилкою");
+  }
 }
 
 main()

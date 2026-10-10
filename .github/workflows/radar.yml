@@ -1,0 +1,44 @@
+name: Content Radar
+
+on:
+  schedule:
+    # Кожні 2 години з 05:00 до 19:00 UTC = 8:00–22:00 за Києвом влітку (7:00–21:00 взимку).
+    # GitHub може запускати із запізненням 5–30 хв — це нормально.
+    - cron: "0 5-19/2 * * *"
+  workflow_dispatch: # кнопка "Run workflow" для ручного запуску
+
+# Якщо попередній запуск ще працює — новий чекає, а не біжить паралельно (щоб не було дублів)
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # якщо щось зависне — не з'їсть хвилини
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm start
+
+      # Якщо будь-який крок упав — повідомлення в бот із посиланням на лог
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=⚠️ Content Radar впав. Лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
