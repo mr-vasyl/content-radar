@@ -2,6 +2,8 @@
 //   npm run preview [N] [send]        — новини: N останніх статей з кожного джерела (за замовч. 1)
 //   npm run preview tools [send]      — 🧰 інструменти тижня
 //   npm run preview story [send]      — 🔥 вау-історія тижня
+//   npm run preview saves [send]      — 📌 збережи собі
+//   npm run preview monthly [send]    — 📅 топ місяця (у тесті — за останні 30 днів)
 // "send" — ще й надіслати в бот.
 import "dotenv/config";
 import { sources } from "./sources.ts";
@@ -12,9 +14,11 @@ import { analyze, MIN_SCORE } from "./summarize.ts";
 import { sendMeta, sendToTelegram } from "./sendToTelegram.ts";
 import { runTools } from "./modes/tools.ts";
 import { runStory } from "./modes/story.ts";
+import { runSaves } from "./modes/saves.ts";
+import { runMonthly } from "./modes/monthly.ts";
 import { prisma } from "./db.ts";
 
-const MODES = { tools: runTools, story: runStory } as const;
+const MODES = { tools: runTools, story: runStory, saves: runSaves, monthly: runMonthly } as const;
 
 const arg = process.argv[2] ?? "1";
 const send = process.argv[3] === "send";

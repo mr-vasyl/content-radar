@@ -13,6 +13,7 @@ import pg from "pg";
 const JOBS: { name: string; schedule: string; mode: string }[] = [
   { name: "content-radar", schedule: "17 5-19/2 * * *", mode: "news" }, // щодня 8:17–22:17, кожні 2 год
   { name: "content-radar-tools", schedule: "47 7 * * 1", mode: "tools" }, // понеділок 10:47
+  { name: "content-radar-story", schedule: "47 9 * * 3", mode: "story" }, // середа 12:47
 ];
 
 const SECRET_NAME = "github_dispatch_token";
