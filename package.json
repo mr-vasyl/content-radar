@@ -2,9 +2,9 @@
   "name": "contentradar",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -12,7 +12,7 @@
   "devDependencies": {
     "@types/node": "^26.6.5",
     "prisma": "7.10.0",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "dependencies": {
@@ -21,5 +21,6 @@
     "openai": "^7.32.0",
     "rss-parser": "^3.13.0",
     "telegraf": "^4.16.3"
-  }
+  },
+  "type": "module"
 }
