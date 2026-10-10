@@ -20,7 +20,7 @@ export async function filterNew(articles: Article[]): Promise<Article[]> {
   return [...unique.values()];
 }
 
-type Status = "sent" | "rejected_rules" | "rejected_ai" | "skipped";
+type Status = "sent" | "rejected_rules" | "rejected_ai";
 
 // Записує статтю з рішенням щодо неї — наступний запуск її пропустить.
 export async function record(

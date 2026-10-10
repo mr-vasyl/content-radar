@@ -9,7 +9,8 @@ import { sendMeta, sendToTelegram } from "./sendToTelegram.ts";
 import { prisma } from "./db.ts";
 
 // Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
-// всім своїм архівом. Старіші, що не влізли, позначаються як пропущені.
+// всім своїм архівом. Ті, що не влізли, нікуди не записуються й чекають наступного запуску
+// (MAX_AGE_DAYS не дасть черзі рости вічно).
 const MAX_PER_RUN = 25;
 
 // Старіше — не новина. Деякі стрічки (Figma, Hugging Face) віддають увесь архів.
@@ -42,11 +43,11 @@ async function main() {
   // від старіших до новіших, щоб у чаті йшли по порядку
   candidates.sort((a, b) => (a.publishedAt?.getTime() ?? 0) - (b.publishedAt?.getTime() ?? 0));
   const batch = candidates.slice(-MAX_PER_RUN);
-  for (const a of candidates.slice(0, -MAX_PER_RUN)) await record(a, "skipped", { reason: "не влізла в ліміт запуску" });
 
   console.log(
     `Статей у стрічках: ${all.length}, свіжих: ${recent.length}, нових: ${fresh.length}, ` +
-      `відсіяно правилами: ${fresh.length - candidates.length}, на оцінку GPT: ${batch.length}`,
+      `відсіяно правилами: ${fresh.length - candidates.length}, на оцінку GPT: ${batch.length}, ` +
+      `чекають наступного запуску: ${candidates.length - batch.length}`,
   );
 
   // 2. GPT оцінює і пише пост; 3. надсилаємо те, що пройшло поріг

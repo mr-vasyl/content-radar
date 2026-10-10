@@ -16,7 +16,7 @@ model Article {
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
 
-  // що з нею сталося: sent | rejected_rules | rejected_ai | skipped
+  // що з нею сталося: sent | rejected_rules | rejected_ai
   status      String    @default("sent")
   score       Int?      // оцінка GPT 1–10
   stream      String?   // потік контенту (новинки, ресурси, заробіток…)
