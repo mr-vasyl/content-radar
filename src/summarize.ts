@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import type { Article } from "./fetchArticles.ts";
 
 const openai = new OpenAI(); // ключ береться з OPENAI_API_KEY
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 
 const SYSTEM_PROMPT = `Ти редактор українського Telegram-каналу для творців контенту.
 Тобі дають англомовну статтю. Напиши пост українською:
