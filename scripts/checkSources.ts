@@ -147,6 +147,44 @@ const candidates: Candidate[] = [
   { name: "Inbox Collective", group: "b3-knowledge", feeds: ["https://inboxcollective.com/feed/"] },
   { name: "Circle Blog", group: "b3-knowledge", feeds: ["https://circle.so/blog/rss.xml"], home: "https://circle.so/blog" },
   { name: "Mighty Networks", group: "b3-knowledge", feeds: ["https://www.mightynetworks.com/resources/rss.xml"], home: "https://www.mightynetworks.com/resources" },
+
+  // ── Четверта хвиля (2026-10-11) ──
+  // 🇺🇦 Українські медіа
+  { name: "AIN.UA", group: "b4-ua", feeds: ["https://ain.ua/feed/"], home: "https://ain.ua/" },
+  { name: "MC.today", group: "b4-ua", feeds: ["https://mc.today/uk/feed/", "https://mc.today/feed/"], home: "https://mc.today/uk/" },
+  { name: "Speka", group: "b4-ua", feeds: ["https://speka.media/rss", "https://speka.media/feed"], home: "https://speka.media/" },
+  { name: "DOU", group: "b4-ua", feeds: ["https://dou.ua/feed/"], home: "https://dou.ua/" },
+  { name: "Bird in Flight", group: "b4-ua", feeds: ["https://birdinflight.com/ua/feed", "https://birdinflight.com/feed"], home: "https://birdinflight.com/ua/" },
+  { name: "Детектор медіа", group: "b4-ua", feeds: ["https://detector.media/rss", "https://detector.media/rss.xml"], home: "https://detector.media/" },
+  { name: "Mezha", group: "b4-ua", feeds: ["https://mezha.media/feed/"], home: "https://mezha.media/" },
+  { name: "ITC.ua", group: "b4-ua", feeds: ["https://itc.ua/feed/"], home: "https://itc.ua/" },
+  { name: "Платформа (Platfor.ma)", group: "b4-ua", feeds: ["https://platfor.ma/feed/", "https://platfor.ma/rss"], home: "https://platfor.ma/" },
+  { name: "Український інститут", group: "b4-ua", feeds: ["https://ui.org.ua/feed/"], home: "https://ui.org.ua/" },
+  // 💰 Гранти й можливості для українців
+  { name: "УКФ", group: "b4-grants", feeds: ["https://ucf.in.ua/feed", "https://ucf.in.ua/rss"], home: "https://ucf.in.ua/" },
+  { name: "House of Europe", group: "b4-grants", feeds: ["https://houseofeurope.org.ua/feed", "https://houseofeurope.org.ua/rss"], home: "https://houseofeurope.org.ua/" },
+  { name: "Creative Europe Desk Ukraine", group: "b4-grants", feeds: ["https://creativeeurope.in.ua/feed", "https://creativeeurope.in.ua/rss"], home: "https://creativeeurope.in.ua/" },
+  { name: "ГУРТ: гранти", group: "b4-grants", feeds: ["https://gurt.org.ua/rss/news/grants/", "https://gurt.org.ua/rss/"], home: "https://gurt.org.ua/news/grants/" },
+  { name: "Простір: гранти", group: "b4-grants", feeds: ["https://www.prostir.ua/?feed=rss2", "https://www.prostir.ua/feed/"], home: "https://www.prostir.ua/" },
+  // 🤖 Практичний AI
+  { name: "One Useful Thing", group: "b4-ai", feeds: ["https://www.oneusefulthing.org/feed"] },
+  { name: "The Neuron", group: "b4-ai", feeds: ["https://www.theneurondaily.com/feed", "https://www.theneuron.ai/feed"], home: "https://www.theneurondaily.com/" },
+  { name: "Every", group: "b4-ai", feeds: ["https://every.to/feed", "https://every.to/feed.xml"], home: "https://every.to/" },
+  // 🎨 Креатори й фриланс
+  { name: "Creative Boom", group: "b4-creators", feeds: ["https://www.creativeboom.com/feed/"] },
+  { name: "Webdesigner Depot", group: "b4-creators", feeds: ["https://www.webdesignerdepot.com/feed/"] },
+  { name: "Influencer Marketing Hub", group: "b4-creators", feeds: ["https://influencermarketinghub.com/feed/"] },
+  { name: "Embedded (Kate Lindsay)", group: "b4-creators", feeds: ["https://embedded.substack.com/feed", "https://www.embedded.club/feed"], home: "https://embedded.substack.com/" },
+  // 🎵 Музиканти
+  { name: "DIY Musician (CD Baby)", group: "b4-music", feeds: ["https://diymusician.cdbaby.com/feed/"] },
+  { name: "Ari's Take", group: "b4-music", feeds: ["https://aristake.com/feed/"] },
+  // ✍️ Knowledge
+  { name: "Writer Beware", group: "b4-knowledge", feeds: ["https://writerbeware.blog/feed/"] },
+  { name: "Simon Owens", group: "b4-knowledge", feeds: ["https://simonowens.substack.com/feed"] },
+  { name: "Platformer", group: "b4-knowledge", feeds: ["https://www.platformer.news/rss/", "https://www.platformer.news/feed"], home: "https://www.platformer.news/" },
+  // 🎮 Геймдев
+  { name: "GamesIndustry.biz", group: "b4-gamedev", feeds: ["https://www.gamesindustry.biz/feed"], home: "https://www.gamesindustry.biz/" },
+  { name: "itch.io (featured)", group: "b4-gamedev", feeds: ["https://itch.io/feed/featured.xml", "https://itch.io/games/featured.xml"] },
 ];
 
 // npm run check-sources knowledge monetize — перевірити лише ці групи

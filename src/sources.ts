@@ -36,6 +36,27 @@ export const sources: Source[] = [
   { name: "Buffer", url: "https://buffer.com/resources/rss/", account: "creators" },
   { name: "TubeBuddy", url: "https://www.tubebuddy.com/blog/feed/", account: "creators" },
 
+  // Креатори, фриланс, музиканти (2026-10-11)
+  { name: "Creative Boom", url: "https://www.creativeboom.com/feed/", account: "creators" },
+  { name: "Webdesigner Depot", url: "https://www.webdesignerdepot.com/feed/", account: "creators" },
+  { name: "Influencer Marketing Hub", url: "https://influencermarketinghub.com/feed/", account: "creators" },
+  { name: "Embedded", url: "https://embedded.substack.com/feed", account: "creators" },
+  { name: "DIY Musician", url: "https://diymusician.cdbaby.com/feed/", account: "creators" },
+  { name: "Ari's Take", url: "https://aristake.com/feed/", account: "creators" },
+  { name: "Platformer", url: "https://www.platformer.news/rss/", account: "creators" },
+
+  // 🇺🇦 Українські джерела — GPT переказує своїми словами (див. промпт)
+  { name: "MC.today", url: "https://mc.today/uk/feed/", account: "creators" },
+  { name: "Детектор медіа", url: "https://detector.media/rss", account: "creators" },
+  { name: "Платформа", url: "https://platfor.ma/feed/", account: "creators" },
+  { name: "Український інститут", url: "https://ui.org.ua/feed/", account: "creators" },
+  { name: "AIN.UA", url: "https://ain.ua/feed/", account: "tools" },
+  { name: "DOU", url: "https://dou.ua/feed/", account: "tools" },
+  { name: "Mezha", url: "https://mezha.media/feed/", account: "tools" },
+  // 💰 Гранти й можливості для українців (агрегатори — тут і УКФ, і House of Europe, у яких самих RSS немає)
+  { name: "ГУРТ", url: "https://gurt.org.ua/rss/latest/", account: "creators" },
+  { name: "Простір", url: "https://www.prostir.ua/?feed=rss2", account: "creators" },
+
   // Креатор-економіка й монетизація — поки теж у creators
   { name: "Tubefilter", url: "https://www.tubefilter.com/feed/", account: "creators" },
   { name: "The Verge", url: "https://www.theverge.com/rss/creators/index.xml", account: "creators" },
@@ -56,6 +77,9 @@ export const sources: Source[] = [
   { name: "How To Market A Game", url: "https://howtomarketagame.com/feed/", account: "tools" },
   { name: "Godot", url: "https://godotengine.org/rss.xml", account: "tools" },
   { name: "Blender Developers", url: "https://code.blender.org/feed/", account: "tools" },
+  { name: "The Neuron", url: "https://www.theneuron.ai/feed", account: "tools" },
+  { name: "One Useful Thing", url: "https://www.oneusefulthing.org/feed", account: "tools" },
+  { name: "GamesIndustry.biz", url: "https://www.gamesindustry.biz/feed", account: "tools" },
 
   // ✍️ Digital Knowledge — письменники, самвидав, розсилки, автори курсів
   { name: "Jane Friedman", url: "https://janefriedman.com/feed/", account: "knowledge" },
@@ -68,4 +92,6 @@ export const sources: Source[] = [
   { name: "eLearning Industry", url: "https://elearningindustry.com/feed", account: "knowledge" },
   { name: "Nathan Bransford", url: "https://nathanbransford.com/feed", account: "knowledge" },
   { name: "Inbox Collective", url: "https://inboxcollective.com/feed/", account: "knowledge" },
+  { name: "Writer Beware", url: "https://writerbeware.blog/feed/", account: "knowledge" },
+  { name: "Simon Owens", url: "https://simonowens.substack.com/feed", account: "knowledge" },
 ];
