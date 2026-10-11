@@ -18,7 +18,9 @@ const MAX_AGE_DAYS = 3;
 export async function runNews(): Promise<void> {
   const all: Article[] = [];
 
-  for (const source of sources) {
+  // ONLY_SOURCES="AIN.UA,ГУРТ" — прогнати лише ці джерела (для ручних запусків)
+  const only = process.env.ONLY_SOURCES?.split(",").map((s) => s.trim()).filter(Boolean);
+  for (const source of only ? sources.filter((s) => only.includes(s.name)) : sources) {
     try {
       all.push(...(await fetchArticles(source)));
     } catch (err) {
