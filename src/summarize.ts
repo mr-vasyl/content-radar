@@ -6,6 +6,12 @@ import { TAGS, TAGS_PROMPT } from "./channels.ts";
 // Нижче цієї оцінки пост не пишемо (економія токенів) і не надсилаємо.
 export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
 
+// Поріг новин за каналом: у Креаторах статей багато — лишаємо 7; в AI для творців і Пиши. Навчай. Заробляй мало — 6.
+export const MIN_SCORE_BY_ACCOUNT: Record<Account, number> = { creators: MIN_SCORE, tools: MIN_SCORE - 1, knowledge: MIN_SCORE - 1 };
+export const minScoreFor = (account: Account) => MIN_SCORE_BY_ACCOUNT[account];
+// GPT пише пост від найнижчого з порогів; чи надсилати — вирішує код за каналом (GPT плутався з порогом «за каналом»)
+const WRITE_FROM = Math.min(...Object.values(MIN_SCORE_BY_ACCOUNT));
+
 export const STREAMS = [
   "Новинки та запуски",
   "Безкоштовні ресурси",
@@ -28,7 +34,7 @@ export interface Analysis {
   account: Account;
   reason: string;
   story_score: number; // 0–10: чи вийде з цього вау-історія
-  post: string; // порожній, якщо score < MIN_SCORE
+  post: string; // порожній, якщо score нижче порогу свого каналу
   hook: string; // порожній, якщо score < HOOK_SCORE
   tags: string[]; // 1–2 хештеги з TAGS
 }
@@ -71,7 +77,7 @@ story_score — окремо від score, від 0 до 10: наскільки 
 поворот або несподіваний результат, урок, який можна забрати собі. 0 — історії немає (оновлення продукту, гайд, новина компанії);
 5 — є герой і цифри, але без інтриги; 8+ — хочеться дочитати й переслати.
 
-2. Якщо оцінка ${MIN_SCORE} або вище — НАПИШИ ПОСТ (post) українською.
+2. Якщо оцінка ${WRITE_FROM} або вище — НАПИШИ ПОСТ (post) українською.
 
 ${VOICE}
 
@@ -92,7 +98,7 @@ ${LANGUAGE}
 
 Як мінімум для чернеток виглядає дуже зручно. А ви вже пробували AI-іконки у своїх проєктах?"
 
-Якщо оцінка нижче ${MIN_SCORE} — post порожній рядок.
+Якщо оцінка нижче ${WRITE_FROM} — post порожній рядок.
 
 3. Якщо оцінка ${HOOK_SCORE} або вище — напиши ще ${HOOK_RULES}
 Якщо оцінка нижче ${HOOK_SCORE} — hook порожній рядок.`;
@@ -122,7 +128,7 @@ export async function analyze(article: Article, fullText: string | null): Promis
     SCHEMA,
   );
 
-  if (result.score >= MIN_SCORE && !result.post.trim()) {
+  if (result.score >= WRITE_FROM && !result.post.trim()) {
     throw new Error(`GPT поставив ${result.score}, але не написав пост для ${article.url}`);
   }
   if (result.post) result.post = result.post.trim(); // «За матеріалами» додає sendPost під лінією

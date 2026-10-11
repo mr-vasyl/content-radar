@@ -3,7 +3,7 @@ import { fetchArticles, type Article } from "../fetchArticles.ts";
 import { filterNew, record } from "../dedup.ts";
 import { ruleRejectReason } from "../ruleFilter.ts";
 import { extractText } from "../extractText.ts";
-import { analyze, MIN_SCORE } from "../summarize.ts";
+import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT } from "../summarize.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { factCheck, factNote } from "../factCheck.ts";
 
@@ -59,7 +59,7 @@ export async function runNews(): Promise<void> {
       const fullText = await extractText(a.url);
       const analysis = await analyze(a, fullText);
 
-      if (analysis.score >= MIN_SCORE) {
+      if (analysis.score >= minScoreFor(analysis.account)) {
         // Фактчек: звіряємо пост з оригіналом; перекручене — виправляємо, непідтверджене — не шлемо
         const fc = await factCheck(a.source, a.title, fullText ?? a.content, analysis.post, analysis.hook);
         if (fc.verdict === "reject") {
@@ -93,7 +93,7 @@ export async function runNews(): Promise<void> {
     }
   }
 
-  console.log(`\nВідправлено: ${sent}/${batch.length} (поріг ${MIN_SCORE}/10), помилок: ${failed}`);
+  console.log(`\nВідправлено: ${sent}/${batch.length} (пороги: ${JSON.stringify(MIN_SCORE_BY_ACCOUNT)}), помилок: ${failed}`);
 
   // Якщо впало все (скінчились гроші на OpenAI, бот заблоковано, ключ невірний) —
   // позначаємо запуск як збійний, щоб GitHub Actions надіслав попередження.
