@@ -3,8 +3,9 @@ export type Account = "creators" | "tools" | "knowledge";
 
 export interface Source {
   name: string; // назва платформи для підпису "за матеріалами: ..."
-  url: string; // адреса RSS-стрічки
+  url: string; // адреса RSS-стрічки (або сторінки зі списком, якщо задано linkPattern)
   account: Account;
+  linkPattern?: RegExp; // сайт без RSS: читаємо сторінку url і беремо посилання за цим шаблоном
 }
 
 // Перевірено `npm run check-sources` 2026-10-10: RSS живий, повний текст дістається.
@@ -53,9 +54,19 @@ export const sources: Source[] = [
   { name: "AIN.UA", url: "https://ain.ua/feed/", account: "tools" },
   { name: "DOU", url: "https://dou.ua/feed/", account: "tools" },
   { name: "Mezha", url: "https://mezha.media/feed/", account: "tools" },
-  // 💰 Гранти й можливості для українців (агрегатори — тут і УКФ, і House of Europe, у яких самих RSS немає)
-  { name: "ГУРТ", url: "https://gurt.org.ua/rss/latest/", account: "creators" },
-  { name: "Простір", url: "https://www.prostir.ua/?feed=rss2", account: "creators" },
+  // 💰 Гранти й можливості для українців. Канал (Креатори / AI / Пиши) GPT обирає за змістом:
+  // гранти на переклад і книжки підуть у «Пиши. Навчай. Заробляй», на музику чи фото — у «Креатори UA».
+  { name: "ГУРТ", url: "https://gurt.org.ua/rss/section/grants/", account: "creators" }, // лише розділ «Гранти»
+  // Простір: RSS розділу грантів порожній — читаємо сторінку; лише «Конкурси та гранти», без вакансій і тендерів
+  { name: "Простір", url: "https://www.prostir.ua/category/grants/", account: "creators", linkPattern: /prostir\.ua\/\?grants=[\w-]+$/ },
+  { name: "Мінкульт", url: "https://mcsc.gov.ua/feed/", account: "creators" },
+  { name: "Мистецький арсенал", url: "https://artarsenal.in.ua/feed/", account: "creators" },
+  { name: "Ізоляція", url: "https://izolyatsia.org/ua/rss/", account: "creators" },
+  // Без RSS — читаємо сторінку зі списком програм
+  { name: "УКФ", url: "https://ucf.in.ua/programs", account: "creators", linkPattern: /ucf\.in\.ua\/m_programs\/\w+/ },
+  { name: "House of Europe", url: "https://houseofeurope.org.ua/opportunities", account: "creators", linkPattern: /houseofeurope\.org\.ua\/(grant|programme)\/[\w-]+$/ },
+  { name: "Креативна Європа", url: "https://creativeeurope.in.ua/news", account: "creators", linkPattern: /creativeeurope\.in\.ua\/news\/[\w-]+$/ },
+  { name: "PinchukArtCentre", url: "https://pinchukartcentre.org/osvitni-programy-ta-podii", account: "creators", linkPattern: /pinchukartcentre\.org\/events\/[\w-]+$/ },
 
   // Креатор-економіка й монетизація — поки теж у creators
   { name: "Tubefilter", url: "https://www.tubefilter.com/feed/", account: "creators" },

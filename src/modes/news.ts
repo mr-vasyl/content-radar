@@ -1,6 +1,6 @@
 import { sources } from "../sources.ts";
 import { fetchArticles, type Article } from "../fetchArticles.ts";
-import { filterNew, record } from "../dedup.ts";
+import { filterNew, makeDuplicateChecker, recentSentTitles, record } from "../dedup.ts";
 import { ruleRejectReason } from "../ruleFilter.ts";
 import { extractText } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT } from "../summarize.ts";
@@ -41,8 +41,9 @@ export async function runNews(): Promise<void> {
     else candidates.push(a);
   }
 
-  // від старіших до новіших, щоб у чаті йшли по порядку
-  candidates.sort((a, b) => (a.publishedAt?.getTime() ?? 0) - (b.publishedAt?.getTime() ?? 0));
+  // від старіших до новіших, щоб у чаті йшли по порядку; без дати (сторінки без RSS) — як щойно знайдені
+  const when = (a: Article) => a.publishedAt?.getTime() ?? Date.now();
+  candidates.sort((a, b) => when(a) - when(b));
   const batch = candidates.slice(-MAX_PER_RUN);
 
   console.log(
@@ -54,7 +55,15 @@ export async function runNews(): Promise<void> {
   // 2. GPT оцінює і пише пост; 3. надсилаємо те, що пройшло поріг
   let sent = 0;
   let failed = 0;
+  const isDuplicate = makeDuplicateChecker(await recentSentTitles());
   for (const a of batch) {
+    // Той самий грант/новина з іншого сайту — без GPT і без повторного поста
+    const dup = isDuplicate(a.title);
+    if (dup) {
+      await record(a, "rejected_rules", { reason: `дубль: ${dup}` });
+      console.log(`= дубль: ${a.title}`);
+      continue;
+    }
     try {
       const fullText = await extractText(a.url);
       const analysis = await analyze(a, fullText);
