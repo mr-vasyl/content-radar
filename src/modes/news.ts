@@ -5,6 +5,7 @@ import { ruleRejectReason } from "../ruleFilter.ts";
 import { extractText } from "../extractText.ts";
 import { analyze, MIN_SCORE } from "../summarize.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
+import { factCheck, factNote } from "../factCheck.ts";
 
 // Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
 // всім своїм архівом. Ті, що не влізли, нікуди не записуються й чекають наступного запуску
@@ -55,14 +56,26 @@ export async function runNews(): Promise<void> {
   let failed = 0;
   for (const a of batch) {
     try {
-      const analysis = await analyze(a, await extractText(a.url));
+      const fullText = await extractText(a.url);
+      const analysis = await analyze(a, fullText);
 
       if (analysis.score >= MIN_SCORE) {
+        // Фактчек: звіряємо пост з оригіналом; перекручене — виправляємо, непідтверджене — не шлемо
+        const fc = await factCheck(a.source, a.title, fullText ?? a.content, analysis.post, analysis.hook);
+        if (fc.verdict === "reject") {
+          await record(a, "rejected_ai", { analysis: { ...analysis, reason: `фактчек: ${fc.issues.join("; ")}` } });
+          console.log(`✗ фактчек відхилив ${a.title}: ${fc.issues.join("; ")}`);
+          continue;
+        }
+        analysis.post = fc.post;
+        if (analysis.hook) analysis.hook = fc.hook;
+        const note = factNote(fc);
+
         await sendPost(analysis.post, {
           tags: analysis.tags,
           account: analysis.account,
           source: a.source,
-          lines: [`📰 ⭐ ${analysis.score}/10 · ${analysis.stream}`, a.title],
+          lines: [`📰 ⭐ ${analysis.score}/10 · ${analysis.stream}`, a.title, ...(note ? [note] : [])],
           link: { url: a.url, label: "Оригінал" },
         }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
         if (analysis.hook) await sendHook(analysis.hook);

@@ -4,6 +4,7 @@ import { askJson, AUDIENCE, CLEAR_START, HOOK_RULES, LANGUAGE } from "../gpt.ts"
 import { extractText } from "../extractText.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
+import { factCheck, factNote } from "../factCheck.ts";
 import { ACCOUNTS } from "../summarize.ts";
 import type { Account } from "../sources.ts";
 import type { RunOptions } from "./types.ts";
@@ -90,18 +91,26 @@ export async function runStory({ dryRun, send }: RunOptions): Promise<void> {
       "story",
       SCHEMA,
     );
-    const story = out.story.trim();
-    console.log(`\n🔥 ${account} (story ${row.storyScore ?? "—"}/10, score ${row.score}/10) ${row.title}\n\n${story}\n\n🪝 ${out.hook}`);
+    // Фактчек: історії найбільше ризикують «прикрасити» деталі
+    const fc = await factCheck(row.source, row.title, text, out.story.trim(), out.hook.trim());
+    if (fc.verdict === "reject") {
+      console.log(`🔥 ${account}: фактчек відхилив історію (${fc.issues.join("; ")}) — пропускаю`);
+      if (!dryRun) await markFeatured("story", [`article:${row.url}`]); // наступного разу візьмемо іншу
+      continue;
+    }
+    const story = fc.post;
+    const note = factNote(fc);
+    console.log(`\n🔥 ${account} (story ${row.storyScore ?? "—"}/10, score ${row.score}/10) ${row.title}\n\n${story}\n\n🪝 ${fc.hook}${note ? `\n${note}` : ""}`);
 
     if (send) {
       await sendPost(story, {
         tags: ["#кейси"],
         account,
         source: row.source,
-        lines: [`🔥 Вау-історія · історія ${row.storyScore ?? "—"}/10`, row.title],
+        lines: [`🔥 Вау-історія · історія ${row.storyScore ?? "—"}/10`, row.title, ...(note ? [note] : [])],
         link: { url: row.url, label: "Оригінал" },
       }, dryRun ? undefined : { format: "story", title: row.title, url: row.url, source: row.source, account, score: row.storyScore ?? undefined });
-      await sendHook(out.hook.trim());
+      if (fc.hook) await sendHook(fc.hook);
     }
     if (!dryRun) {
       await markFeatured("story", [`article:${row.url}`]);

@@ -12,6 +12,7 @@ import { ruleRejectReason } from "../ruleFilter.ts";
 import { extractText } from "../extractText.ts";
 import { alreadyRan, markRan } from "../formatLog.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
+import { factCheck } from "../factCheck.ts";
 import { ACCOUNTS, MIN_SCORE } from "../summarize.ts";
 import { TAGS, TAGS_PROMPT } from "../channels.ts";
 import type { Account } from "../sources.ts";
@@ -185,9 +186,16 @@ async function refillPool(dryRun: boolean): Promise<PoolItem[]> {
       const ok = d.score >= MIN_SCORE && d.post.trim();
       console.log(`${ok ? "✓" : "·"} ${d.score}/10 [${d.account}] ${a.source}: ${a.title} — ${d.reason}`);
       if (ok) {
-        const post = d.post.trim(); // «За матеріалами» додає sendPost під лінією
+        // Фактчек ще до скарбнички, поки текст оригіналу під рукою
+        const fc = await factCheck(a.source, a.title, text, d.post.trim(), d.score >= HOOK_SCORE ? d.hook.trim() : "");
+        if (fc.verdict === "reject") {
+          console.log(`  ✗ фактчек відхилив: ${fc.issues.join("; ")}`);
+          if (!dryRun) await save(a, "evergreen_rejected", { score: d.score, account: d.account, reason: `фактчек: ${fc.issues.join("; ")}` });
+          continue;
+        }
+        const post = fc.post; // «За матеріалами» додає sendPost під лінією
         const tags = d.tags.length ? d.tags.join(" ") : null;
-        const hook = d.score >= HOOK_SCORE && d.hook.trim() ? d.hook.trim() : null;
+        const hook = fc.hook || null;
         added.push({ url: a.url, title: a.title, source: a.source, score: d.score, account: d.account, reason: d.reason, post, hook, tags });
         if (!dryRun) await save(a, "evergreen", { score: d.score, account: d.account, reason: d.reason, post, hook, tags });
       } else if (!dryRun) {
