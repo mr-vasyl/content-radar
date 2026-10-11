@@ -44,6 +44,7 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
   const msg = await telegram.sendMessage(chatId, text, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
+    disable_notification: true, // власник попросив: пости без звуку
   });
   if (track) {
     await prisma.sentMessage.create({
