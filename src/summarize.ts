@@ -167,6 +167,15 @@ export async function analyze(article: Article, fullText: string | null, links: 
     result.hook = "";
   }
 
+  // Грант/конкурс без дедлайну — це загальна сторінка програми, а не відкритий набір (House of Europe «На переклад»:
+  // власник опублікував, набрав 1000 переглядів і зніс, бо незрозуміло, чи прийом відкритий). Не шлемо.
+  if (result.tags?.includes("#гранти") && !/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "")) {
+    result.reason = `грант без дедлайну — незрозуміло, чи набір відкритий — ${result.reason}`;
+    result.score = Math.min(result.score, 5);
+    result.post = "";
+    result.hook = "";
+  }
+
   // Посилання — лише з реальних посилань статті (GPT не повинен вигадати адресу)
   const norm = (u: string) => u.replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
   const real = links.find((l) => norm(l.url) === norm(result.link ?? ""));
