@@ -3,6 +3,7 @@
 import { prisma } from "../db.ts";
 import { extractText } from "../extractText.ts";
 import { writeDigest, type DigestCandidate } from "../digest.ts";
+import { OPPORTUNITIES } from "../gpt.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
 import { sendPost } from "../sendToTelegram.ts";
 import { ACCOUNTS } from "../summarize.ts";
@@ -27,7 +28,10 @@ const task = (account: Account) => `Ти складаєш п'ятничну до
 списки книжок, новини компаній, аналітику, загальні поради.
 Перевірка для кожного пункту: «чи може читач сьогодні щось безкоштовно отримати за посиланням?» Якщо ні — не бери,
 навіть якщо пунктів вийде лише 3.
-Якщо в статті кілька ресурсів, назви найкращий або узагальни («добірка з 20 безкоштовних шрифтів для заголовків»).`;
+Якщо в статті кілька ресурсів, назви найкращий або узагальни («добірка з 20 безкоштовних шрифтів для заголовків»).
+${OPPORTUNITIES}
+Безкоштовні ресурси (шрифти, пресети, програми тощо) можуть бути з будь-якої країни — правило вище стосується лише
+грантів, конкурсів, премій, подій.`;
 
 export async function runSaves({ dryRun, send }: RunOptions): Promise<void> {
   const week = isoWeek();
