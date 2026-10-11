@@ -41,6 +41,8 @@ export async function extractArticle(url: string): Promise<Extracted | null> {
             const href = (a as HTMLAnchorElement).href;
             if (!/^https?:/.test(href) || seen.has(href)) continue;
             if (/(twitter|x|facebook|instagram|linkedin|threads|tiktok)\.com\/|\/share|mailto:/i.test(href)) continue;
+            // службові посилання: захист пошти Cloudflare, вхід/реєстрація, кошик, підписка на розсилку
+            if (/cdn-cgi|email-protection|\/(login|signin|sign-in|register|signup|cart|checkout|subscribe|unsubscribe|wp-login)\b|javascript:|^tel:/i.test(href)) continue;
             seen.add(href);
             links.push({ url: href, text: (a.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 80) });
           }

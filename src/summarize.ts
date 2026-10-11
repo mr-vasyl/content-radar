@@ -39,6 +39,7 @@ export interface Analysis {
   hook: string; // порожній, якщо score < HOOK_SCORE
   tags: string[]; // 1–2 хештеги з TAGS
   link: string; // пряме посилання на інструмент/ресурс (лише зі статті) або ""
+  deadline: string; // YYYY-MM-DD — дедлайн подачі / дата події, якщо є; інакше ""
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -93,6 +94,8 @@ AI-інструмент чи функція, корисна будь-кому, �
 link — пряме посилання на сам інструмент/сервіс/ресурс, про який пост (сайт продукту, сторінка завантаження, репозиторій),
 ТІЛЬКИ зі списку «Посилання зі статті» нижче тексту; якщо головного ресурсу немає або його посилання нема в списку — порожній рядок.
 Не давай посилання на саму статтю чи на соцмережі.
+deadline — якщо це грант, конкурс, програма, стипендія, open call, подія чи акція з датою: КІНЦЕВИЙ дедлайн подачі
+(для події — дата проведення) у форматі YYYY-MM-DD, рівно як у тексті, з правильним роком. Немає дати — порожній рядок.
 reason — одне коротке речення українською (до 20 слів): чому така оцінка.
 ${TAGS_PROMPT}
 story_score — окремо від score, від 0 до 10: наскільки з цієї статті вийде захоплива історія для автора.
@@ -129,7 +132,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "story_score", "post", "hook", "tags", "link"],
+  required: ["score", "stream", "account", "reason", "story_score", "post", "hook", "tags", "link", "deadline"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -140,6 +143,7 @@ const SCHEMA = {
     hook: { type: "string" },
     tags: { type: "array", minItems: 1, maxItems: 2, items: { type: "string", enum: [...TAGS] } },
     link: { type: "string" },
+    deadline: { type: "string" },
   },
 } as const;
 
@@ -152,6 +156,16 @@ export async function analyze(article: Article, fullText: string | null, links: 
     "analysis",
     SCHEMA,
   );
+
+  // Дедлайн перевіряє КОД, а не GPT «на око»: на сторінках фондів висять торішні програми (УКФ з дедлайном 2026-01-19
+  // пройшов у жовтні 2026). Минула дата — пост не пишемо і не шлемо.
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" }); // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "") && result.deadline < today) {
+    result.reason = `дедлайн минув (${result.deadline}) — ${result.reason}`;
+    result.score = Math.min(result.score, 2);
+    result.post = "";
+    result.hook = "";
+  }
 
   // Посилання — лише з реальних посилань статті (GPT не повинен вигадати адресу)
   const norm = (u: string) => u.replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();

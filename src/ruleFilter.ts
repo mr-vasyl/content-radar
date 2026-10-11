@@ -15,6 +15,8 @@ const TITLE_RULES: [RegExp, string][] = [
   [/\bhow to watch\b|\bwhere to buy\b/i, "куди дивитись/де купити"],
   [/\bsponsored\b|\bpartner content\b|\bin partnership with\b/i, "реклама"],
   [/(^|\s)review\b|\breviewed\b|\bhands[- ]on\b|\bunboxing\b/i, "огляд техніки"],
+  // Українські гранти не для креаторів (з ГУРТу/Простору) — GPT інколи пропускає, тому відсікаємо за словами
+  [/агро|аграр|фермер|сільськогосп|медичн|медик|госпітал|ветеран|ОСББ|теплопостач|енергоефектив|водопостач|гуманітарн|реінтеграц|соцзахист|соціальн\w* послуг/i, "грант/програма не для креаторів"],
 ];
 
 export function ruleRejectReason(a: Article): string | null {
