@@ -1,11 +1,11 @@
 // Публічні канали, куди власник викладає пости. Підпис каналу йде в кінець кожного поста (перед лінією).
-// username — без @; поки не вибрано, підпис без посилання.
+// username — без @; підпис стає посиланням на канал.
 import type { Account } from "./sources.ts";
 
 export const CHANNELS: Record<Account, { name: string; username?: string }> = {
-  creators: { name: "🎨 Креатори UA" },
-  tools: { name: "💻 AI для творців" },
-  knowledge: { name: "✍️ Пиши. Навчай. Заробляй" },
+  creators: { name: "🎨 Креатори UA", username: "ukr_creators" },
+  tools: { name: "💻 AI для творців", username: "ai_creators_ua" },
+  knowledge: { name: "✍️ Пиши. Навчай. Заробляй", username: "write_teach_earn" },
 };
 
 // Фіксований набір хештегів — для навігації всередині каналу (1–2 на пост)
