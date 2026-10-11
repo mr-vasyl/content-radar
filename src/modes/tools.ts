@@ -1,8 +1,8 @@
 // 🧰 Інструменти тижня: добірка 5 свіжих популярних інструментів з GitHub і Hugging Face.
-import { askJson, AUDIENCE, LANGUAGE } from "../gpt.ts";
+import { askJson, AUDIENCE, HOOK_RULES, LANGUAGE } from "../gpt.ts";
 import { collectToolCandidates, withReadmes, type ToolCandidate } from "../toolSources.ts";
 import { alreadyRan, featuredKeys, isoWeek, markFeatured, markRan } from "../formatLog.ts";
-import { sendPost } from "../sendToTelegram.ts";
+import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { ACCOUNTS } from "../summarize.ts";
 import type { RunOptions } from "./types.ts";
 
@@ -10,8 +10,8 @@ const PICKS = 5;
 const SHORTLIST = 25; // скільки кандидатів показуємо GPT
 
 const FOCUS = {
-  tools: "розробники, AI-креатори, автоматизатори, інді-розробники ігор",
-  creators: "дизайнери, ілюстратори, відеомейкери, 3D-артисти, музиканти, блогери, ютубери, стрімери",
+  tools: "будь-хто, хто хоче користуватися AI: студенти, офісні працівники, підприємці, автори, розробники (бо канал про AI для всіх)",
+  creators: "дизайнери, ілюстратори, відеомейкери, 3D-артисти, музиканти, блогери, ютубери, стрімери, інді-розробники ігор",
 } as const;
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -36,7 +36,8 @@ const SYSTEM_PROMPT = `${AUDIENCE}
 - intro — одне речення, навіщо ця добірка (без «у цій добірці», не від першої особи — без «зібрав», «підібрав»);
 - для кожного обраного: key (точно як у списку) і why — 1–2 короткі речення (до 220 символів):
   що саме робить і кому стане в пригоді; конкретно, без реклами й перебільшень; без назви інструмента на початку;
-- outro — одне коротке речення-висновок або порада (можна порожнім).
+- outro — одне коротке речення-висновок або порада (можна порожнім);
+- ${HOOK_RULES.replace("hook —", "teaser —")}
 Пиши живою мовою блогера, на «ви», без сленгу-калік («фетчить», «деплоїть», «end-to-end» — пиши «завантажує», «розгортає», «наскрізні»).
 Технічні назви форматів і протоколів (MCP, API, STL, MP4) лишай як є.
 ${LANGUAGE}`;
@@ -44,7 +45,7 @@ ${LANGUAGE}`;
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "intro", "items", "outro"],
+  required: ["title", "intro", "items", "outro", "teaser"],
   properties: {
     title: { type: "string" },
     intro: { type: "string" },
@@ -60,6 +61,7 @@ const SCHEMA = {
       },
     },
     outro: { type: "string" },
+    teaser: { type: "string" },
   },
 } as const;
 
@@ -68,6 +70,7 @@ interface Digest {
   intro: string;
   items: { key: string; why: string }[];
   outro: string;
+  teaser: string;
 }
 
 function compact(n: number): string {
@@ -139,7 +142,10 @@ export async function runTools({ dryRun, send }: RunOptions): Promise<void> {
         },
         dryRun ? undefined : { format: "tools", title: digest.title, account },
       );
+      // Добірка — завжди сильний матеріал для Threads, тизер шлемо завжди
+      if (digest.teaser.trim()) await sendHook(digest.teaser);
     }
+    console.log(`🧵 ${digest.teaser}`);
     if (!dryRun) {
       await markFeatured("tools", chosen.map((c) => c.key));
       await markRan("tools", period);

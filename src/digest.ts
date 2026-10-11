@@ -33,6 +33,20 @@ export function displayUrl(url: string): string {
   }
 }
 
+// Пряме посилання на інструмент/ресурс у кінці поста (над хештегами): «🔗 https://…» — Telegram робить його клікабельним
+export function withToolLink(post: string, link: string): string {
+  if (!link) return post;
+  let clean = link;
+  try {
+    const u = new URL(link);
+    for (const k of [...u.searchParams.keys()]) if (/^utm_|^ref$|^source$/i.test(k)) u.searchParams.delete(k);
+    clean = u.toString();
+  } catch {
+    /* лишаємо як є */
+  }
+  return `${post.trim()}\n\n🔗 ${clean}`;
+}
+
 const schema = (max: number) => ({
   type: "object",
   additionalProperties: false,

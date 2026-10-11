@@ -185,6 +185,30 @@ const candidates: Candidate[] = [
   // 🎮 Геймдев
   { name: "GamesIndustry.biz", group: "b4-gamedev", feeds: ["https://www.gamesindustry.biz/feed"], home: "https://www.gamesindustry.biz/" },
   { name: "itch.io (featured)", group: "b4-gamedev", feeds: ["https://itch.io/feed/featured.xml", "https://itch.io/games/featured.xml"] },
+
+  // ── П'ята хвиля (2026-10-11): AI для всіх — плюшки, інструменти, нові функції ──
+  { name: "TLDR AI", group: "b5-ai", feeds: ["https://tldr.tech/api/rss/ai"], home: "https://tldr.tech/ai" },
+  { name: "The Rundown AI", group: "b5-ai", feeds: ["https://www.therundown.ai/feed", "https://rss.beehiiv.com/feeds/2R3C6Bt5wj.xml"], home: "https://www.therundown.ai/" },
+  { name: "Superhuman AI", group: "b5-ai", feeds: ["https://www.superhuman.ai/feed"], home: "https://www.superhuman.ai/" },
+  { name: "AI Breakfast", group: "b5-ai", feeds: ["https://aibreakfast.beehiiv.com/feed"], home: "https://aibreakfast.beehiiv.com/" },
+  { name: "There's An AI For That", group: "b5-ai", feeds: ["https://theresanaiforthat.com/feed/", "https://theresanaiforthat.com/rss/"], home: "https://theresanaiforthat.com/" },
+  { name: "Futurepedia", group: "b5-ai", feeds: ["https://www.futurepedia.io/feed", "https://www.futurepedia.io/rss.xml"], home: "https://www.futurepedia.io/blog" },
+  { name: "Future Tools", group: "b5-ai", feeds: ["https://www.futuretools.io/feed", "https://www.futuretools.io/news/rss"], home: "https://www.futuretools.io/news" },
+  { name: "Hacker News: Show HN AI", group: "b5-ai", feeds: ["https://hnrss.org/show?q=AI&points=50"] },
+  { name: "Hacker News: AI (100+)", group: "b5-ai", feeds: ["https://hnrss.org/newest?q=AI+tool&points=100"] },
+  { name: "Product Hunt AI", group: "b5-ai", feeds: ["https://www.producthunt.com/feed?category=artificial-intelligence"] },
+  { name: "OpenAI News", group: "b5-ai", feeds: ["https://openai.com/news/rss.xml"] },
+  { name: "Anthropic News", group: "b5-ai", feeds: ["https://www.anthropic.com/news/rss.xml", "https://www.anthropic.com/rss.xml"], home: "https://www.anthropic.com/news" },
+  { name: "Google AI (Keyword)", group: "b5-ai", feeds: ["https://blog.google/technology/ai/rss/"] },
+  { name: "Google Gemini blog", group: "b5-ai", feeds: ["https://blog.google/products/gemini/rss/"] },
+  { name: "Microsoft Copilot blog", group: "b5-ai", feeds: ["https://www.microsoft.com/en-us/microsoft-copilot/blog/feed/"], home: "https://www.microsoft.com/en-us/microsoft-copilot/blog/" },
+  { name: "Meta AI blog", group: "b5-ai", feeds: ["https://ai.meta.com/blog/rss/"], home: "https://ai.meta.com/blog/" },
+  { name: "MakeUseOf AI", group: "b5-ai", feeds: ["https://www.makeuseof.com/feed/category/artificial-intelligence/", "https://www.makeuseof.com/feed/"] },
+  { name: "How-To Geek AI", group: "b5-ai", feeds: ["https://www.howtogeek.com/feed/category/ai/", "https://www.howtogeek.com/feed/"] },
+  { name: "Zapier blog", group: "b5-ai", feeds: ["https://zapier.com/blog/feeds/latest/"] },
+  { name: "Lifehacker AI", group: "b5-ai", feeds: ["https://lifehacker.com/tech/artificial-intelligence/rss", "https://lifehacker.com/feed/rss"] },
+  { name: "AIN.UA: AI", group: "b5-ai", feeds: ["https://ain.ua/tag/ai/feed/", "https://ain.ua/tag/shtuchnyj-intelekt/feed/"] },
+  { name: "DOU: AI", group: "b5-ai", feeds: ["https://dou.ua/lenta/tags/AI/feed/", "https://dou.ua/feed/?tag=AI"] },
 ];
 
 // npm run check-sources knowledge monetize — перевірити лише ці групи

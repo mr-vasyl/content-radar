@@ -1,6 +1,7 @@
 import { Telegram } from "telegraf";
 import { prisma } from "./db.ts";
 import { CHANNELS } from "./channels.ts";
+import { TEASER_END } from "./gpt.ts";
 import type { Account } from "./sources.ts";
 
 export const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
@@ -88,10 +89,11 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
   }
 }
 
-// Короткий гачок для Threads — окремим беззвучним повідомленням, текст копіюється одним дотиком.
+// 🧵 Тизер для Threads — окремим беззвучним повідомленням під постом, текст копіюється одним дотиком.
 export async function sendHook(hook: string): Promise<void> {
-  const plain = hook.replace(/\*\*/g, "").trim(); // Threads розмітку не показує
-  await telegram.sendMessage(chatId, `🪝 <i>Гачок для Threads</i>\n\n${escapeHtml(plain)}`, {
+  let plain = hook.replace(/\*\*/g, "").trim(); // Threads розмітку не показує
+  if (!plain.endsWith(TEASER_END)) plain = `${plain.replace(/\n*Посилання[^\n]*$/u, "").trim()}\n\n${TEASER_END}`;
+  await telegram.sendMessage(chatId, `🧵 <i>Для Threads</i>\n\n${escapeHtml(plain)}`, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true,

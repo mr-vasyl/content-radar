@@ -2,10 +2,11 @@ import { sources } from "../sources.ts";
 import { fetchArticles, type Article } from "../fetchArticles.ts";
 import { filterNew, makeDuplicateChecker, recentSentTitles, record } from "../dedup.ts";
 import { ruleRejectReason } from "../ruleFilter.ts";
-import { extractText } from "../extractText.ts";
+import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT } from "../summarize.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { factCheck, factNote } from "../factCheck.ts";
+import { withToolLink } from "../digest.ts";
 
 // Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
 // всім своїм архівом. Ті, що не влізли, нікуди не записуються й чекають наступного запуску
@@ -65,8 +66,9 @@ export async function runNews(): Promise<void> {
       continue;
     }
     try {
-      const fullText = await extractText(a.url);
-      const analysis = await analyze(a, fullText);
+      const extracted = await extractArticle(a.url);
+      const fullText = extracted?.text ?? null;
+      const analysis = await analyze(a, fullText, extracted?.links);
 
       if (analysis.score >= minScoreFor(analysis.account)) {
         // Фактчек: звіряємо пост з оригіналом; перекручене — виправляємо, непідтверджене — не шлемо
@@ -76,7 +78,7 @@ export async function runNews(): Promise<void> {
           console.log(`✗ фактчек відхилив ${a.title}: ${fc.issues.join("; ")}`);
           continue;
         }
-        analysis.post = fc.post;
+        analysis.post = withToolLink(fc.post, analysis.link);
         if (analysis.hook) analysis.hook = fc.hook;
         const note = factNote(fc);
 

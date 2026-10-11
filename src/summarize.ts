@@ -1,4 +1,5 @@
 import type { Article } from "./fetchArticles.ts";
+import type { ArticleLink } from "./extractText.ts";
 import type { Account } from "./sources.ts";
 import { askJson, AUDIENCE, HOOK_RULES, HOOK_SCORE, LANGUAGE, OPPORTUNITIES, VOICE } from "./gpt.ts";
 import { TAGS, TAGS_PROMPT } from "./channels.ts";
@@ -37,13 +38,31 @@ export interface Analysis {
   post: string; // порожній, якщо score нижче порогу свого каналу
   hook: string; // порожній, якщо score < HOOK_SCORE
   tags: string[]; // 1–2 хештеги з TAGS
+  link: string; // пряме посилання на інструмент/ресурс (лише зі статті) або ""
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
 
 Тобі дають статтю англійською або українською. Зроби дві речі.
 
-1. ОЦІНИ від 1 до 10, наскільки вона варта поста для цієї аудиторії. Критерії:
+Спершу обери канал (account) за змістом, потім оцінюй за критеріями САМЕ цього каналу.
+
+1. ОЦІНИ від 1 до 10, наскільки вона варта поста для аудиторії обраного каналу.
+
+Для tools (AI для всіх) критерії свої:
+- можна спробувати сьогодні: відкрити сайт, встановити застосунок, увімкнути функцію — без програмування
+  (відкритий проєкт з GitHub — лише якщо результат вартий і запустити реально простою інструкцією);
+- безкоштовно або є безкоштовний тариф (платне — нижче, і в пості чесно ціна);
+- «вау» або практична користь у побуті, навчанні, роботі: економить час, робить те, що раніше було складно;
+- мало хто знає: свіжа знахідка або маловідома функція, а не «ChatGPT існує»;
+- нова функція популярних AI (ChatGPT, Claude, Gemini, Copilot), доступна людям уже зараз — 7–8, якщо корисна.
+- лише про AI: звичайні застосунки, гаджети й поради без AI (музичний плеєр, телефон замість Raspberry Pi, налаштування Windows)
+  у tools не йдуть і отримують 1–2, навіть якщо корисні; інтерв'ю й думки керівників AI-компаній без нового інструмента — 3–4.
+Приклади для tools: «безкоштовний сервіс прибирає фон з відео в браузері» → 9; «у ChatGPT з'явився режим навчання,
+доступний безкоштовно» → 8; «відкрита модель для локального запуску, потрібна потужна відеокарта» → 5;
+«OpenAI залучила інвестиції» → 2; «нова модель побила рекорд у бенчмарку» → 3.
+
+Для creators і knowledge (автори) критерії:
 - релевантність: чи цікаво це конкретним авторам цифрового контенту;
 - новизна: справжня новина (запуск, оновлення, цифри), а не переказ старого чи колонка без фактів;
   дрібне оновлення, яке лише переносить давно доступну можливість в іншу програму (те, що вже вміли Bridge,
@@ -69,7 +88,11 @@ ${OPPORTUNITIES}
 - "Стрімерка запустила спільне меню з мережею фастфуду" → 2 (колаборація бренду зі знаменитістю);
 - "Відома студія показала, як знімала VFX для фільму" → 3 (цікаво, але автору нічого застосувати).
 
-Обери потік (stream) і канал (account), куди стаття пасує найкраще. Підказка про канал джерела дана, але вирішуй за змістом.
+Обери потік (stream) і канал (account), куди стаття пасує найкраще. Підказка про канал джерела дана, але вирішуй за змістом:
+AI-інструмент чи функція, корисна будь-кому, — tools; AI-інструмент суто для дизайну/відео/музики — creators; геймдев — creators.
+link — пряме посилання на сам інструмент/сервіс/ресурс, про який пост (сайт продукту, сторінка завантаження, репозиторій),
+ТІЛЬКИ зі списку «Посилання зі статті» нижче тексту; якщо головного ресурсу немає або його посилання нема в списку — порожній рядок.
+Не давай посилання на саму статтю чи на соцмережі.
 reason — одне коротке речення українською (до 20 слів): чому така оцінка.
 ${TAGS_PROMPT}
 story_score — окремо від score, від 0 до 10: наскільки з цієї статті вийде захоплива історія для автора.
@@ -106,7 +129,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "story_score", "post", "hook", "tags"],
+  required: ["score", "stream", "account", "reason", "story_score", "post", "hook", "tags", "link"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -116,17 +139,24 @@ const SCHEMA = {
     post: { type: "string" },
     hook: { type: "string" },
     tags: { type: "array", minItems: 1, maxItems: 2, items: { type: "string", enum: [...TAGS] } },
+    link: { type: "string" },
   },
 } as const;
 
-export async function analyze(article: Article, fullText: string | null): Promise<Analysis> {
+export async function analyze(article: Article, fullText: string | null, links: ArticleLink[] = []): Promise<Analysis> {
   const body = fullText ?? article.content;
+  const linkList = links.length ? links.map((l) => `- ${l.text || "(без тексту)"} — ${l.url}`).join("\n") : "(немає)";
   const result = await askJson<Analysis>(
     SYSTEM_PROMPT,
-    `Джерело: ${article.source} (канал джерела: ${article.account})\nЗаголовок: ${article.title}\n\n${body}`,
+    `Джерело: ${article.source} (канал джерела: ${article.account})\nЗаголовок: ${article.title}\n\n${body}\n\nПосилання зі статті:\n${linkList}`,
     "analysis",
     SCHEMA,
   );
+
+  // Посилання — лише з реальних посилань статті (GPT не повинен вигадати адресу)
+  const norm = (u: string) => u.replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
+  const real = links.find((l) => norm(l.url) === norm(result.link ?? ""));
+  result.link = real ? real.url : "";
 
   if (result.score >= WRITE_FROM && !result.post.trim()) {
     throw new Error(`GPT поставив ${result.score}, але не написав пост для ${article.url}`);

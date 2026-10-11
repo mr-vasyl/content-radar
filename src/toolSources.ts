@@ -14,10 +14,10 @@ export interface ToolCandidate {
 
 // Теми GitHub для кожного акаунта. Беремо свіжі репозиторії (створені за ~4 місяці) з найбільшою кількістю зірок.
 const GITHUB_TOPICS: Record<Exclude<Account, "knowledge">, string[]> = {
-  tools: ["claude", "mcp", "ai-agents", "llm-tools", "prompt-engineering", "automation", "n8n", "godot", "gamedev"],
+  tools: ["chatgpt", "claude", "ai-tools", "generative-ai", "ai-agents", "local-llm", "text-to-speech", "speech-to-text", "automation", "n8n"],
   creators: [
     "comfyui", "stable-diffusion", "image-generation", "video-generation", "figma-plugin",
-    "blender-addon", "obsidian-plugin", "obs-studio", "audio-plugin", "video-editing", "youtube",
+    "blender-addon", "obsidian-plugin", "obs-studio", "audio-plugin", "video-editing", "youtube", "godot", "gamedev",
   ],
 };
 

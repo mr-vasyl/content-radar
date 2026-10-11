@@ -52,7 +52,6 @@ export const sources: Source[] = [
   { name: "Платформа", url: "https://platfor.ma/feed/", account: "creators" },
   { name: "Український інститут", url: "https://ui.org.ua/feed/", account: "creators" },
   { name: "AIN.UA", url: "https://ain.ua/feed/", account: "tools" },
-  { name: "DOU", url: "https://dou.ua/feed/", account: "tools" },
   { name: "Mezha", url: "https://mezha.media/feed/", account: "tools" },
   // 💰 Гранти й можливості для українців. Канал (Креатори / AI / Пиши) GPT обирає за змістом:
   // гранти на переклад і книжки підуть у «Пиши. Навчай. Заробляй», на музику чи фото — у «Креатори UA».
@@ -76,21 +75,34 @@ export const sources: Source[] = [
   { name: "Streams Charts", url: "https://streamscharts.com/feed", account: "creators" },
   { name: "Creator Economy", url: "https://creatoreconomy.so/feed", account: "creators" },
 
-  // 💻 Digital Tools — AI, розробка, геймдев
+  // 🎮 Геймдев і розробка — переїхали з AI-каналу в Креатори UA (2026-10-11)
+  { name: "Game Developer", url: "https://www.gamedeveloper.com/rss.xml", account: "creators" },
+  { name: "GamesIndustry.biz", url: "https://www.gamesindustry.biz/feed", account: "creators" },
+  { name: "GameDiscoverCo", url: "https://newsletter.gamediscover.co/feed", account: "creators" },
+  { name: "How To Market A Game", url: "https://howtomarketagame.com/feed/", account: "creators" },
+  { name: "Godot", url: "https://godotengine.org/rss.xml", account: "creators" },
+  { name: "Blender Developers", url: "https://code.blender.org/feed/", account: "creators" },
+  { name: "GitHub Blog", url: "https://github.blog/feed/", account: "creators" },
+
+  // 🧠 AI для всіх — безкоштовні інструменти, нові функції, практичні способи
   { name: "TechCrunch", url: "https://techcrunch.com/category/artificial-intelligence/feed/", account: "tools" },
   { name: "The Verge", url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", account: "tools" },
-  { name: "GitHub Blog", url: "https://github.blog/feed/", account: "tools" },
   { name: "Hugging Face", url: "https://huggingface.co/blog/feed.xml", account: "tools" },
-  { name: "Game Developer", url: "https://www.gamedeveloper.com/rss.xml", account: "tools" },
   { name: "The Decoder", url: "https://the-decoder.com/feed/", account: "tools" },
   { name: "Ben's Bites", url: "https://www.bensbites.com/feed", account: "tools" },
-  { name: "GameDiscoverCo", url: "https://newsletter.gamediscover.co/feed", account: "tools" },
-  { name: "How To Market A Game", url: "https://howtomarketagame.com/feed/", account: "tools" },
-  { name: "Godot", url: "https://godotengine.org/rss.xml", account: "tools" },
-  { name: "Blender Developers", url: "https://code.blender.org/feed/", account: "tools" },
   { name: "The Neuron", url: "https://www.theneuron.ai/feed", account: "tools" },
   { name: "One Useful Thing", url: "https://www.oneusefulthing.org/feed", account: "tools" },
-  { name: "GamesIndustry.biz", url: "https://www.gamesindustry.biz/feed", account: "tools" },
+  { name: "TLDR AI", url: "https://tldr.tech/api/rss/ai", account: "tools" },
+  { name: "The Rundown AI", url: "https://www.therundown.ai/feed", account: "tools" },
+  { name: "Product Hunt", url: "https://www.producthunt.com/feed?category=artificial-intelligence", account: "tools" },
+  { name: "Hacker News", url: "https://hnrss.org/show?q=AI&points=50", account: "tools" }, // нові відкриті AI-проєкти (Show HN)
+  { name: "OpenAI", url: "https://openai.com/news/rss.xml", account: "tools" }, // текст закритий — GPT бачить анонс з RSS
+  { name: "Google AI", url: "https://blog.google/technology/ai/rss/", account: "tools" },
+  { name: "Google Gemini", url: "https://blog.google/products/gemini/rss/", account: "tools" },
+  { name: "MakeUseOf", url: "https://www.makeuseof.com/feed/", account: "tools" },
+  { name: "How-To Geek", url: "https://www.howtogeek.com/feed/", account: "tools" },
+  { name: "Zapier", url: "https://zapier.com/blog/feeds/latest/", account: "tools" },
+  { name: "DOU", url: "https://dou.ua/lenta/tags/AI/feed/", account: "tools" }, // лише тег AI
 
   // ✍️ Digital Knowledge — письменники, самвидав, розсилки, автори курсів
   { name: "Jane Friedman", url: "https://janefriedman.com/feed/", account: "knowledge" },
