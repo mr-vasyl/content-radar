@@ -10,7 +10,7 @@ import { sources } from "./sources.ts";
 import { fetchArticles } from "./fetchArticles.ts";
 import { ruleRejectReason } from "./ruleFilter.ts";
 import { extractText } from "./extractText.ts";
-import { ACCOUNTS, analyze, MIN_SCORE } from "./summarize.ts";
+import { analyze, MIN_SCORE } from "./summarize.ts";
 import { sendHook, sendPost } from "./sendToTelegram.ts";
 import { runTools } from "./modes/tools.ts";
 import { runStory } from "./modes/story.ts";
@@ -55,8 +55,11 @@ async function previewNews(limit: number) {
       if (r.hook) console.log(`\n🪝 ${r.hook}`);
       if (send && r.score >= MIN_SCORE) {
         await sendPost(r.post, {
-          lines: [`📰 ${ACCOUNTS[r.account]} · ⭐ ${r.score}/10 · ${r.stream}`, a.title],
-          link: { url: a.url, label: `Оригінал · ${a.source}` },
+          tags: r.tags,
+          account: r.account,
+          source: a.source,
+          lines: [`📰 ⭐ ${r.score}/10 · ${r.stream}`, a.title],
+          link: { url: a.url, label: "Оригінал" },
         });
         if (r.hook) await sendHook(r.hook);
       }

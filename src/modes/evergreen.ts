@@ -13,6 +13,7 @@ import { extractText } from "../extractText.ts";
 import { alreadyRan, markRan } from "../formatLog.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { ACCOUNTS, MIN_SCORE } from "../summarize.ts";
+import { TAGS, TAGS_PROMPT } from "../channels.ts";
 import type { Account } from "../sources.ts";
 import type { RunOptions } from "./types.ts";
 
@@ -60,6 +61,7 @@ const DEEP_PROMPT = `${AUDIENCE}
 Гранти, конкурси, премії, челенджі, конференції й події — завжди 1–2: у старих статтях вони вже минули,
 а зарубіжні нам і так не потрібні.
 Обери account (creators | tools | knowledge), куди пасує. reason — одне коротке речення (до 20 слів).
+${TAGS_PROMPT}
 
 2. Якщо оцінка ${MIN_SCORE} або вище — НАПИШИ ПОСТ (post) українською як свіжу знахідку, без прив'язки до дати:
 не пиши «нещодавно», «цього тижня», «у 2023 році вийшла стаття», не згадуй, що матеріал старий.
@@ -82,13 +84,14 @@ ${LANGUAGE}
 const DEEP_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "account", "reason", "post", "hook"],
+  required: ["score", "account", "reason", "post", "hook", "tags"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     account: { type: "string", enum: Object.keys(ACCOUNTS) },
     reason: { type: "string" },
     post: { type: "string" },
     hook: { type: "string" },
+    tags: { type: "array", minItems: 1, maxItems: 2, items: { type: "string", enum: [...TAGS] } },
   },
 } as const;
 
@@ -98,6 +101,7 @@ interface Deep {
   reason: string;
   post: string;
   hook: string;
+  tags: string[];
 }
 
 interface PoolItem {
@@ -109,10 +113,11 @@ interface PoolItem {
   reason: string;
   post: string;
   hook: string | null;
+  tags: string | null; // через пробіл
 }
 
-async function save(a: Article, status: string, extra: Partial<{ score: number; account: string; reason: string; post: string; hook: string | null }>) {
-  const data = { status, score: extra.score ?? null, account: extra.account ?? null, reason: extra.reason ?? null, post: extra.post ?? null, hook: extra.hook ?? null };
+async function save(a: Article, status: string, extra: Partial<{ score: number; account: string; reason: string; post: string; hook: string | null; tags: string | null }>) {
+  const data = { status, score: extra.score ?? null, account: extra.account ?? null, reason: extra.reason ?? null, post: extra.post ?? null, hook: extra.hook ?? null, tags: extra.tags ?? null };
   await prisma.article.upsert({
     where: { url: a.url },
     update: data,
@@ -180,10 +185,11 @@ async function refillPool(dryRun: boolean): Promise<PoolItem[]> {
       const ok = d.score >= MIN_SCORE && d.post.trim();
       console.log(`${ok ? "✓" : "·"} ${d.score}/10 [${d.account}] ${a.source}: ${a.title} — ${d.reason}`);
       if (ok) {
-        const post = `${d.post.trim()}\n\n_За матеріалами: ${a.source}_`;
+        const post = d.post.trim(); // «За матеріалами» додає sendPost під лінією
+        const tags = d.tags.length ? d.tags.join(" ") : null;
         const hook = d.score >= HOOK_SCORE && d.hook.trim() ? d.hook.trim() : null;
-        added.push({ url: a.url, title: a.title, source: a.source, score: d.score, account: d.account, reason: d.reason, post, hook });
-        if (!dryRun) await save(a, "evergreen", { score: d.score, account: d.account, reason: d.reason, post, hook });
+        added.push({ url: a.url, title: a.title, source: a.source, score: d.score, account: d.account, reason: d.reason, post, hook, tags });
+        if (!dryRun) await save(a, "evergreen", { score: d.score, account: d.account, reason: d.reason, post, hook, tags });
       } else if (!dryRun) {
         await save(a, "evergreen_rejected", { score: d.score, account: d.account, reason: d.reason });
       }
@@ -223,8 +229,11 @@ export async function runEvergreen({ dryRun, send }: RunOptions): Promise<void> 
   console.log(`\n♻️ ${item.score}/10 [${item.account}] ${item.title}\n\n${item.post}`);
   if (send) {
     await sendPost(item.post, {
-      lines: [`♻️ Евергрін · ${ACCOUNTS[item.account]} · ⭐ ${item.score}/10`, item.title],
-      link: { url: item.url, label: `Оригінал · ${item.source}` },
+      tags: item.tags?.split(" ").filter(Boolean),
+      account: item.account,
+      source: item.source,
+      lines: [`♻️ Евергрін · ⭐ ${item.score}/10`, item.title],
+      link: { url: item.url, label: "Оригінал" },
     }, dryRun ? undefined : { format: "evergreen", title: item.title, url: item.url, source: item.source, account: item.account, score: item.score });
     if (item.hook) await sendHook(item.hook);
   }

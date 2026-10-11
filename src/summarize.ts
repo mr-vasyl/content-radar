@@ -1,6 +1,7 @@
 import type { Article } from "./fetchArticles.ts";
 import type { Account } from "./sources.ts";
 import { askJson, AUDIENCE, HOOK_RULES, HOOK_SCORE, LANGUAGE, OPPORTUNITIES, VOICE } from "./gpt.ts";
+import { TAGS, TAGS_PROMPT } from "./channels.ts";
 
 // Нижче цієї оцінки пост не пишемо (економія токенів) і не надсилаємо.
 export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
@@ -29,6 +30,7 @@ export interface Analysis {
   story_score: number; // 0–10: чи вийде з цього вау-історія
   post: string; // порожній, якщо score < MIN_SCORE
   hook: string; // порожній, якщо score < HOOK_SCORE
+  tags: string[]; // 1–2 хештеги з TAGS
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -61,6 +63,7 @@ ${OPPORTUNITIES}
 
 Обери потік (stream) і канал (account), куди стаття пасує найкраще. Підказка про канал джерела дана, але вирішуй за змістом.
 reason — одне коротке речення українською (до 20 слів): чому така оцінка.
+${TAGS_PROMPT}
 story_score — окремо від score, від 0 до 10: наскільки з цієї статті вийде захоплива історія для автора.
 Потрібні: конкретний герой (людина, автор, маленька команда), конкретні цифри (гроші, підписники, продажі, час),
 поворот або несподіваний результат, урок, який можна забрати собі. 0 — історії немає (оновлення продукту, гайд, новина компанії);
@@ -95,7 +98,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "story_score", "post", "hook"],
+  required: ["score", "stream", "account", "reason", "story_score", "post", "hook", "tags"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -104,6 +107,7 @@ const SCHEMA = {
     story_score: { type: "integer", minimum: 0, maximum: 10 },
     post: { type: "string" },
     hook: { type: "string" },
+    tags: { type: "array", minItems: 1, maxItems: 2, items: { type: "string", enum: [...TAGS] } },
   },
 } as const;
 
@@ -119,7 +123,7 @@ export async function analyze(article: Article, fullText: string | null): Promis
   if (result.score >= MIN_SCORE && !result.post.trim()) {
     throw new Error(`GPT поставив ${result.score}, але не написав пост для ${article.url}`);
   }
-  if (result.post) result.post = `${result.post.trim()}\n\n_За матеріалами: ${article.source}_`;
+  if (result.post) result.post = result.post.trim(); // «За матеріалами» додає sendPost під лінією
   result.hook = result.score >= HOOK_SCORE ? result.hook.trim() : "";
   return result;
 }

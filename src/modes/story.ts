@@ -90,13 +90,16 @@ export async function runStory({ dryRun, send }: RunOptions): Promise<void> {
       "story",
       SCHEMA,
     );
-    const story = `${out.story.trim()}\n\n_За матеріалами: ${row.source}_`;
+    const story = out.story.trim();
     console.log(`\n🔥 ${account} (story ${row.storyScore ?? "—"}/10, score ${row.score}/10) ${row.title}\n\n${story}\n\n🪝 ${out.hook}`);
 
     if (send) {
       await sendPost(story, {
-        lines: [`🔥 Вау-історія · ${ACCOUNTS[account]} · історія ${row.storyScore ?? "—"}/10`, row.title],
-        link: { url: row.url, label: `Оригінал · ${row.source}` },
+        tags: ["#кейси"],
+        account,
+        source: row.source,
+        lines: [`🔥 Вау-історія · історія ${row.storyScore ?? "—"}/10`, row.title],
+        link: { url: row.url, label: "Оригінал" },
       }, dryRun ? undefined : { format: "story", title: row.title, url: row.url, source: row.source, account, score: row.storyScore ?? undefined });
       await sendHook(out.hook.trim());
     }

@@ -131,7 +131,12 @@ export async function runTools({ dryRun, send }: RunOptions): Promise<void> {
     if (send) {
       await sendPost(
         post,
-        { lines: [`🧰 Інструменти тижня · ${ACCOUNTS[account]} · ${week}`, "GitHub і Hugging Face"] },
+        {
+          tags: account === "tools" ? ["#інструменти", "#AI"] : ["#інструменти", "#ресурси"],
+          account,
+          source: "GitHub і Hugging Face",
+          lines: [`🧰 Інструменти тижня · ${ACCOUNTS[account]} · ${week}`],
+        },
         dryRun ? undefined : { format: "tools", title: digest.title, account },
       );
     }

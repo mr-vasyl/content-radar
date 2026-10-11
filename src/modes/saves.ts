@@ -76,7 +76,7 @@ export async function runSaves({ dryRun, send }: RunOptions): Promise<void> {
     if (send) {
       await sendPost(
         digest.post,
-        { lines: [`📌 Збережи собі · ${ACCOUNTS[account]} · ${week}`, "Безкоштовні ресурси й можливості тижня"] },
+        { tags: ["#ресурси"], account, lines: [`📌 Збережи собі · ${week}`, "Безкоштовні ресурси й можливості тижня"] },
         dryRun ? undefined : { format: "saves", title: `Збережи собі ${week}`, account },
       );
     }

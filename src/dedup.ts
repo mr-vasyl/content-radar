@@ -38,6 +38,7 @@ export async function record(
     post: status === "sent" ? (a?.post ?? null) : null,
     storyScore: a?.story_score ?? null,
     hook: status === "sent" && a?.hook ? a.hook : null,
+    tags: a?.tags?.length ? a.tags.join(" ") : null,
   };
   await prisma.article.upsert({
     where: { url: article.url },

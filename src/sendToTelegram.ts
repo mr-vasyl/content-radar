@@ -1,5 +1,7 @@
 import { Telegram } from "telegraf";
 import { prisma } from "./db.ts";
+import { CHANNELS } from "./channels.ts";
+import type { Account } from "./sources.ts";
 
 export const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
 const chatId = process.env.TELEGRAM_CHAT_ID!;
@@ -19,6 +21,19 @@ export function toTelegramHtml(text: string): string {
 export interface Footer {
   lines: string[]; // службова інфа: формат/акаунт/оцінка, назва статті…
   link?: { url: string; label: string }; // посилання на оригінал
+  source?: string; // «За матеріалами: …» — під лінією
+  account?: Account; // підпис каналу — над лінією
+  tags?: string[]; // 1–2 хештеги — над лінією
+}
+
+// Старі пости (у скарбничці евергріну) мають «За матеріалами» прямо в тексті — прибираємо, бо тепер воно під лінією
+function stripAttribution(post: string): string {
+  return post.replace(/\n*_?За матеріалами:[^\n]*_?\s*$/u, "").trim();
+}
+
+function channelSignature(account: Account): string {
+  const ch = CHANNELS[account];
+  return ch.username ? `<a href="https://t.me/${ch.username}">${escapeHtml(ch.name)}</a>` : escapeHtml(ch.name);
 }
 
 // Що записати про пост, щоб потім зіставити з ним твою реакцію
@@ -31,15 +46,27 @@ export interface Track {
   score?: number;
 }
 
-// Одне повідомлення: зверху пост, під рискою — службовий підпис (акаунт, оцінка, назва, джерело).
-// Пост копіюється до риски; при пересиланні підпис піде разом із постом.
+// Одне повідомлення:
+//   текст поста
+//   #хештеги
+//   підпис каналу
+//   ———               ← до лінії — готовий пост для каналу
+//   За матеріалами: … ← після — службове для власника (оцінка, назва статті, оригінал)
 // track — записати пост у SentMessage (у тестових прогонах не передаємо).
 export async function sendPost(post: string, footer?: Footer, track?: Track): Promise<void> {
-  let text = toTelegramHtml(post);
+  let text = toTelegramHtml(stripAttribution(post));
+
+  const tail: string[] = [];
+  if (footer?.tags?.length) tail.push(escapeHtml(footer.tags.join(" ")));
+  if (footer?.account) tail.push(channelSignature(footer.account));
+  if (tail.length) text += `\n\n${tail.join("\n")}`;
+
   if (footer) {
-    const meta = footer.lines.map(escapeHtml);
+    const meta: string[] = [];
+    if (footer.source) meta.push(`За матеріалами: ${escapeHtml(footer.source)}`);
+    meta.push(...footer.lines.map(escapeHtml));
     if (footer.link) meta.push(`<a href="${escapeHtml(footer.link.url)}">${escapeHtml(footer.link.label)}</a>`);
-    text += `\n\n———\n<i>${meta.join("\n")}</i>`;
+    text += `${tail.length ? "\n" : "\n\n"}———\n<i>${meta.join("\n")}</i>`;
   }
   const msg = await telegram.sendMessage(chatId, text, {
     parse_mode: "HTML",
