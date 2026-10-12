@@ -92,11 +92,10 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
 // 🧵 Тизер для Threads — окремим беззвучним повідомленням під постом, текст копіюється одним дотиком.
 export async function sendHook(hook: string): Promise<void> {
   let plain = hook.replace(/\*\*/g, "").trim(); // Threads розмітку не показує
-  if (!plain.endsWith(TEASER_END)) {
-    // прибираємо старі/власні заклики GPT в кінці («Посилання — у шапці профілю», «…у нашому Telegram») і ставимо наш
-    plain = plain.replace(/(\n+[^\n]*(шапці профілю|нашому Telegram|у Telegram)[^\n]*)+\s*$/iu, "").trim();
-    plain = `${plain}\n\n${TEASER_END}`;
-  }
+  // прибираємо заклики GPT в кінці (наш, старий «Посилання — у шапці профілю», «…у нашому Telegram»)
+  // і ставимо наш завжди однаково — окремим абзацом
+  plain = plain.replace(/(\n+[^\n]*(шапці профілю|нашому Telegram|у Telegram)[^\n]*)+\s*$/iu, "").trim();
+  plain = `${plain}\n\n${TEASER_END}`;
   await telegram.sendMessage(chatId, `🧵 <i>Для Threads</i>\n\n${escapeHtml(plain)}`, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
