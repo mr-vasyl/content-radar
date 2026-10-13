@@ -41,6 +41,9 @@ export interface Analysis {
   link: string; // пряме посилання на інструмент/ресурс (лише зі статті) або ""
   deadline: string; // YYYY-MM-DD — дедлайн подачі / дата події, якщо є; інакше ""
   origin: string; // першоджерело (хто оголосив / оригінальне видання), якщо стаття — переказ; інакше ""
+  // Для грантів/конкурсів — факти про умови; рішення «підходить чи ні» приймає код, а не загальна оцінка GPT
+  applicants: "individuals" | "individuals_and_orgs" | "orgs_only" | "n/a";
+  creative_sector: boolean;
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -100,6 +103,12 @@ AI-інструмент чи функція, корисна будь-кому, �
 link — пряме посилання на сам інструмент/сервіс/ресурс, про який пост (сайт продукту, сторінка завантаження, репозиторій),
 ТІЛЬКИ зі списку «Посилання зі статті» нижче тексту; якщо головного ресурсу немає або його посилання нема в списку — порожній рядок.
 Не давай посилання на саму статтю чи на соцмережі.
+applicants — лише для грантів, конкурсів, стипендій, програм: хто може подати ЗГІДНО З УМОВАМИ:
+"individuals" — окремі люди (автори, митці, перекладачі, ФОП); "individuals_and_orgs" — і люди, і організації;
+"orgs_only" — лише організації (ГО, БФ, заклади, компанії, громади, ОМС); для всього іншого — "n/a".
+creative_sector — true, якщо грант/конкурс для креативної сфери (мистецтво, музика, кіно, фото, дизайн, література
+й переклад, медіа й контент, культура й спадщина, освітні творчі проєкти, IT/цифрові продукти, креативний бізнес);
+false — охорона здоров'я, соцзахист, агро, ветерани, розвиток громад, інфраструктура тощо. Для не-грантів — true.
 origin — ПЕРШОДЖЕРЕЛО, яке вкажемо в «За матеріалами»: якщо стаття лише передає чужу інформацію (агрегатор грантів —
 ГУРТ, Простір; AI-дайджест — TLDR, Ben's Bites, The Rundown; новина з посиланням на іншу публікацію), то назва організації,
 фонду чи компанії, яка оголосила (для гранту — хто дає гроші й оголосив конкурс), або оригінального видання.
@@ -143,7 +152,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "story_score", "post", "hook", "tags", "link", "deadline", "origin"],
+  required: ["score", "stream", "account", "reason", "story_score", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -156,6 +165,8 @@ const SCHEMA = {
     link: { type: "string" },
     deadline: { type: "string" },
     origin: { type: "string" },
+    applicants: { type: "string", enum: ["individuals", "individuals_and_orgs", "orgs_only", "n/a"] },
+    creative_sector: { type: "boolean" },
   },
 } as const;
 
@@ -174,6 +185,17 @@ export async function analyze(article: Article, fullText: string | null, links: 
   const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" }); // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "") && result.deadline < today) {
     result.reason = `дедлайн минув (${result.deadline}) — ${result.reason}`;
+    result.score = Math.min(result.score, 2);
+    result.post = "";
+    result.hook = "";
+  }
+
+  // Хто може подати і чи креативна сфера — вирішує КОД за фактами, бо загальна оцінка GPT для грантів нестабільна
+  // (міні-гранти для ГО й закладів охорони здоров'я отримували то 2, то 8).
+  const isOpportunity = result.tags?.includes("#гранти") || result.applicants !== "n/a";
+  if (isOpportunity && (result.applicants === "orgs_only" || result.creative_sector === false)) {
+    const why = result.applicants === "orgs_only" ? "подати можуть лише організації" : "не креативна сфера";
+    result.reason = `грант не для креаторів (${why}) — ${result.reason}`;
     result.score = Math.min(result.score, 2);
     result.post = "";
     result.hook = "";
