@@ -218,8 +218,12 @@ export async function analyze(article: Article, fullText: string | null, links: 
   const real = links.find((l) => norm(l.url) === norm(result.link ?? ""));
   result.link = real ? real.url : "";
 
+  // GPT інколи ставить високу оцінку, але не пише пост. Раніше це валило статтю, і вона перевірялась щоразу заново —
+  // тепер просто не надсилаємо (запишеться як відхилена з причиною)
   if (result.score >= WRITE_FROM && !result.post.trim()) {
-    throw new Error(`GPT поставив ${result.score}, але не написав пост для ${article.url}`);
+    result.reason = `GPT не написав пост — ${result.reason}`;
+    result.score = Math.min(result.score, WRITE_FROM - 1);
+    result.hook = "";
   }
   if (result.post) result.post = result.post.trim(); // «За матеріалами» додає sendPost під лінією
   result.hook = result.score >= HOOK_SCORE ? result.hook.trim() : "";

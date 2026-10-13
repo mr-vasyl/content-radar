@@ -73,7 +73,66 @@ async function fetchPageLinks(source: Source, pattern: RegExp): Promise<Article[
   }));
 }
 
+// Посилання, які не є першоджерелом: картинки, соцмережі, інші Telegram-канали
+const NOT_PRIMARY = /(^|\.)(t\.me|telegram\.me|i\.ibb\.co|r2\.dev|imgur\.com|youtube\.com|youtu\.be)$|instagram\.com$|facebook\.com$|tiktok\.com$|twitter\.com$|x\.com$/i;
+const SHORTENERS = /^(bit\.ly|shorturl\.at|surl\.li|tinyurl\.com|cutt\.ly|t\.ly|rb\.gy|is\.gd|tiny\.cc|goo\.gl)$/i;
+
+// Скорочене посилання → справжня адреса (fetch сам іде за редіректами)
+async function resolveUrl(url: string): Promise<string> {
+  try {
+    if (!SHORTENERS.test(new URL(url).host.replace(/^www\./, ""))) return url;
+    const res = await fetch(url, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(10000) });
+    return res.url || url;
+  } catch {
+    return url;
+  }
+}
+
+// Публічний Telegram-канал як «радар»: читаємо t.me/s/<канал>, з кожного поста беремо посилання на ПЕРШОДЖЕРЕЛО
+// (форма подачі, сторінка фонду). Далі звичайний конвеєр — читаємо першоджерело й пишемо СВІЙ пост.
+// content = текст поста (запасний варіант, якщо першоджерело не читається — напр. Google Forms).
+async function fetchTelegramChannel(source: Source): Promise<Article[]> {
+  const res = await fetch(`https://t.me/s/${source.url}`, {
+    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Status code ${res.status}`);
+  const html = await res.text();
+
+  const out: Article[] = [];
+  for (const block of html.split('class="tgme_widget_message_wrap').slice(1)) {
+    const textHtml = block.match(/class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1];
+    if (!textHtml) continue;
+    const date = block.match(/datetime="([^"]+)"/)?.[1];
+    const text = decodeEntities(textHtml.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "")).trim();
+
+    let primary: string | null = null;
+    for (const m of textHtml.matchAll(/href="(https?:\/\/[^"]+)"/g)) {
+      const url = await resolveUrl(decodeEntities(m[1]!));
+      try {
+        if (NOT_PRIMARY.test(new URL(url).host.replace(/^www\./, ""))) continue;
+      } catch {
+        continue;
+      }
+      primary = url;
+      break;
+    }
+    if (!primary) continue; // без посилання на першоджерело не беремо — нема що перевірити
+
+    out.push({
+      source: source.name,
+      account: source.account,
+      title: (text.split("\n").find((l) => l.trim().length > 10) ?? text).replace(/\s+/g, " ").trim().slice(0, 200),
+      url: primary,
+      publishedAt: date ? new Date(date) : null,
+      content: text.slice(0, 4000),
+    });
+  }
+  return out;
+}
+
 export async function fetchArticles(source: Source): Promise<Article[]> {
+  if (source.telegram) return fetchTelegramChannel(source);
   if (source.linkPattern) return fetchPageLinks(source, source.linkPattern);
   const feed = await loadFeed(source.url);
 

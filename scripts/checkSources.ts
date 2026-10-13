@@ -209,6 +209,23 @@ const candidates: Candidate[] = [
   { name: "Lifehacker AI", group: "b5-ai", feeds: ["https://lifehacker.com/tech/artificial-intelligence/rss", "https://lifehacker.com/feed/rss"] },
   { name: "AIN.UA: AI", group: "b5-ai", feeds: ["https://ain.ua/tag/ai/feed/", "https://ain.ua/tag/shtuchnyj-intelekt/feed/"] },
   { name: "DOU: AI", group: "b5-ai", feeds: ["https://dou.ua/lenta/tags/AI/feed/", "https://dou.ua/feed/?tag=AI"] },
+
+  // ── Шоста хвиля (2026-10-13): гранти — джерела, які використовують конкуренти + культурні ──
+  { name: "ІСАР Єднання", group: "b6-grants", feeds: ["https://ednannia.ua/feed/", "https://ednannia.ua/rss"], home: "https://ednannia.ua/" },
+  { name: "Grant.Market", group: "b6-grants", feeds: ["https://grant.market/feed", "https://grant.market/rss"], home: "https://grant.market/" },
+  { name: "SALTO-Youth (тренінги)", group: "b6-grants", feeds: ["https://www.salto-youth.net/rss/trainings/", "https://www.salto-youth.net/tools/european-training-calendar/rss/"], home: "https://www.salto-youth.net/tools/european-training-calendar/" },
+  { name: "Український молодіжний фонд", group: "b6-grants", feeds: ["https://uyf.gov.ua/feed/"], home: "https://uyf.gov.ua/" },
+  { name: "Український інститут книги", group: "b6-grants", feeds: ["https://book-institute.org.ua/feed", "https://book-institute.org.ua/uk/rss"], home: "https://book-institute.org.ua/uk/news" },
+  { name: "On the Move", group: "b6-grants", feeds: ["https://on-the-move.org/rss.xml", "https://on-the-move.org/news/rss"], home: "https://on-the-move.org/news" },
+  { name: "TransArtists", group: "b6-grants", feeds: ["https://www.transartists.org/en/rss.xml"], home: "https://www.transartists.org/en/call-for-artists" },
+  { name: "Visegrad Fund", group: "b6-grants", feeds: ["https://www.visegradfund.org/feed/", "https://www.visegradfund.org/news/feed/"], home: "https://www.visegradfund.org/" },
+  { name: "Culture Helps", group: "b6-grants", feeds: ["https://culturehelpssolidarity.eu/feed/"], home: "https://culturehelpssolidarity.eu/" },
+  { name: "Відродження (IRF)", group: "b6-grants", feeds: ["https://www.irf.ua/feed/"], home: "https://www.irf.ua/" },
+  { name: "Дія.Бізнес гранти", group: "b6-grants", feeds: ["https://business.diia.gov.ua/rss"], home: "https://business.diia.gov.ua/" },
+  { name: "Ukrainian Startup Fund", group: "b6-grants", feeds: ["https://usf.com.ua/feed/"], home: "https://usf.com.ua/" },
+  { name: "Gaude Polonia / Польський інститут", group: "b6-grants", feeds: ["https://instytutpolski.pl/kyiv/feed/"], home: "https://instytutpolski.pl/kyiv/" },
+  { name: "Goethe UA (новини)", group: "b6-grants", feeds: ["https://www.goethe.de/ins/ua/uk/ueb/rss.xml"], home: "https://www.goethe.de/ins/ua/uk/" },
+  { name: "Prometheus", group: "b6-grants", feeds: ["https://prometheus.org.ua/feed/"], home: "https://prometheus.org.ua/" },
 ];
 
 // npm run check-sources knowledge monetize — перевірити лише ці групи
