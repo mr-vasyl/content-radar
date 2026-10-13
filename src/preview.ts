@@ -61,7 +61,7 @@ async function previewNews(limit: number) {
         await sendPost(r.post, {
           tags: r.tags,
           account: r.account,
-          source: a.source,
+          source: r.origin?.trim() || a.source,
           lines: [`📰 ⭐ ${r.score}/10 · ${r.stream}`, a.title],
           link: { url: a.url, label: "Оригінал" },
         });

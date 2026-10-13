@@ -85,8 +85,13 @@ export async function runNews(): Promise<void> {
         await sendPost(analysis.post, {
           tags: analysis.tags,
           account: analysis.account,
-          source: a.source,
-          lines: [`📰 ⭐ ${analysis.score}/10 · ${analysis.stream}`, a.title, ...(note ? [note] : [])],
+          source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
+          lines: [
+            `📰 ⭐ ${analysis.score}/10 · ${analysis.stream}`,
+            a.title,
+            ...(analysis.origin?.trim() && analysis.origin.trim() !== a.source ? [`знайдено на: ${a.source}`] : []),
+            ...(note ? [note] : []),
+          ],
           link: { url: a.url, label: "Оригінал" },
         }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
         if (analysis.hook) await sendHook(analysis.hook);
