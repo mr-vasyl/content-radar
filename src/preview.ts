@@ -12,9 +12,10 @@ import { withToolLink } from "./digest.ts";
 import { extractArticle } from "./extractText.ts";
 import { sendHook, sendPost } from "./sendToTelegram.ts";
 import { runSaves } from "./modes/saves.ts";
+import { runPromo } from "./modes/promo.ts";
 import { prisma } from "./db.ts";
 
-const MODES = { saves: runSaves } as const;
+const MODES = { saves: runSaves, promo: runPromo } as const;
 
 const arg = process.argv[2] ?? "1";
 const send = process.argv[3] === "send";

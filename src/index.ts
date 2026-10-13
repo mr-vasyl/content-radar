@@ -1,15 +1,18 @@
 // Точка входу. Режим береться з аргументу або змінної MODE (її передає GitHub Actions):
 //   npm start              — новини (за замовчуванням)
-//   npm start -- saves     — 📌 збережи собі
+//   npm start -- saves     — 💰 можливості тижня
+//   npm start -- promo     — 🚀 пост про SkyNovix для Threads
 import "dotenv/config";
 import { prisma } from "./db.ts";
 import { pollReactions } from "./reactions.ts";
 import { runNews } from "./modes/news.ts";
 import { runSaves } from "./modes/saves.ts";
+import { runPromo } from "./modes/promo.ts";
 
 const MODES = {
   news: () => runNews(),
   saves: () => runSaves({ dryRun: false, send: true }),
+  promo: () => runPromo({ dryRun: false, send: true }),
 } as const;
 
 const mode = (process.argv[2] || process.env.MODE || "news") as keyof typeof MODES;

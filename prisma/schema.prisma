@@ -28,6 +28,15 @@ model Article {
   tags        String?   // 1–2 хештеги через пробіл, напр. "#заробіток #YouTube"
 }
 
+// Пости про SkyNovix (режим promo): для ротації тем і щоб не повторювати товари й думки.
+model PromoPost {
+  id         Int      @id @default(autoincrement())
+  theme      String   // fees | checkout | what_to_sell | trust | positioning | tips
+  text       String   // усі частини, через "\n\n---\n\n"
+  productUrl String?  // для постів про конкретний товар
+  createdAt  DateTime @default(now())
+}
+
 // Кожен надісланий у бот пост — щоб зіставити твою реакцію (👍) з постом.
 model SentMessage {
   id        Int       @id @default(autoincrement())
