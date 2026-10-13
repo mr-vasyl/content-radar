@@ -28,6 +28,32 @@ export const sources: Source[] = [
   { name: "Ізоляція", url: "https://izolyatsia.org/ua/rss/", account: "knowledge" },
   { name: "Польський інститут", url: "https://instytutpolski.pl/kyiv/feed/", account: "knowledge" }, // Gaude Polonia та ін. для українських митців
 
+  // 🎯 Професійні джерела (2026-10-13) — медіа професій публікують конкурси, премії, резиденції, open call.
+  // Звичайні новини з них не проходять: у канал іде лише те, що GPT відніс до можливостей (account knowledge).
+  // ✍️ Письменники й перекладачі
+  { name: "Читомо", url: "https://chytomo.com/feed/", account: "knowledge" },
+  { name: "PEN Україна", url: "https://pen.org.ua/feed.rss", account: "knowledge" },
+  { name: "Літосвіта", url: "https://litosvita.com/feed/", account: "knowledge" },
+  // 🎬 Кіно
+  { name: "Kinokolo", url: "https://kinokolo.ua/feed/", account: "knowledge" },
+  { name: "Українська кіноакадемія", url: "https://uafilmacademy.org/", account: "knowledge", linkPattern: /uafilmacademy\.org\/news\/[^/]+\.html$/ },
+  { name: "Одеський кінофестиваль", url: "https://new.oiff.com.ua/blog-feed.xml", account: "knowledge" },
+  { name: "Docudays UA", url: "https://docudays.ua/rss", account: "knowledge" },
+  // 🎨 Візуальне
+  { name: "Your Art", url: "https://supportyourart.com/feed/", account: "knowledge" },
+  // 🎵 Музика
+  { name: "Music Export Ukraine", url: "https://musicexportukraine.com/", account: "knowledge", linkPattern: /musicexportukraine\.com\/our-work\/browse-by-year\/20\d\d\/[\w-]+$/ },
+  // 📰 Медіа й журналісти
+  { name: "Детектор медіа", url: "https://detector.media/rss", account: "knowledge" },
+  { name: "Академія української преси", url: "https://www.aup.com.ua/feed/", account: "knowledge" },
+  { name: "ІМІ", url: "https://imi.org.ua/", account: "knowledge", linkPattern: /imi\.org\.ua\/announcements\/[\w-]+$/ },
+  // 🎮 Цифрове й геймдев
+  { name: "dev.ua", url: "https://dev.ua/rss", account: "knowledge" },
+  // 🎓 Студенти й освіта
+  { name: "Studway", url: "https://studway.com.ua/feed/", account: "knowledge" },
+  { name: "Erasmus+ Україна", url: "https://erasmusplus.org.ua/feed/", account: "knowledge" },
+  { name: "DAAD Україна", url: "https://www.daad-ukraine.org/uk/feed/", account: "knowledge" },
+
   // 📡 Грантові Telegram-канали (конкуренти) як «радар»: з постів беремо лише посилання на першоджерело,
   // читаємо його й пишемо СВІЙ пост; «За матеріалами» — фонд, а не канал. Аналіз конкурентів — 2026-10-13.
   { name: "Грантові фішки", url: "grantovyphishky", account: "knowledge", telegram: true }, // 32K
