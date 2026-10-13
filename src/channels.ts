@@ -5,7 +5,7 @@ import type { Account } from "./sources.ts";
 export const CHANNELS: Record<Account, { name: string; username?: string }> = {
   creators: { name: "🎨 Креатори UA", username: "ukr_creators" },
   tools: { name: "💻 AI для творців", username: "ai_creators_ua" },
-  knowledge: { name: "💰 Гранти, конкурси та можливості 🇺🇦", username: "write_teach_earn" },
+  knowledge: { name: "✍️ гранти, конкурси та можливості 🇺🇦", username: "write_teach_earn" },
 };
 
 // Фіксований набір хештегів — для навігації всередині каналу (1–2 на пост)
