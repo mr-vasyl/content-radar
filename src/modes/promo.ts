@@ -1,6 +1,6 @@
 // 🚀 Пости про SkyNovix для Threads — ЛИШЕ за фактами з content/skynovix-facts.md.
 // Один запуск = один пост (інколи мультичастинний 1/N). Запуски розкидані по дню (3–5 на день).
-// Голос — від бренду («ми»), кінцівка — «Посилання в шапці профілю.». Товари з сайту поки НЕ публікуємо (власник).
+// Голос — від бренду («ми»), ОДИН суцільний пост без нумерації і без заклику в кінці. Товари з сайту НЕ публікуємо (власник).
 import { readFileSync } from "node:fs";
 import { prisma } from "../db.ts";
 import { askJson, LANGUAGE } from "../gpt.ts";
@@ -10,7 +10,6 @@ import type { RunOptions } from "./types.ts";
 
 const FACTS_PATH = "content/skynovix-facts.md";
 const AGENT_PATH = "content/skynovix-agent.md";
-export const PROMO_END = "Посилання в шапці профілю.";
 
 export const THEMES = {
   fees: "Комісії, виплати й податки (розділи 2–3)",
@@ -53,7 +52,7 @@ const SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["parts"],
-  properties: { parts: { type: "array", minItems: 1, maxItems: 5, items: { type: "string" } } },
+  properties: { parts: { type: "array", minItems: 1, maxItems: 1, items: { type: "string" } } }, // один пост
 } as const;
 
 async function pickTheme(): Promise<Theme> {
@@ -80,10 +79,9 @@ export async function runPromo({ dryRun, send }: RunOptions, forcedTheme?: Theme
 
 ## Уточнення власника
 - Пиши ВІД БРЕНДУ, «ми» («На SkyNovix ми…», «Ми беремо банківські комісії на себе»). Не від першої особи «я».
-- Пост — лише для Threads: кожна частина до 450 символів (ліміт Threads — 500).
-- Мультичастинний пост (2–5 частин, «1/4», «2/4» на початку кожної) — приблизно кожен четвертий, коли тему справді
-  варто розкласти по кроках; інакше — одна частина.
-- Останнє речення останньої частини рівно: «${PROMO_END}» (без посилань, skynovix.com у тексті не пиши).
+- Пост для Threads — ЗАВЖДИ ОДИН суцільний текст, без нумерації «1/3». Зазвичай 300–600 символів; якщо тему варто
+  розкрити кроками — до ~1000 (Threads сам розбиває довгий текст на ланцюжок).
+- Без заклику в кінці («посилання в шапці профілю», «переходьте» тощо) і без посилань — skynovix.com у тексті не пиши.
 - Конкретні товари й авторів із сайту НЕ згадуй — пиши про платформу.
 - Не повторюй думки й гачки з останніх постів (список нижче).
 ${LANGUAGE}
@@ -128,14 +126,9 @@ ${recentList}`;
     return;
   }
 
-  // Кінцівка — лише в останній частині й завжди наша; нумерація «1/3» — кодом, GPT її забував
-  const lastIdx = parts.length - 1;
-  parts = parts.map((p, i) => {
-    let text = p.replace(/\s*Посилання (в|у) шапці профілю\.?/gi, "").replace(/^\s*\d\/\d\s*/, "").trim();
-    if (parts.length > 1) text = `${i + 1}/${parts.length}\n\n${text}`;
-    if (i === lastIdx) text = `${text}\n\n${PROMO_END}`;
-    return text;
-  });
+  // Власник: один пост (Threads сам робить ланцюжок) і без «посилання в шапці профілю» — прибираємо, якщо GPT дописав
+  parts = [parts.join("\n\n").replace(/\s*Посилання (в|у) шапці профілю\.?/gi, "").replace(/^\s*\d\/\d\s*/gm, "").trim()];
+  const lastIdx = 0;
 
   console.log(`\n🚀 [${theme}] ${parts.length} частин:\n\n${parts.join("\n\n---\n\n")}`);
 
