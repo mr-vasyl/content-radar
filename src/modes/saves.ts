@@ -45,7 +45,8 @@ export async function runSaves({ dryRun, send }: RunOptions): Promise<void> {
   const week = isoWeek();
   const since = new Date(Date.now() - DAYS * 86400000);
 
-  for (const account of Object.keys(ACCOUNTS) as Account[]) {
+  // Лише канал можливостей («Можливості тижня») — інші два канали зупинені 2026-10-13
+  for (const account of ["knowledge"] as Account[]) {
     const period = `${week}:${account}`;
     if (!dryRun && (await alreadyRan("saves", period))) {
       console.log(`📌 ${account}: за ${week} уже надіслано — пропускаю`);

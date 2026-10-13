@@ -70,7 +70,8 @@ export async function runNews(): Promise<void> {
       const fullText = extracted?.text ?? null;
       const analysis = await analyze(a, fullText, extracted?.links);
 
-      if (analysis.score >= minScoreFor(analysis.account)) {
+      // З 2026-10-13 працює лише канал можливостей: «Креатори UA» і «AI для творців» зупинені власником
+      if (analysis.account === "knowledge" && analysis.score >= minScoreFor(analysis.account)) {
         // Фактчек: звіряємо пост з оригіналом; перекручене — виправляємо, непідтверджене — не шлемо
         const fc = await factCheck(a.source, a.title, fullText ?? a.content, analysis.post, analysis.hook);
         if (fc.verdict === "reject") {

@@ -12,10 +12,8 @@ import pg from "pg";
 // Періодичні формати — о :47, щоб не стартувати одночасно з новинами (:17).
 const JOBS: { name: string; schedule: string; mode: string }[] = [
   { name: "content-radar", schedule: "17 5-19/2 * * *", mode: "news" }, // щодня 8:17–22:17, кожні 2 год
-  { name: "content-radar-tools", schedule: "47 7 * * 1", mode: "tools" }, // понеділок 10:47
-  { name: "content-radar-story", schedule: "47 9 * * 3", mode: "story" }, // середа 12:47
-  { name: "content-radar-evergreen", schedule: "47 13 * * 2,4", mode: "evergreen" }, // вівторок і четвер 16:47
-  { name: "content-radar-saves", schedule: "47 11 * * 5", mode: "saves" }, // п'ятниця 14:47
+  // Зупинено 2026-10-13 разом з каналами «Креатори UA» і «AI для творців»: tools (пн), story (ср), evergreen (вт, чт)
+  { name: "content-radar-saves", schedule: "47 11 * * 5", mode: "saves" }, // п'ятниця 14:47 — «💰 Можливості тижня»
 ];
 
 const SECRET_NAME = "github_dispatch_token";
