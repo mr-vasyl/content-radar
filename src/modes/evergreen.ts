@@ -92,7 +92,7 @@ const DEEP_SCHEMA = {
     reason: { type: "string" },
     post: { type: "string" },
     hook: { type: "string" },
-    tags: { type: "array", minItems: 1, maxItems: 2, items: { type: "string", enum: [...TAGS] } },
+    tags: { type: "array", minItems: 1, maxItems: 3, items: { type: "string", enum: [...TAGS] } },
   },
 } as const;
 

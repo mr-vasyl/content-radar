@@ -226,6 +226,52 @@ const candidates: Candidate[] = [
   { name: "Gaude Polonia / Польський інститут", group: "b6-grants", feeds: ["https://instytutpolski.pl/kyiv/feed/"], home: "https://instytutpolski.pl/kyiv/" },
   { name: "Goethe UA (новини)", group: "b6-grants", feeds: ["https://www.goethe.de/ins/ua/uk/ueb/rss.xml"], home: "https://www.goethe.de/ins/ua/uk/" },
   { name: "Prometheus", group: "b6-grants", feeds: ["https://prometheus.org.ua/feed/"], home: "https://prometheus.org.ua/" },
+
+  // ── Сьома хвиля (2026-10-13): закриваємо професії для каналу грантів ──
+  // ✍️ Письменники й перекладачі
+  { name: "Читомо", group: "b7-lit", feeds: ["https://chytomo.com/feed/"], home: "https://chytomo.com/" },
+  { name: "PEN Україна", group: "b7-lit", feeds: ["https://pen.org.ua/feed"], home: "https://pen.org.ua/" },
+  { name: "Літосвіта", group: "b7-lit", feeds: ["https://litosvita.com/feed/"], home: "https://litosvita.com/" },
+  { name: "Translate Ukraine", group: "b7-lit", feeds: ["https://translateukraine.org/feed/"], home: "https://translateukraine.org/" },
+  { name: "Видавництво Старого Лева (конкурси)", group: "b7-lit", feeds: ["https://starylev.com.ua/feed"], home: "https://starylev.com.ua/" },
+  // 🎬 Кіно й театр
+  { name: "Держкіно", group: "b7-film", feeds: ["https://dergkino.gov.ua/feed", "https://dergkino.gov.ua/rss"], home: "https://dergkino.gov.ua/" },
+  { name: "Kinokolo", group: "b7-film", feeds: ["https://kinokolo.ua/feed/", "https://kinokolo.ua/rss/"], home: "https://kinokolo.ua/" },
+  { name: "Українська кіноакадемія", group: "b7-film", feeds: ["https://uafilmacademy.org/feed/"], home: "https://uafilmacademy.org/" },
+  { name: "Docudays UA", group: "b7-film", feeds: ["https://docudays.ua/feed/", "https://docudays.ua/rss"], home: "https://docudays.ua/" },
+  { name: "Одеський кінофестиваль", group: "b7-film", feeds: ["https://oiff.com.ua/feed/"], home: "https://oiff.com.ua/" },
+  { name: "Театр.UA / Teatre", group: "b7-film", feeds: ["https://teatre.com.ua/feed/", "https://teatr.ua/feed"], home: "https://teatre.com.ua/" },
+  // 🎨 Візуальні митці й фото
+  { name: "Your Art", group: "b7-visual", feeds: ["https://supportyourart.com/feed/", "https://supportyourart.com/rss/"], home: "https://supportyourart.com/" },
+  { name: "Korydor", group: "b7-visual", feeds: ["https://korydor.in.ua/feed/", "https://korydor.in.ua/ua/rss"], home: "https://korydor.in.ua/" },
+  { name: "On the Move", group: "b7-visual", feeds: ["https://on-the-move.org/news/rss.xml"], home: "https://on-the-move.org/news" },
+  { name: "UPHA (фото)", group: "b7-visual", feeds: ["https://upha.org.ua/feed/"], home: "https://upha.org.ua/" },
+  { name: "Gaude Polonia", group: "b7-visual", feeds: ["https://nck.pl/feed/"], home: "https://www.nck.pl/en/projects/gaude-polonia" },
+  // 🎵 Музиканти
+  { name: "Neformat", group: "b7-music", feeds: ["https://neformat.com.ua/feed/", "https://neformat.com.ua/rss"], home: "https://neformat.com.ua/" },
+  { name: "Слухай", group: "b7-music", feeds: ["https://sluhay.com.ua/feed/"], home: "https://sluhay.com.ua/" },
+  { name: "Music Export Ukraine", group: "b7-music", feeds: ["https://musicexport.com.ua/feed/", "https://musicexportukraine.com/feed/"], home: "https://musicexportukraine.com/" },
+  { name: "Українська музична асоціація", group: "b7-music", feeds: ["https://uma.org.ua/feed/"], home: "https://uma.org.ua/" },
+  { name: "Karabas / Music Export (новини)", group: "b7-music", feeds: ["https://musicua.media/feed/"], home: "https://musicua.media/" },
+  // 🖌 Дизайн
+  { name: "Projector", group: "b7-design", feeds: ["https://prjctr.com/feed", "https://prjctr.com/news/feed"], home: "https://prjctr.com/news" },
+  { name: "ADC*UA", group: "b7-design", feeds: ["https://adcua.org/feed/"], home: "https://adcua.org/" },
+  { name: "Design.ua / Dizayn", group: "b7-design", feeds: ["https://dsgnrs.com.ua/feed/"], home: "https://dsgnrs.com.ua/" },
+  // 📰 Медіа й журналісти
+  { name: "ІМІ", group: "b7-media", feeds: ["https://imi.org.ua/rss", "https://imi.org.ua/feed"], home: "https://imi.org.ua/" },
+  { name: "Детектор медіа", group: "b7-media", feeds: ["https://detector.media/rss"] },
+  { name: "Lviv Media Forum", group: "b7-media", feeds: ["https://lvivmediaforum.com/feed/"], home: "https://lvivmediaforum.com/" },
+  { name: "Академія української преси", group: "b7-media", feeds: ["https://www.aup.com.ua/feed/"], home: "https://www.aup.com.ua/" },
+  { name: "MDF (гранти для медіа)", group: "b7-media", feeds: ["https://www.mdfgrants.org/feed/"], home: "https://www.mdfgrants.org/" },
+  // 🎮 Геймдев і цифрове
+  { name: "dev.ua", group: "b7-digital", feeds: ["https://dev.ua/rss"], home: "https://dev.ua/" },
+  { name: "Games Gathering", group: "b7-digital", feeds: ["https://gamesgathering.com/feed/"], home: "https://gamesgathering.com/" },
+  // 🎓 Студенти й освіта
+  { name: "Studway", group: "b7-edu", feeds: ["https://studway.com.ua/feed/"], home: "https://studway.com.ua/" },
+  { name: "Erasmus+ Україна", group: "b7-edu", feeds: ["https://erasmusplus.org.ua/feed/"], home: "https://erasmusplus.org.ua/" },
+  { name: "DAAD Україна", group: "b7-edu", feeds: ["https://www.daad-ukraine.org/uk/feed/"], home: "https://www.daad-ukraine.org/uk/" },
+  { name: "Освіторія", group: "b7-edu", feeds: ["https://osvitoria.media/feed/"], home: "https://osvitoria.media/" },
+  { name: "EdCamp Ukraine", group: "b7-edu", feeds: ["https://www.edcamp.org.ua/feed/"], home: "https://www.edcamp.org.ua/" },
 ];
 
 // npm run check-sources knowledge monetize — перевірити лише ці групи

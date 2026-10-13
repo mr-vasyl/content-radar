@@ -2,7 +2,7 @@ import type { Article } from "./fetchArticles.ts";
 import type { ArticleLink } from "./extractText.ts";
 import type { Account } from "./sources.ts";
 import { askJson, AUDIENCE, HOOK_RULES, HOOK_SCORE, LANGUAGE, OPPORTUNITIES, VOICE } from "./gpt.ts";
-import { TAGS, TAGS_PROMPT } from "./channels.ts";
+import { TAGS, TAGS_PROMPT, TYPE_TAGS } from "./channels.ts";
 
 // Нижче цієї оцінки пост не пишемо (економія токенів) і не надсилаємо.
 export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
@@ -164,7 +164,7 @@ const SCHEMA = {
     story_score: { type: "integer", minimum: 0, maximum: 10 },
     post: { type: "string" },
     hook: { type: "string" },
-    tags: { type: "array", minItems: 1, maxItems: 2, items: { type: "string", enum: [...TAGS] } },
+    tags: { type: "array", minItems: 1, maxItems: 3, items: { type: "string", enum: [...TAGS] } },
     link: { type: "string" },
     deadline: { type: "string" },
     origin: { type: "string" },
@@ -195,7 +195,7 @@ export async function analyze(article: Article, fullText: string | null, links: 
 
   // Хто може подати і чи креативна сфера — вирішує КОД за фактами, бо загальна оцінка GPT для грантів нестабільна
   // (міні-гранти для ГО й закладів охорони здоров'я отримували то 2, то 8).
-  const isOpportunity = result.tags?.includes("#гранти") || result.applicants !== "n/a";
+  const isOpportunity = result.tags?.some((t) => (TYPE_TAGS as readonly string[]).includes(t)) || result.applicants !== "n/a";
   if (isOpportunity && (result.applicants === "orgs_only" || result.creative_sector === false)) {
     const why = result.applicants === "orgs_only" ? "подати можуть лише організації" : "не креативна сфера";
     result.reason = `грант не для креаторів (${why}) — ${result.reason}`;
@@ -206,7 +206,7 @@ export async function analyze(article: Article, fullText: string | null, links: 
 
   // Грант/конкурс без дедлайну — це загальна сторінка програми, а не відкритий набір (House of Europe «На переклад»:
   // власник опублікував, набрав 1000 переглядів і зніс, бо незрозуміло, чи прийом відкритий). Не шлемо.
-  if (result.tags?.includes("#гранти") && !/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "")) {
+  if (isOpportunity && !/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "")) {
     result.reason = `грант без дедлайну — незрозуміло, чи набір відкритий — ${result.reason}`;
     result.score = Math.min(result.score, 5);
     result.post = "";
