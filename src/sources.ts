@@ -50,22 +50,22 @@ export const sources: Source[] = [
   { name: "MC.today", url: "https://mc.today/uk/feed/", account: "creators" },
   { name: "Детектор медіа", url: "https://detector.media/rss", account: "creators" },
   { name: "Платформа", url: "https://platfor.ma/feed/", account: "creators" },
-  { name: "Український інститут", url: "https://ui.org.ua/feed/", account: "creators" },
+  { name: "Український інститут", url: "https://ui.org.ua/feed/", account: "knowledge" },
   { name: "AIN.UA", url: "https://ain.ua/feed/", account: "tools" },
   { name: "Mezha", url: "https://mezha.media/feed/", account: "tools" },
-  // 💰 Гранти й можливості для українців. Канал (Креатори / AI / Пиши) GPT обирає за змістом:
+  // 💰 Гранти й можливості для українців — канал можливостей (account knowledge); туди ж GPT шле будь-які гранти з інших джерел.
   // гранти на переклад і книжки підуть у «Пиши. Навчай. Заробляй», на музику чи фото — у «Креатори UA».
-  { name: "ГУРТ", url: "https://gurt.org.ua/rss/section/grants/", account: "creators" }, // лише розділ «Гранти»
+  { name: "ГУРТ", url: "https://gurt.org.ua/rss/section/grants/", account: "knowledge" }, // лише розділ «Гранти»
   // Простір: RSS розділу грантів порожній — читаємо сторінку; лише «Конкурси та гранти», без вакансій і тендерів
-  { name: "Простір", url: "https://www.prostir.ua/category/grants/", account: "creators", linkPattern: /prostir\.ua\/\?grants=[\w-]+$/ },
-  { name: "Мінкульт", url: "https://mcsc.gov.ua/feed/", account: "creators" },
-  { name: "Мистецький арсенал", url: "https://artarsenal.in.ua/feed/", account: "creators" },
-  { name: "Ізоляція", url: "https://izolyatsia.org/ua/rss/", account: "creators" },
+  { name: "Простір", url: "https://www.prostir.ua/category/grants/", account: "knowledge", linkPattern: /prostir\.ua\/\?grants=[\w-]+$/ },
+  { name: "Мінкульт", url: "https://mcsc.gov.ua/feed/", account: "knowledge" },
+  { name: "Мистецький арсенал", url: "https://artarsenal.in.ua/feed/", account: "knowledge" },
+  { name: "Ізоляція", url: "https://izolyatsia.org/ua/rss/", account: "knowledge" },
   // Без RSS — читаємо сторінку зі списком програм
-  { name: "УКФ", url: "https://ucf.in.ua/programs", account: "creators", linkPattern: /ucf\.in\.ua\/m_programs\/\w+/ },
-  { name: "House of Europe", url: "https://houseofeurope.org.ua/opportunities", account: "creators", linkPattern: /houseofeurope\.org\.ua\/(grant|programme)\/[\w-]+$/ },
-  { name: "Креативна Європа", url: "https://creativeeurope.in.ua/news", account: "creators", linkPattern: /creativeeurope\.in\.ua\/news\/[\w-]+$/ },
-  { name: "PinchukArtCentre", url: "https://pinchukartcentre.org/osvitni-programy-ta-podii", account: "creators", linkPattern: /pinchukartcentre\.org\/events\/[\w-]+$/ },
+  { name: "УКФ", url: "https://ucf.in.ua/programs", account: "knowledge", linkPattern: /ucf\.in\.ua\/m_programs\/\w+/ },
+  { name: "House of Europe", url: "https://houseofeurope.org.ua/opportunities", account: "knowledge", linkPattern: /houseofeurope\.org\.ua\/(grant|programme)\/[\w-]+$/ },
+  { name: "Креативна Європа", url: "https://creativeeurope.in.ua/news", account: "knowledge", linkPattern: /creativeeurope\.in\.ua\/news\/[\w-]+$/ },
+  { name: "PinchukArtCentre", url: "https://pinchukartcentre.org/osvitni-programy-ta-podii", account: "knowledge", linkPattern: /pinchukartcentre\.org\/events\/[\w-]+$/ },
 
   // Креатор-економіка й монетизація — поки теж у creators
   { name: "Tubefilter", url: "https://www.tubefilter.com/feed/", account: "creators" },
@@ -104,17 +104,17 @@ export const sources: Source[] = [
   { name: "Zapier", url: "https://zapier.com/blog/feeds/latest/", account: "tools" },
   { name: "DOU", url: "https://dou.ua/lenta/tags/AI/feed/", account: "tools" }, // лише тег AI
 
-  // ✍️ Digital Knowledge — письменники, самвидав, розсилки, автори курсів
-  { name: "Jane Friedman", url: "https://janefriedman.com/feed/", account: "knowledge" },
-  { name: "ALLi", url: "https://selfpublishingadvice.org/feed/", account: "knowledge" },
-  { name: "Writer's Digest", url: "https://www.writersdigest.com/feed", account: "knowledge" },
-  { name: "Written Word Media", url: "https://www.writtenwordmedia.com/feed/", account: "knowledge" },
-  { name: "BookBub", url: "https://insights.bookbub.com/feed/", account: "knowledge" },
-  { name: "Draft2Digital", url: "https://www.draft2digital.com/blog/feed/", account: "knowledge" },
-  { name: "Substack", url: "https://on.substack.com/feed", account: "knowledge" },
-  { name: "eLearning Industry", url: "https://elearningindustry.com/feed", account: "knowledge" },
-  { name: "Nathan Bransford", url: "https://nathanbransford.com/feed", account: "knowledge" },
-  { name: "Inbox Collective", url: "https://inboxcollective.com/feed/", account: "knowledge" },
-  { name: "Writer Beware", url: "https://writerbeware.blog/feed/", account: "knowledge" },
-  { name: "Simon Owens", url: "https://simonowens.substack.com/feed", account: "knowledge" },
+  // ✍️ Письменники, самвидав, розсилки, курси — з 2026-10-13 у creators (GPT частину відправляє в AI-канал)
+  { name: "Jane Friedman", url: "https://janefriedman.com/feed/", account: "creators" },
+  { name: "ALLi", url: "https://selfpublishingadvice.org/feed/", account: "creators" },
+  { name: "Writer's Digest", url: "https://www.writersdigest.com/feed", account: "creators" },
+  { name: "Written Word Media", url: "https://www.writtenwordmedia.com/feed/", account: "creators" },
+  { name: "BookBub", url: "https://insights.bookbub.com/feed/", account: "creators" },
+  { name: "Draft2Digital", url: "https://www.draft2digital.com/blog/feed/", account: "creators" },
+  { name: "Substack", url: "https://on.substack.com/feed", account: "creators" },
+  { name: "eLearning Industry", url: "https://elearningindustry.com/feed", account: "creators" },
+  { name: "Nathan Bransford", url: "https://nathanbransford.com/feed", account: "creators" },
+  { name: "Inbox Collective", url: "https://inboxcollective.com/feed/", account: "creators" },
+  { name: "Writer Beware", url: "https://writerbeware.blog/feed/", account: "creators" },
+  { name: "Simon Owens", url: "https://simonowens.substack.com/feed", account: "creators" },
 ];
