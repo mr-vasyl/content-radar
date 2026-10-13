@@ -27,7 +27,59 @@ export const THEMES = {
   bilingual:"Сайт двомовний (українська й англійська): картка товару двома мовами — назва й опис для кожної; товар бачать і англомовні покупці, ціна в UAH/USD/EUR; перекладу немає — автор сам заповнює обидві мови (розділ 5)",
   product_card:"Як оформити картку товару, щоб купували: назва, опис, категорія, превʼю й відео-превʼю без звуку (на компʼютері грає при наведенні курсора в каталозі, на телефоні — у галереї фото на сторінці товару), файл (формати, до 1 ГБ; великий курс — TXT з посиланням на хмару), ціна, PWYW, ексклюзив, відгуки (розділ 5.1)",
 } as const;
-type Theme = keyof typeof THEMES;
+
+// Особливі пости — не в ротації, бот вмикає їх сам (див. pickTheme)
+const SPECIAL = {
+  payday: "📅 Сьогодні день виплат (14 чи 28 число): як працюють виплати — двічі на місяць, період утримання, Monobank/PrivatBank/IBAN, податки для фізособи й ФОП (розділ 3)",
+  holiday: "🎁 Скоро свято: які сезонні цифрові товари автор може підготувати заздалегідь (листівки, шаблони, планери, фото, музика, курси) і як оформити їх вчасно",
+  question: "💬 Пост-питання до аудиторії: щоб люди відповідали в коментарях",
+} as const;
+type Theme = keyof typeof THEMES | keyof typeof SPECIAL;
+const label = (t: Theme) => ({ ...THEMES, ...SPECIAL } as Record<Theme, string>)[t];
+
+// Свята, перед якими люди купують подарунки: [місяць, день, назва]. Великдень — рухомий, не беремо.
+const HOLIDAYS: [number, number, string][] = [
+  [2, 14, "День закоханих"],
+  [3, 8, "8 березня"],
+  [12, 6, "День святого Миколая"],
+  [12, 25, "Різдво"],
+  [12, 31, "Новий рік"],
+];
+const HOLIDAY_AHEAD = [5, 12]; // за скільки днів до свята писати (автору треба час підготувати товар)
+
+const DAY = 86400000;
+function kyivToday(): Date {
+  return new Date(new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" }) + "T00:00:00Z");
+}
+function upcomingHoliday(today: Date): string | null {
+  for (const [m, d, name] of HOLIDAYS) {
+    for (const year of [today.getUTCFullYear(), today.getUTCFullYear() + 1]) {
+      const days = (Date.UTC(year, m - 1, d) - today.getTime()) / DAY;
+      if (days >= HOLIDAY_AHEAD[0]! && days <= HOLIDAY_AHEAD[1]!) return `${name} (через ${days} дн.)`;
+    }
+  }
+  return null;
+}
+
+// Що саме писати для особливих постів (перекриває загальне форматування)
+function specialBrief(theme: Theme, holiday: string | null): string {
+  if (theme === "payday")
+    return `Сьогодні ${kyivToday().getUTCDate()} число — день виплат на SkyNovix. Почни саме з цього. Далі — лише факти з розділу 3.
+Не пиши, що виплата вже прийшла чи прийде «сьогодні до вечора» — про час зарахування фактів немає.`;
+  if (theme === "holiday")
+    return `Найближче свято: ${holiday ?? "День святого Миколая"}. Порада авторам: підготувати сезонний цифровий товар заздалегідь, поки люди шукають подарунки.
+Дай 3–5 конкретних ідей товарів для різних напрямів. НЕ пиши, що товар на SkyNovix можна «подарувати» іншій людині
+чи купити подарунковий сертифікат — такого у факт-листі немає. Покупець купує товар собі.`;
+  if (theme === "question")
+    return `Це пост-ПИТАННЯ, щоб люди відповідали в коментарях. Інше форматування, ніж у зразку:
+- 1–4 коротких рядки контексту (ситуація, яку автор впізнає), потім ОДНЕ просте питання до читачів окремим рядком;
+- 150–350 символів, без жирного, без переліку, без реклами — SkyNovix можна не згадувати зовсім;
+- питання, на яке легко відповісти з досвіду: що зупиняє почати продавати, яку ціну поставили б на конкретний товар
+  (наприклад, набір пресетів, шаблон, курс), що купували в інших авторів, де шукають покупців, скільки часу на це йде;
+- не питай про те, чого немає на платформі, і не обіцяй нічого;
+- питання НЕ має повторювати питання з останніх постів.`;
+  return "";
+}
 
 // Код-охоронці: те, чого НЕМА на платформі (розділ 7) і небезпечні обіцянки. GPT на слово не віримо.
 const FORBIDDEN: [RegExp, string][] = [
@@ -52,6 +104,7 @@ const FORBIDDEN: [RegExp, string][] = [
   // підписка буває лише платна; «Стежити» — не підписка (власник: «не плутати»)
   [/безкоштовн\w* підписк|підписк\w* (безкоштовн|за 0)|стеженн\w* (—|-|це|як) підписк/i, "безкоштовна підписка — її немає, «Стежити» це не підписка"],
   [/безкоштовн\w* (членств|рів)|річн\w* підписк|щорічн\w* підписк|вітальн\w* повідомл|ранн\w* доступ|опитуван|мерч/i, "можливості інших платформ, яких немає на SkyNovix"],
+  [/подарунков\w* (сертифікат|карт)|подарува\w* (товар|підписк|іншій|другу|комусь)|купи\w* (у|в) подарунок (іншій|другу)/i, "дарування товару іншій людині — такого немає у факт-листі"],
   [/patreon|патреон|boosty|бусті|gumroad|ko-fi|etsy|етсі|donationalerts|донейшн ?алертс|streamlabs|стрімлабс|streamelements/i, "назви інших платформ"],
   [/(інтеграц\w*|підключ\w*) (з|до|із) (twitch|твіч|youtube|ютуб|tiktok|тікток|kick)/i, "інтеграції зі стрім-платформами — у факт-листі лише OBS-віджет"],
   // обіцянки швидкості виплат: у факт-листі лише «14 та 28 числа» + період утримання
@@ -80,15 +133,34 @@ const SCHEMA = {
   properties: { parts: { type: "array", minItems: 1, maxItems: 1, items: { type: "string" } } }, // один пост
 } as const;
 
+const QUESTION_EVERY_H = 40; // пост-питання — приблизно раз на півтора дня
+
 async function pickTheme(): Promise<Theme> {
-  const recent = await prisma.promoPost.findMany({ orderBy: { createdAt: "desc" }, take: 12, select: { theme: true } });
+  const today = kyivToday();
+  const sinceDays = async (theme: Theme) => {
+    const p = await prisma.promoPost.findFirst({ where: { theme }, orderBy: { createdAt: "desc" }, select: { createdAt: true } });
+    return p ? (Date.now() - p.createdAt.getTime()) / DAY : Infinity;
+  };
+  // 1) день виплат — перший пост дня 14 і 28 числа
+  if ([14, 28].includes(today.getUTCDate()) && (await sinceDays("payday")) > 1) return "payday";
+  // 2) свято за 5–12 днів — один пост на свято
+  if (upcomingHoliday(today) && (await sinceDays("holiday")) > HOLIDAY_AHEAD[1]! - HOLIDAY_AHEAD[0]! + 1) return "holiday";
+  // 3) пост-питання
+  if ((await sinceDays("question")) * 24 >= QUESTION_EVERY_H) return "question";
+
+  const recent = await prisma.promoPost.findMany({
+    where: { theme: { in: Object.keys(THEMES) } },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+    select: { theme: true },
+  });
   const last = recent[0]?.theme;
   // найдавніше використана тема, але не та сама, що минулого разу
   const lastUsed = (t: Theme) => {
     const i = recent.findIndex((r) => r.theme === t);
     return i === -1 ? Infinity : i;
   };
-  const candidates = (Object.keys(THEMES) as Theme[]).filter((t) => t !== last);
+  const candidates = (Object.keys(THEMES) as (keyof typeof THEMES)[]).filter((t) => t !== last);
   return candidates.sort((a, b) => lastUsed(b) - lastUsed(a))[0]!;
 }
 
@@ -142,7 +214,8 @@ ${LANGUAGE}
 ## Факт-лист (єдине джерело правди)
 ${facts}`;
 
-  const user = `Тема цього поста: ${THEMES[theme]}.
+  const brief = specialBrief(theme, upcomingHoliday(kyivToday()));
+  const user = `Тема цього поста: ${label(theme)}.${brief ? `\n\n${brief}` : ""}
 
 Останні пости (не повторюй їхні думки й перші рядки):
 ${recentList}`;
@@ -187,12 +260,17 @@ ${recentList}`;
 
   if (send) {
     for (const [i, part] of parts.entries()) {
-      await sendPost(part, {
-        lines: [
-          `🚀 SkyNovix для Threads · ${THEMES[theme].split(" (")[0]}${parts.length > 1 ? ` · частина ${i + 1}/${parts.length}` : ""}`,
-          ...(i === lastIdx ? notes : []),
-        ],
-      });
+      await sendPost(
+        part,
+        {
+          lines: [
+            `🚀 SkyNovix для Threads · ${label(theme).split(" (")[0]!.split(":")[0]}${parts.length > 1 ? ` · частина ${i + 1}/${parts.length}` : ""}`,
+            ...(i === lastIdx ? notes : []),
+          ],
+        },
+        // 👍 на пост → видно в npm run stats, які теми заходять (у тестах не записуємо)
+        dryRun ? undefined : { format: "promo", title: part.split("\n")[0]!.slice(0, 200), source: theme },
+      );
     }
   }
   if (!dryRun) await prisma.promoPost.create({ data: { theme, text: parts.join("\n\n---\n\n") } });

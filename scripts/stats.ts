@@ -12,9 +12,9 @@ await pollReactions(); // спершу підтягнути свіжі реак�
 const sent = await prisma.sentMessage.findMany({ where: { createdAt: { gte: since } } });
 const liked = sent.filter((m) => m.reaction && m.reaction !== "👎");
 
-function table(by: (m: (typeof sent)[number]) => string | null, title: string) {
+function table(by: (m: (typeof sent)[number]) => string | null, title: string, list = sent) {
   const rows = new Map<string, { sent: number; liked: number }>();
-  for (const m of sent) {
+  for (const m of list) {
     const k = by(m) ?? "—";
     const r = rows.get(k) ?? { sent: 0, liked: 0 };
     r.sent++;
@@ -31,9 +31,12 @@ function table(by: (m: (typeof sent)[number]) => string | null, title: string) {
 
 console.log(`За ${days} днів: надіслано ${sent.length}, з реакцією ${liked.length}`);
 table((m) => m.format, "формат");
-table((m) => m.account, "акаунт");
-table((m) => m.source, "джерело");
-table((m) => (m.score != null ? String(m.score) : null), "оцінка");
+const grants = sent.filter((m) => m.format !== "promo");
+table((m) => m.source, "джерело", grants);
+table((m) => (m.score != null ? String(m.score) : null), "оцінка", grants);
+// 🚀 SkyNovix: тема поста записана в source — які теми заходять (👍 = опублікував і залетіло)
+const promo = sent.filter((m) => m.format === "promo");
+if (promo.length) table((m) => m.source, "тема SkyNovix", promo);
 
 // Як GPT відсіював статті (з таблиці Article)
 const decisions = await prisma.article.groupBy({ by: ["status"], where: { createdAt: { gte: since } }, _count: true });
