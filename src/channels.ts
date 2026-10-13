@@ -3,8 +3,6 @@
 import type { Account } from "./sources.ts";
 
 export const CHANNELS: Record<Account, { name: string; username?: string }> = {
-  creators: { name: "🎨 Креатори UA", username: "ukr_creators" },
-  tools: { name: "💻 AI для творців", username: "ai_creators_ua" },
   knowledge: { name: "✍️ гранти, конкурси та можливості 🇺🇦", username: "write_teach_earn" },
 };
 

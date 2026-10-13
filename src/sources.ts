@@ -1,7 +1,7 @@
 // Тематичний акаунт, для якого джерело переважно пише.
-// З 2026-10-13 працює лише канал можливостей (knowledge): «Креатори UA» і «AI для творців» зупинені,
-// їхні джерела — в src/archive/sourcesArchive.ts.
-export type Account = "creators" | "tools" | "knowledge";
+// Єдиний канал — гранти й можливості (account "knowledge"). Канали «Креатори UA» і «AI для творців» видалено
+// 2026-10-13; їхні перевірені RSS-сайти збережено в src/archive/sourcesArchive.ts.
+export type Account = "knowledge";
 
 export interface Source {
   name: string; // назва платформи для підпису "за матеріалами: ..."

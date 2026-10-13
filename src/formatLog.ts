@@ -3,7 +3,7 @@ import { prisma } from "./db.ts";
 // Журнал періодичних форматів: що вже виходило і що вже було в добірках.
 // У режимі dryRun (preview) нічого не пишемо і не блокуємо — щоб можна було тестувати скільки завгодно.
 
-export type Format = "tools" | "saves" | "story" | "evergreen";
+export type Format = "saves";
 
 // ISO-тиждень за Києвом: "2026-W41"
 export function isoWeek(d = new Date()): string {

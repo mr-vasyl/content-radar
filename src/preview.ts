@@ -1,9 +1,6 @@
 // Тестовий прогін без запису в базу. Зручно для налаштування промптів.
 //   npm run preview [N] [send]        — новини: N останніх статей з кожного джерела (за замовч. 1)
-//   npm run preview tools [send]      — 🧰 інструменти тижня
-//   npm run preview story [send]      — 🔥 вау-історія тижня
 //   npm run preview saves [send]      — 📌 збережи собі
-//   npm run preview evergreen [send]  — ♻️ евергрін (у тесті — перевіряє архіви, нічого не пише в базу)
 // "send" — ще й надіслати в бот.
 import "dotenv/config";
 import { sources } from "./sources.ts";
@@ -14,13 +11,10 @@ import { analyze, minScoreFor } from "./summarize.ts";
 import { withToolLink } from "./digest.ts";
 import { extractArticle } from "./extractText.ts";
 import { sendHook, sendPost } from "./sendToTelegram.ts";
-import { runTools } from "./modes/tools.ts";
-import { runStory } from "./modes/story.ts";
 import { runSaves } from "./modes/saves.ts";
-import { runEvergreen } from "./modes/evergreen.ts";
 import { prisma } from "./db.ts";
 
-const MODES = { tools: runTools, story: runStory, saves: runSaves, evergreen: runEvergreen } as const;
+const MODES = { saves: runSaves } as const;
 
 const arg = process.argv[2] ?? "1";
 const send = process.argv[3] === "send";
@@ -52,12 +46,13 @@ async function previewNews(limit: number) {
       const ex = await extractArticle(a.url);
       const fullText = ex?.text ?? null;
       const r = await analyze(a, fullText, ex?.links);
+      const ok = r.account === "knowledge" && r.score >= minScoreFor(r.account);
       if (r.post) r.post = withToolLink(r.post, r.link);
-      console.log(`\n${r.score >= minScoreFor(r.account) ? "✓" : "·"} ${r.score}/10 [${r.account} · ${r.stream}] ${a.source}: ${a.title}`);
+      console.log(`\n${ok ? "✓" : "·"} ${r.score}/10 [${r.account} · ${r.stream}] ${a.source}: ${a.title}`);
       console.log(`  ${r.reason}${fullText ? "" : "  (лише анонс з RSS)"}`);
       if (r.post) console.log(`\n${r.post}\n[${r.post.slice(0, r.post.lastIndexOf("\n\n")).replace(/\*\*/g, "").length} символів]`);
       if (r.hook) console.log(`\n🪝 ${r.hook}`);
-      if (send && r.score >= minScoreFor(r.account)) {
+      if (send && ok && r.account === "knowledge") {
         await sendPost(r.post, {
           tags: r.tags,
           account: r.account,

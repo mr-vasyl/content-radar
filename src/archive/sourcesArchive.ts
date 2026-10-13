@@ -1,8 +1,9 @@
 // АРХІВ (2026-10-13): джерела каналів «Креатори UA» і «AI для творців», зупинених власником.
 // Не підключено ніде. Повернути — перенести потрібні рядки в src/sources.ts.
-import type { Source } from "../sources.ts";
+// Тип локальний: акаунтів creators і tools у проєкті більше немає
+export interface ArchivedSource { name: string; url: string; account: "creators" | "tools" }
 
-export const archivedSources: Source[] = [
+export const archivedSources: ArchivedSource[] = [
   // 🎨 Digital Creators — дизайн, фото, відео, 3D, музика
   { name: "Figma Blog", url: "https://www.figma.com/blog/feed/atom.xml", account: "creators" },
   { name: "It's Nice That", url: "http://feeds2.feedburner.com/itsnicethat/SlXC", account: "creators" },
