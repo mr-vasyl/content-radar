@@ -57,7 +57,8 @@ async function fetchPageLinks(source: Source, pattern: RegExp): Promise<Article[
       continue;
     }
     if (!pattern.test(url)) continue;
-    const text = decodeEntities(m[2]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+    const text = decodeEntities(m[2]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+      .replace(/^(Перейти до|Читати далі|Детальніше|Read more)\s*[:—-]?\s*/i, ""); // текст кнопок на кшталт ІМІ
     // одне посилання буває кілька разів (картинка + заголовок) — беремо найзмістовніший текст
     if (text.length > (byUrl.get(url)?.length ?? -1)) byUrl.set(url, text);
   }
