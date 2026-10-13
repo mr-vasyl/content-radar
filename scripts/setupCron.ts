@@ -13,6 +13,7 @@ import pg from "pg";
 const JOBS: { name: string; schedule: string; mode: string }[] = [
   { name: "content-radar", schedule: "17 5-19/2 * * *", mode: "news" }, // щодня 8:17–22:17, кожні 2 год
   // Зупинено 2026-10-13 разом з каналами «Креатори UA» і «AI для творців»: tools (пн), story (ср), evergreen (вт, чт)
+  { name: "content-radar-promo", schedule: "37 6,9,13,17 * * *", mode: "promo" }, // 9:37, 12:37, 16:37, 20:37 — пост про SkyNovix для Threads
   { name: "content-radar-saves", schedule: "47 11 * * 5", mode: "saves" }, // п'ятниця 14:47 — «💰 Можливості тижня»
 ];
 
