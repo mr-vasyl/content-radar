@@ -133,6 +133,7 @@ const SCHEMA = {
   properties: { parts: { type: "array", minItems: 1, maxItems: 1, items: { type: "string" } } }, // один пост
 } as const;
 
+const QUESTION_POSTS = false;
 const QUESTION_EVERY_H = 40; // пост-питання — приблизно раз на півтора дня
 
 async function pickTheme(): Promise<Theme> {
@@ -145,8 +146,8 @@ async function pickTheme(): Promise<Theme> {
   if ([14, 28].includes(today.getUTCDate()) && (await sinceDays("payday")) > 1) return "payday";
   // 2) свято за 5–12 днів — один пост на свято
   if (upcomingHoliday(today) && (await sinceDays("holiday")) > HOLIDAY_AHEAD[1]! - HOLIDAY_AHEAD[0]! + 1) return "holiday";
-  // 3) пост-питання
-  if ((await sinceDays("question")) * 24 >= QUESTION_EVERY_H) return "question";
+  // 3) пост-питання — вимкнено власником 2026-10-14 («не треба пост питань»); щоб увімкнути — QUESTION_POSTS = true
+  if (QUESTION_POSTS && (await sinceDays("question")) * 24 >= QUESTION_EVERY_H) return "question";
 
   const recent = await prisma.promoPost.findMany({
     where: { theme: { in: Object.keys(THEMES) } },
