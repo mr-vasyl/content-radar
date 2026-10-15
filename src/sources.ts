@@ -20,6 +20,12 @@ export const sources: Source[] = [
   { name: "ІСАР Єднання", url: "https://ednannia.ua/?format=feed&type=rss", account: "knowledge" },
   // Простір: RSS розділу грантів порожній — читаємо сторінку; лише «Конкурси та гранти», без вакансій і тендерів
   { name: "Простір", url: "https://www.prostir.ua/category/grants/", account: "knowledge", linkPattern: /prostir\.ua\/\?grants=[\w-]+$/ },
+  // 2026-10-15: розширення — за добу приходив 1 грант. GetGrant — лише розділ «Культура» (там Гранти Президента молодим
+  // митцям, УКФ «Мистецькі дебюти», Gaude Polonia…); огляди донорів і добірки по країнах («analiz», «pidbirka»,
+  // «польські/американські гранти для України») не беремо — це старі зведення, не один конкретний набір.
+  { name: "GetGrant", url: "https://getgrant.ua/grant-category/culture/", account: "knowledge",
+    linkPattern: /getgrant\.ua\/grants-and-funding\/(?![\w-]*(analiz|pidbirka|daydzhest|daidzhest|ohliad|ukrainski|dlia-ukrain|dlya-ukrain|vidkryt|derzhavni-granty))[\w-]+\/$/ },
+  { name: "Час змін", url: "https://chaszmin.com.ua/feed/", account: "knowledge" }, // ~3/день, є премії й резиденції для митців
 
   // Фонди й інституції — RSS
   { name: "Український інститут", url: "https://ui.org.ua/feed/", account: "knowledge" },
@@ -61,6 +67,13 @@ export const sources: Source[] = [
   { name: "Гранти та можливості", url: "grants_here", account: "knowledge", telegram: true }, // 21K
   { name: "UA Grants", url: "uagrants", account: "knowledge", telegram: true }, // 19K, молодь і студенти
   { name: "Гранти UA", url: "grantsua", account: "knowledge", telegram: true }, // 18K, багато ГО й гуманітарки — фільтри відсіють
+  // 2026-10-15
+  { name: "Grant UP!", url: "GrantUP", account: "knowledge", telegram: true }, // ~4/день: премії, Docudays, open call (+ новини — відсіються)
+  { name: "Літцентр", url: "litcentr", account: "knowledge", telegram: true }, // літконкурси й премії для письменників і перекладачів
+  { name: "ART BOT", url: "artbotme", account: "knowledge", telegram: true }, // open call для художників (рідко, але точно в ціль)
+  // Перевірено й НЕ взято: unicompass (навчання за кордоном, 1 пост за 3 дні, посилання на бот-файли),
+  // t.me/houseofeurope (0 за 3 дні; сайт уже є), Artists at Risk (новини, не відкриті набори),
+  // Jam Factory (0 за 3 дні), Lviv Culture Hub і Ukrainian Photographers (403 — блокують бота).
 
   // Без RSS — читаємо сторінку зі списком програм
   { name: "УКФ", url: "https://ucf.in.ua/programs", account: "knowledge", linkPattern: /ucf\.in\.ua\/m_programs\/\w+/ },

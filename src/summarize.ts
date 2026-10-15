@@ -119,9 +119,12 @@ export async function analyze(article: Article, fullText: string | null, links: 
 
   // Дедлайн перевіряє КОД, а не GPT «на око»: на сторінках фондів висять торішні програми (УКФ з дедлайном 2026-01-19
   // пройшов у жовтні 2026). Минула дата — пост не пишемо і не шлемо.
-  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" }); // YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "") && result.deadline < today) {
-    result.reason = `дедлайн минув (${result.deadline}) — ${result.reason}`;
+  // Дедлайн сьогодні чи завтра — теж ні: поки власник опублікує, читачі вже не встигнуть податись
+  // (Gaude Polonia з дедлайном 15.10 прийшла 15.10).
+  const kyiv = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" }); // YYYY-MM-DD
+  const lastUseful = kyiv(new Date(Date.now() + 2 * 86400000));
+  if (/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "") && result.deadline < lastUseful) {
+    result.reason = `дедлайн минув або сьогодні/завтра (${result.deadline}) — ${result.reason}`;
     result.score = Math.min(result.score, 2);
     result.post = "";
     result.hook = "";
