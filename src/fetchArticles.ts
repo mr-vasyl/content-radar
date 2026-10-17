@@ -75,7 +75,7 @@ async function fetchPageLinks(source: Source, pattern: RegExp): Promise<Article[
 }
 
 // Посилання, які не є першоджерелом: картинки, соцмережі, інші Telegram-канали
-const NOT_PRIMARY = /(^|\.)(t\.me|telegram\.me|i\.ibb\.co|r2\.dev|imgur\.com|youtube\.com|youtu\.be)$|instagram\.com$|facebook\.com$|tiktok\.com$|twitter\.com$|x\.com$/i;
+const NOT_PRIMARY = /(^|\.)(t\.me|telegram\.me|i\.ibb\.co|r2\.dev|imgur\.com|youtube\.com|youtu\.be|controller\.bot|telepost\.me)$|instagram\.com$|facebook\.com$|tiktok\.com$|twitter\.com$|x\.com$/i;
 const SHORTENERS = /^(bit\.ly|shorturl\.at|surl\.li|tinyurl\.com|cutt\.ly|t\.ly|rb\.gy|is\.gd|tiny\.cc|goo\.gl)$/i;
 
 // Скорочене посилання → справжня адреса (fetch сам іде за редіректами)

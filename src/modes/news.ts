@@ -1,9 +1,11 @@
+import { prisma } from "../db.ts";
 import { sources } from "../sources.ts";
 import { fetchArticles, type Article } from "../fetchArticles.ts";
 import { filterNew, makeDuplicateChecker, recentSentTitles, record } from "../dedup.ts";
-import { ruleRejectReason } from "../ruleFilter.ts";
+import { notCreativeReason, ruleRejectReason } from "../ruleFilter.ts";
 import { extractArticle } from "../extractText.ts";
-import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT } from "../summarize.ts";
+import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
+import { analyzeBusiness } from "../business.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { factCheck, factNote } from "../factCheck.ts";
 import { withToolLink } from "../digest.ts";
@@ -15,6 +17,17 @@ const MAX_PER_RUN = 50;
 
 // Старіше — не новина. Деякі стрічки (Figma, Hugging Face) віддають увесь архів.
 const MAX_AGE_DAYS = 3;
+
+// Чи надсилали за 60 днів пост з тим самим посиланням на програму (withToolLink дописує «🔗 url» у кінець поста)
+async function sentWithLink(link: string): Promise<boolean> {
+  const core = link.replace(/^https?:\/\/(www\.)?/, "").replace(/[?#].*$/, "").replace(/\/$/, "");
+  if (core.split("/").length < 2) return false; // лише домен (головна сайту фонду) — не показник дубля
+  const hit = await prisma.article.findFirst({
+    where: { status: "sent", createdAt: { gte: new Date(Date.now() - 60 * 86400000) }, post: { contains: core } },
+    select: { id: true },
+  });
+  return !!hit;
+}
 
 export async function runNews(): Promise<void> {
   const all: Article[] = [];
@@ -34,12 +47,21 @@ export async function runNews(): Promise<void> {
   const recent = all.filter((a) => !a.publishedAt || a.publishedAt.getTime() >= cutoff);
   const fresh = await filterNew(recent);
 
+  // 💼 для якого каналу джерело: лише митці (за замовчуванням), "also" — ще й бізнес, "only" — лише бізнес
+  const businessMode = new Map(sources.map((s) => [s.name, s.business]));
+  const skipCreative = new Set<string>(); // url-и, які за словами явно не для митців, але можуть бути бізнес-грантом
+
   // 1. прості правила — без GPT
   const candidates: Article[] = [];
   for (const a of fresh) {
-    const why = ruleRejectReason(a);
-    if (why) await record(a, "rejected_rules", { reason: why });
-    else candidates.push(a);
+    const mode = businessMode.get(a.source);
+    const why = ruleRejectReason(a) ?? (mode ? null : notCreativeReason(a));
+    if (why) {
+      await record(a, "rejected_rules", { reason: why });
+      continue;
+    }
+    if (mode === "only" || notCreativeReason(a)) skipCreative.add(a.url);
+    candidates.push(a);
   }
 
   // від старіших до новіших, щоб у чаті йшли по порядку; без дати (сторінки без RSS) — як щойно знайдені
@@ -68,15 +90,30 @@ export async function runNews(): Promise<void> {
     try {
       const extracted = await extractArticle(a.url);
       const fullText = extracted?.text ?? null;
-      const analysis = await analyze(a, fullText, extracted?.links);
+      // Спершу — канал для митців; що не підійшло й прийшло з грантового джерела — перевіряємо як бізнес-грант
+      let analysis: Analysis | null = null;
+      if (!skipCreative.has(a.url)) analysis = await analyze(a, fullText, extracted?.links);
+      const creativeOk = analysis?.account === "knowledge" && analysis.score >= minScoreFor("knowledge");
+      if (!creativeOk && businessMode.get(a.source)) {
+        const biz = await analyzeBusiness(a, fullText, extracted?.links);
+        if (biz.score >= minScoreFor("business") || !analysis) analysis = biz;
+        else analysis.reason = `${analysis.reason} | бізнес: ${biz.score}/10 ${biz.reason}`;
+      }
+      if (!analysis) throw new Error("немає аналізу"); // не буває: без аналізу для митців завжди є бізнесовий
 
-      // Надсилаємо лише можливості (account knowledge); звичайні новини з медіа-джерел — "other", не шлемо
-      if (analysis.account === "knowledge" && analysis.score >= minScoreFor(analysis.account)) {
+      // Надсилаємо лише можливості; звичайні новини з медіа-джерел — "other", не шлемо
+      if (analysis.account !== "other" && analysis.score >= minScoreFor(analysis.account)) {
         // Фактчек: звіряємо пост з оригіналом; перекручене — виправляємо, непідтверджене — не шлемо
         const fc = await factCheck(a.source, a.title, fullText ?? a.content, analysis.post, analysis.hook);
         if (fc.verdict === "reject") {
           await record(a, "rejected_ai", { analysis: { ...analysis, reason: `фактчек: ${fc.issues.join("; ")}` } });
           console.log(`✗ фактчек відхилив ${a.title}: ${fc.issues.join("; ")}`);
+          continue;
+        }
+        // Та сама програма з іншого сайту під іншою назвою (Грант Радар і GetGrant) — ловимо за посиланням на першоджерело
+        if (analysis.link && (await sentWithLink(analysis.link))) {
+          await record(a, "rejected_rules", { reason: `дубль за посиланням: ${analysis.link}` });
+          console.log(`= дубль за посиланням: ${a.title}`);
           continue;
         }
         analysis.post = withToolLink(fc.post, analysis.link);
@@ -88,7 +125,7 @@ export async function runNews(): Promise<void> {
           account: analysis.account,
           source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
           lines: [
-            `📰 ⭐ ${analysis.score}/10 · ${analysis.stream}`,
+            `${analysis.account === "business" ? "💼 БІЗНЕС-КАНАЛ" : "📰"} ⭐ ${analysis.score}/10 · ${analysis.stream}`,
             a.title,
             ...(analysis.origin?.trim() && analysis.origin.trim() !== a.source ? [`знайдено на: ${a.source}`] : []),
             ...(note ? [note] : []),

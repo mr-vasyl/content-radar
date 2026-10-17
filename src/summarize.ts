@@ -8,13 +8,19 @@ import { TAGS, TAGS_PROMPT, TYPE_TAGS } from "./channels.ts";
 export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
 
 // Поріг каналу грантів — 6 (власник: «нижче 6 не беремо»). GPT пише пост від нього ж.
-export const MIN_SCORE_BY_ACCOUNT: Record<Account, number> = { knowledge: MIN_SCORE - 1 };
+export const MIN_SCORE_BY_ACCOUNT: Record<Account, number> = { knowledge: MIN_SCORE - 1, business: MIN_SCORE - 1 };
 export const minScoreFor = (account: Account) => MIN_SCORE_BY_ACCOUNT[account];
 const WRITE_FROM = Math.min(...Object.values(MIN_SCORE_BY_ACCOUNT));
 
 export const STREAMS = ["Гранти", "Конкурси й премії", "Резиденції", "Стипендії", "Навчання", "Події", "Інше"] as const;
 
-export const ACCOUNTS: Record<Account, string> = { knowledge: "💰 Можливості" };
+export const ACCOUNTS: Record<Account, string> = { knowledge: "💰 Можливості", business: "💼 Бізнес" };
+
+// YYYY-MM-DD, що вже минув, сьогодні чи завтра → пізно (спільне з бізнес-каналом)
+export function deadlineTooLate(deadline: string | undefined): boolean {
+  const kyiv = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" });
+  return /^\d{4}-\d{2}-\d{2}$/.test(deadline ?? "") && deadline! < kyiv(new Date(Date.now() + 2 * 86400000));
+}
 
 export interface Analysis {
   score: number;
@@ -121,9 +127,7 @@ export async function analyze(article: Article, fullText: string | null, links: 
   // пройшов у жовтні 2026). Минула дата — пост не пишемо і не шлемо.
   // Дедлайн сьогодні чи завтра — теж ні: поки власник опублікує, читачі вже не встигнуть податись
   // (Gaude Polonia з дедлайном 15.10 прийшла 15.10).
-  const kyiv = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" }); // YYYY-MM-DD
-  const lastUseful = kyiv(new Date(Date.now() + 2 * 86400000));
-  if (/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "") && result.deadline < lastUseful) {
+  if (deadlineTooLate(result.deadline)) {
     result.reason = `дедлайн минув або сьогодні/завтра (${result.deadline}) — ${result.reason}`;
     result.score = Math.min(result.score, 2);
     result.post = "";
