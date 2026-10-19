@@ -2,7 +2,8 @@
 // Єдиний канал — гранти й можливості (account "knowledge"). Канали «Креатори UA» і «AI для творців» видалено
 // 2026-10-13; їхні перевірені RSS-сайти збережено в src/archive/sourcesArchive.ts.
 // 2026-10-17: другий канал — «Гранти для бізнесу» (account "business", src/business.ts).
-export type Account = "knowledge" | "business";
+// 2026-10-19: третій — «Створюй більше за допомогою AI» (account "ai", src/aiTools.ts).
+export type Account = "knowledge" | "business" | "ai";
 
 export interface Source {
   name: string; // назва платформи для підпису "за матеріалами: ..."
@@ -79,6 +80,27 @@ export const sources: Source[] = [
   { name: "Грант Радар TG", url: "granty_ukraine", account: "business", business: "only", telegram: true }, // ~5/день
   { name: "GetGrant Бізнес", url: "https://getgrant.ua/grant-category/business/", account: "business", business: "only",
     linkPattern: /getgrant\.ua\/grants-and-funding\/(?![\w-]*(analiz|pidbirka|daydzhest|daidzhest|ohliad))[\w-]+\/$/ },
+  // 🤖 AI-канал (2026-10-19): з архіву — лише те, що пише про AI-інструменти й функції для авторів; GPT відсіює решту.
+  // Шлак з архіву викинуто: GitHub Blog, Hacker News, Hugging Face (для програмістів), TLDR/Rundown/Ben's Bites (мертві
+  // стрічки), How-To Geek (Windows/залізо). Офіційні блоги Adobe, Runway, Canva, Descript, Notion — без робочого RSS.
+  { name: "The Neuron", url: "https://www.theneuron.ai/feed", account: "ai" }, // щоденна AI-розсилка, практична
+  { name: "The Decoder", url: "https://the-decoder.com/feed/", account: "ai" },
+  { name: "TechCrunch AI", url: "https://techcrunch.com/category/artificial-intelligence/feed/", account: "ai" },
+  { name: "The Verge AI", url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", account: "ai" },
+  { name: "OpenAI", url: "https://openai.com/news/rss.xml", account: "ai" },
+  { name: "Google Gemini", url: "https://blog.google/products/gemini/rss/", account: "ai" },
+  { name: "Google AI", url: "https://blog.google/technology/ai/rss/", account: "ai" },
+  { name: "One Useful Thing", url: "https://www.oneusefulthing.org/feed", account: "ai" }, // Ітан Моллік — як реально користуватись AI
+  { name: "Product Hunt AI", url: "https://www.producthunt.com/feed?category=artificial-intelligence", account: "ai" },
+  { name: "Social Media Today", url: "https://www.socialmediatoday.com/feeds/news/", account: "ai" }, // AI-функції YouTube, Meta, TikTok
+  { name: "Tubefilter", url: "https://www.tubefilter.com/feed/", account: "ai" },
+  { name: "MakeUseOf", url: "https://www.makeuseof.com/feed/", account: "ai" }, // практичні «як я використовую ChatGPT для…»
+  { name: "Creative Bloq", url: "https://www.creativebloq.com/feeds/all", account: "ai" }, // дизайн
+  { name: "Fstoppers", url: "https://fstoppers.com/rss.xml", account: "ai" }, // фото: Lightroom/Photoshop AI
+  { name: "No Film School", url: "https://nofilmschool.com/feeds/feed.rss", account: "ai" }, // відео
+  { name: "MusicRadar", url: "https://www.musicradar.com/feeds/all", account: "ai" }, // музика
+  { name: "AIN.UA", url: "https://ain.ua/feed/", account: "ai" },
+  { name: "DOU AI", url: "https://dou.ua/lenta/tags/AI/feed/", account: "ai" },
   // Перевірено для бізнесу й НЕ взято: t.me/grants_ukraine (1 пост за 3 дні, посилання на платних консультантів),
   // t.me/grant_market (Telegram не віддає канал ззовні; їхній сайт Grant.Market уже є), ua_bizidea, gurtrc.
   // Перевірено й НЕ взято: unicompass (навчання за кордоном, 1 пост за 3 дні, посилання на бот-файли),

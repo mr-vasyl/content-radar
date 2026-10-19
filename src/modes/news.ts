@@ -6,6 +6,7 @@ import { notCreativeReason, ruleRejectReason } from "../ruleFilter.ts";
 import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
 import { analyzeBusiness } from "../business.ts";
+import { analyzeAi } from "../aiTools.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { factCheck, factNote } from "../factCheck.ts";
 import { withToolLink } from "../digest.ts";
@@ -44,7 +45,12 @@ export async function runNews(): Promise<void> {
   }
 
   const cutoff = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
-  const recent = all.filter((a) => !a.publishedAt || a.publishedAt.getTime() >= cutoff);
+  // 🤖 AI-новини старіють швидко — для AI-каналу лише останні 1,5 дня
+  const accountOf = new Map(sources.map((s) => [s.name, s.account]));
+  const aiCutoff = Date.now() - 1.5 * 24 * 60 * 60 * 1000;
+  const recent = all.filter(
+    (a) => !a.publishedAt || a.publishedAt.getTime() >= (accountOf.get(a.source) === "ai" ? aiCutoff : cutoff),
+  );
   const fresh = await filterNew(recent);
 
   // 💼 для якого каналу джерело: лише митці (за замовчуванням), "also" — ще й бізнес, "only" — лише бізнес
@@ -92,9 +98,11 @@ export async function runNews(): Promise<void> {
       const fullText = extracted?.text ?? null;
       // Спершу — канал для митців; що не підійшло й прийшло з грантового джерела — перевіряємо як бізнес-грант
       let analysis: Analysis | null = null;
-      if (!skipCreative.has(a.url)) analysis = await analyze(a, fullText, extracted?.links);
+      const isAi = accountOf.get(a.source) === "ai"; // AI-джерела — лише в AI-канал
+      if (isAi) analysis = await analyzeAi(a, fullText, extracted?.links);
+      else if (!skipCreative.has(a.url)) analysis = await analyze(a, fullText, extracted?.links);
       const creativeOk = analysis?.account === "knowledge" && analysis.score >= minScoreFor("knowledge");
-      if (!creativeOk && businessMode.get(a.source)) {
+      if (!isAi && !creativeOk && businessMode.get(a.source)) {
         const biz = await analyzeBusiness(a, fullText, extracted?.links);
         if (biz.score >= minScoreFor("business") || !analysis) analysis = biz;
         else analysis.reason = `${analysis.reason} | бізнес: ${biz.score}/10 ${biz.reason}`;
@@ -125,7 +133,7 @@ export async function runNews(): Promise<void> {
           account: analysis.account,
           source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
           lines: [
-            `${analysis.account === "business" ? "💼 БІЗНЕС-КАНАЛ" : "📰"} ⭐ ${analysis.score}/10 · ${analysis.stream}`,
+            `${analysis.account === "business" ? "💼 БІЗНЕС-КАНАЛ" : analysis.account === "ai" ? "🤖 AI-КАНАЛ" : "📰"} ⭐ ${analysis.score}/10 · ${analysis.stream}`,
             a.title,
             ...(analysis.origin?.trim() && analysis.origin.trim() !== a.source ? [`знайдено на: ${a.source}`] : []),
             ...(note ? [note] : []),
