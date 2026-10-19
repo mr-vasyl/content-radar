@@ -6,8 +6,7 @@ export const CHANNELS: Record<Account, { name: string; username?: string }> = {
   knowledge: { name: "✍️ гранти, конкурси та можливості 🇺🇦", username: "write_teach_earn" },
   // TODO: username — коли власник створить канал
   business: { name: "💼 Гранти для бізнесу 🇺🇦" },
-  // TODO: username — коли власник створить канал
-  ai: { name: "🤖 Створюй більше за допомогою AI" },
+  ai: { name: "🤖 AI для творців", username: "ai_creators_ua" },
 };
 
 // 🤖 Хештеги AI-каналу: ЩО це + ДЛЯ КОГО
