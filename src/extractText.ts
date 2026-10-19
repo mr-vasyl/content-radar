@@ -21,6 +21,7 @@ export async function extractArticle(url: string): Promise<Extracted | null> {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; ContentRadar/1.0)" },
       signal: AbortSignal.timeout(15000),
     });
+    if (res.status === 403) return extractViaReader(url); // сайт блокує сервери GitHub
     if (!res.ok) return null;
 
     const html = await res.text();
@@ -58,6 +59,32 @@ export async function extractArticle(url: string): Promise<Extracted | null> {
 
     if (!text || text.length < 300) return null;
     return { text: text.replace(/\s+/g, " ").slice(0, MAX_CHARS), links: links.slice(0, MAX_LINKS) };
+  } catch {
+    return null;
+  }
+}
+
+// Запасний шлях для сайтів, що блокують сервери GitHub: Jina Reader віддає статтю як Markdown
+async function extractViaReader(url: string): Promise<Extracted | null> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`, { signal: AbortSignal.timeout(40000) });
+    if (!res.ok) return null;
+    const md = await res.text();
+    if (/Just a moment|security verification/i.test(md)) return null; // перевірка Cloudflare — не пройшли
+    const host = new URL(url).host;
+    const links: ArticleLink[] = [];
+    const seen = new Set<string>();
+    for (const m of md.matchAll(/\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g)) {
+      const href = m[2]!;
+      if (seen.has(href) || /\.(png|jpe?g|webp|gif|svg|ico)(\?|$)/i.test(href)) continue;
+      if (/(twitter|x|facebook|instagram|linkedin|threads|tiktok)\.com\/|\/share|cdn-cgi/i.test(href)) continue;
+      seen.add(href);
+      links.push({ url: href, text: m[1]!.replace(/\s+/g, " ").trim().slice(0, 80) });
+    }
+    links.sort((x, y) => Number(new URL(x.url).host === host) - Number(new URL(y.url).host === host));
+    const text = md.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\s+/g, " ").trim();
+    if (text.length < 300) return null;
+    return { text: text.slice(0, MAX_CHARS), links: links.slice(0, MAX_LINKS) };
   } catch {
     return null;
   }

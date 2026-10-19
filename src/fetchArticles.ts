@@ -22,8 +22,27 @@ export async function loadFeed(url: string) {
     },
     signal: AbortSignal.timeout(15000),
   });
+  if (res.status === 403) return loadFeedViaReader(url); // сайт блокує сервери GitHub — пробуємо через читалку
   if (!res.ok) throw new Error(`Status code ${res.status}`);
   return parser.parseString(await res.text());
+}
+
+// 2026-10-19: Український інститут та ін. віддають 403 серверам GitHub (з домашнього інтернету — працює).
+// Jina Reader (r.jina.ai) читає стрічку зі своїх серверів і віддає HTML: <h3><a href=…>заголовок</a></h3> … <time>дата</time>.
+// Сайти з перевіркою Cloudflare «Just a moment…» (Kinokolo, Креативна Європа) не проходять і так.
+export async function loadFeedViaReader(url: string) {
+  const res = await fetch(`https://r.jina.ai/${url}`, {
+    headers: { "X-Return-Format": "html" },
+    signal: AbortSignal.timeout(40000),
+  });
+  const html = res.ok ? await res.text() : "";
+  if (!res.ok || /Just a moment|security verification/i.test(html)) throw new Error(`Status code 403 (і через читалку теж)`);
+  const items = [...html.matchAll(/<h3><a href="([^"]+)">([\s\S]*?)<\/a><\/h3>[\s\S]*?<time>([^<]+)<\/time>/g)].map((m) => {
+    const d = new Date(m[3]!);
+    return { link: m[1]!, title: m[2]!.replace(/<[^>]+>/g, "").trim(), isoDate: Number.isNaN(d.getTime()) ? undefined : d.toISOString(), contentSnippet: "", content: "" };
+  });
+  if (!items.length) throw new Error("Status code 403 (читалка не дала записів)");
+  return { items };
 }
 
 // Деякі стрічки лишають у заголовках HTML-сутності: &#8217; &amp; &quot; …

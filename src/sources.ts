@@ -45,7 +45,7 @@ export const sources: Source[] = [
   { name: "PEN Україна", url: "https://pen.org.ua/feed.rss", account: "knowledge" },
   { name: "Літосвіта", url: "https://litosvita.com/feed/", account: "knowledge" },
   // 🎬 Кіно
-  { name: "Kinokolo", url: "https://kinokolo.ua/feed/", account: "knowledge" },
+  // Kinokolo — прибрано 2026-10-19: Cloudflare блокує сервери GitHub (і читалку), Telegram-канал закинутий з 2023
   { name: "Українська кіноакадемія", url: "https://uafilmacademy.org/", account: "knowledge", linkPattern: /uafilmacademy\.org\/news\/[^/]+\.html$/ },
   { name: "Одеський кінофестиваль", url: "https://new.oiff.com.ua/blog-feed.xml", account: "knowledge" },
   { name: "Docudays UA", url: "https://docudays.ua/rss", account: "knowledge" },
@@ -110,6 +110,7 @@ export const sources: Source[] = [
   // Без RSS — читаємо сторінку зі списком програм
   { name: "УКФ", url: "https://ucf.in.ua/programs", account: "knowledge", linkPattern: /ucf\.in\.ua\/m_programs\/\w+/ },
   { name: "House of Europe", url: "https://houseofeurope.org.ua/opportunities", account: "knowledge", linkPattern: /houseofeurope\.org\.ua\/(grant|programme)\/[\w-]+$/ },
-  { name: "Креативна Європа", url: "https://creativeeurope.in.ua/news", account: "knowledge", linkPattern: /creativeeurope\.in\.ua\/news\/[\w-]+$/ },
-  { name: "PinchukArtCentre", url: "https://pinchukartcentre.org/osvitni-programy-ta-podii", account: "knowledge", linkPattern: /pinchukartcentre\.org\/events\/[\w-]+$/ },
+  // Креативна Європа: сайт за перевіркою Cloudflare блокує GitHub — читаємо їхній Telegram (2026-10-19)
+  { name: "Креативна Європа", url: "creativeeuropeua", account: "knowledge", telegram: true },
+  // PinchukArtCentre — прибрано 2026-10-19: сайт блокує GitHub, читалка не бачить подій, Telegram-каналу немає
 ];
