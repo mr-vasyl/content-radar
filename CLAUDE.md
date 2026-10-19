@@ -117,3 +117,4 @@ AI-інструменти, нові AI-функції й практичні сп
 dev_only / other → ≤3), `ai_powered` (гаджети, утиліти, налаштування без AI → ≤3), `creator_relevant`, `usable_now`
 (анонс/лист очікування → ≤5). Шлак з архіву (GitHub Blog, Hacker News, Hugging Face, мертві розсилки) видалено.
 Хештеги — `AI_TAGS`. У боті позначка «🤖 AI-КАНАЛ». TODO: username каналу в `CHANNELS.ai`.
+- Сайти, що блокують сервери GitHub (403): `loadFeed`/`extractArticle` автоматично пробують Jina Reader (r.jina.ai) — так читається Український інститут. Сайти з перевіркою Cloudflare «Just a moment» не проходять і так: Креативна Європа — через Telegram @creativeeuropeua; Kinokolo і PinchukArtCentre прибрано (2026-10-19).
