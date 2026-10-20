@@ -6,18 +6,7 @@ export const CHANNELS: Record<Account, { name: string; username?: string }> = {
   knowledge: { name: "✍️ гранти, конкурси та можливості 🇺🇦", username: "write_teach_earn" },
   // TODO: username — коли власник створить канал
   business: { name: "💼 Гранти для бізнесу 🇺🇦" },
-  ai: { name: "🤖 AI для творців", username: "ai_creators_ua" },
 };
-
-// 🤖 Хештеги AI-каналу: ЩО це + ДЛЯ КОГО
-export const AI_TYPE_TAGS = ["#інструменти", "#оновлення", "#поради", "#безкоштовно"] as const;
-export const AI_WHO_TAGS = ["#дизайн", "#відео", "#фото", "#музика", "#тексти", "#блогерам", "#цифрові_товари", "#усім"] as const;
-export const AI_TAGS = [...AI_TYPE_TAGS, ...AI_WHO_TAGS] as const;
-export const AI_TAGS_PROMPT = `tags — 2–3 хештеги з цього списку (точно як написано): ${AI_TAGS.join(" ")}.
-Перший — ЩО: ${AI_TYPE_TAGS.join(" ")} (новий сервіс — #інструменти; нова функція в знайомому продукті — #оновлення;
-практичний спосіб — #поради; стало безкоштовним — #безкоштовно).
-Далі 1–2 — ДЛЯ КОГО: ${AI_WHO_TAGS.join(" ")} (письменники, копірайтери — #тексти; YouTube, Instagram, TikTok — #блогерам;
-шаблони, курси, пресети на продаж — #цифрові_товари; корисно всім авторам — #усім). Не вигадуй інших.`;
 
 // 💼 Хештеги бізнес-каналу: ТИП підтримки + ДЛЯ КОГО
 export const BUSINESS_TYPE_TAGS = ["#гранти", "#компенсації", "#конкурси", "#акселератори", "#навчання"] as const;

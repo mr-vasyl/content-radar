@@ -4,6 +4,26 @@
 export interface ArchivedSource { name: string; url: string; account: "creators" | "tools" }
 
 export const archivedSources: ArchivedSource[] = [
+  // 🤖 Канал «AI для творців» (2026-10-19 → прибрано власником 2026-10-20): перевірені AI-джерела для авторів
+  { name: "The Neuron", url: "https://www.theneuron.ai/feed", account: "tools" }, // щоденна AI-розсилка, практична
+  { name: "The Decoder", url: "https://the-decoder.com/feed/", account: "tools" },
+  { name: "TechCrunch AI", url: "https://techcrunch.com/category/artificial-intelligence/feed/", account: "tools" },
+  { name: "The Verge AI", url: "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml", account: "tools" },
+  { name: "OpenAI", url: "https://openai.com/news/rss.xml", account: "tools" },
+  { name: "Google Gemini", url: "https://blog.google/products/gemini/rss/", account: "tools" },
+  { name: "Google AI", url: "https://blog.google/technology/ai/rss/", account: "tools" },
+  { name: "One Useful Thing", url: "https://www.oneusefulthing.org/feed", account: "tools" }, // Ітан Моллік — як реально користуватись AI
+  { name: "Product Hunt AI", url: "https://www.producthunt.com/feed?category=artificial-intelligence", account: "tools" },
+  { name: "Social Media Today", url: "https://www.socialmediatoday.com/feeds/news/", account: "tools" }, // AI-функції YouTube, Meta, TikTok
+  { name: "Tubefilter", url: "https://www.tubefilter.com/feed/", account: "tools" },
+  { name: "MakeUseOf", url: "https://www.makeuseof.com/feed/", account: "tools" }, // практичні «як я використовую ChatGPT для…»
+  { name: "Creative Bloq", url: "https://www.creativebloq.com/feeds/all", account: "tools" }, // дизайн
+  { name: "Fstoppers", url: "https://fstoppers.com/rss.xml", account: "tools" }, // фото: Lightroom/Photoshop AI
+  { name: "No Film School", url: "https://nofilmschool.com/feeds/feed.rss", account: "tools" }, // відео
+  { name: "MusicRadar", url: "https://www.musicradar.com/feeds/all", account: "tools" }, // музика
+  { name: "AIN.UA", url: "https://ain.ua/feed/", account: "tools" },
+  { name: "DOU AI", url: "https://dou.ua/lenta/tags/AI/feed/", account: "tools" },
+
   // 🎨 Digital Creators — дизайн, фото, відео, 3D, музика
   { name: "Figma Blog", url: "https://www.figma.com/blog/feed/atom.xml", account: "creators" },
   { name: "It's Nice That", url: "http://feeds2.feedburner.com/itsnicethat/SlXC", account: "creators" },
