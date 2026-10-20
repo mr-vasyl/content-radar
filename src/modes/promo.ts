@@ -6,26 +6,26 @@ import { prisma } from "../db.ts";
 import { askJson, LANGUAGE } from "../gpt.ts";
 import { factCheck, factNote } from "../factCheck.ts";
 import { sendPost } from "../sendToTelegram.ts";
+import { fetchArticles } from "../fetchArticles.ts";
+import { extractArticle } from "../extractText.ts";
 import type { RunOptions } from "./types.ts";
 
 const FACTS_PATH = "content/skynovix-facts.md";
 const AGENT_PATH = "content/skynovix-agent.md";
 
-// Власник 2026-10-17: пости-«інструкції до каси» (оплата, валюти, чекаут, PWYW) — «лажа», нецікаво.
-// Тепер пост = КОРИСНИЙ КОНТЕНТ для автора конкретної професії (ідеї товарів, розбір картки, план дописів, як
-// підключити донати…), а фішка SkyNovix — інструмент усередині, а не тема поста. Професія чергується (PROFESSIONS).
+// Запасні теми, коли корисної експертної статті не знайшлось (основне — пости за статтями, див. EXPERT_SOURCES).
+// Власник 2026-10-21: пости «продавай цифрові товари» збирають мало переглядів; мета — щоб автори вели на SkyNovix
+// свій блог (стрічка індексується), збирали читачів і робили платну підписку на найкращі дописи. Тому теми — про блог,
+// аудиторію й підписку, а не про товари. Професія чергується (PROFESSIONS).
 export const THEMES = {
-  ideas: "7–9 конкретних ідей цифрових товарів, які {prof} може зробити з того, що вже має (назви товарів, формат файлу); у кінці — у якій категорії SkyNovix це продавати",
-  repackage: "Як {prof} з однієї роботи/проєкту зробити 3–4 різні товари (приклад: що саме, у якому форматі); файли до 1 ГБ, великий курс — TXT із посиланням на хмару",
-  card_teardown: "Розбір картки товару {prof}: погана назва й опис → добра (конкретний приклад до/після), + превʼю з водяними знаками, відео-превʼю без звуку, правильна категорія",
-  access_plan: "Контент-план для {prof} на SkyNovix: 2–3 конкретні приклади дописів «Усім», «Лише читачам» (заблурені, відкриваються після «Стежити») і «Лише підписникам»",
-  subscription_ideas: "Що {prof} може давати платним підписникам: 2–3 рівні з конкретним наповненням кожного (без цін і без того, чого немає у факт-листі)",
-  first_product: "Перший цифровий товар для {prof}: що обрати, щоб зробити за вихідні, як назвати, що написати в описі — покроково",
-  exclusive_ideas: "Що {prof} може продати як «ексклюзивний товар» (одна копія — після продажу зникає з каталогу назавжди): 4–6 конкретних ідей",
-  english_buyers: "Як {prof} заповнити картку англійською (назва й опис для EN — сам), щоб товар бачили англомовні покупці: приклад назви UA → EN",
-  stream_setup: "Покроково: як стрімеру підключити донати — посилання віджета → OBS Browser Source; Discord-вебхук; GIF від донатера; список заборонених слів (***)",
-  mistakes: "5 помилок, через які в {prof} не купують цифровий товар (назва, опис, превʼю, категорія, відгуки) — і як виправити на SkyNovix",
-  google: "Як {prof} назвати товар і написати опис, щоб його знаходили в Google (сторінки товарів і дописи «Усім»/«Лише читачам» індексуються; без обіцянок топу) — приклад до/після",
+  own_audience: "Чому {prof} варто мати власний блог, а не лише соцмережі: алгоритм ріже охоплення, а свої читачі лишаються; дописи «Усім» і «Лише читачам» ще й індексує Google — на конкретному прикладі",
+  blog_rubrics: "4–5 рубрик для блогу {prof}: що публікувати щотижня, щоб читачі поверталися (конкретні назви рубрик і приклади дописів)",
+  behind_scenes: "Що {prof} може показувати за лаштунками — процес, чернетки, помилки, рішення: що з цього зробити дописом «Усім», що — «Лише читачам», а що — для підписників",
+  social_to_readers: "Як {prof} перевести аудиторію з Instagram, TikTok чи Threads у свій блог: що пообіцяти за безкоштовну кнопку «Стежити» (дописи «Лише читачам») — конкретні приклади",
+  access_plan: "Контент-план тижня для {prof}: 2–3 конкретні дописи «Усім», «Лише читачам» (заблурені, відкриваються після «Стежити») і «Лише підписникам»",
+  subscription_ideas: "Що {prof} може давати платним підписникам: 2–3 рівні з конкретним наповненням (без цін і без того, чого немає у факт-листі)",
+  first_paid_post: "Перший платний допис для {prof}: що саме закрити блюром, як назвати й що показати у відкритій частині, щоб захотілось підписатися",
+  google_blog: "Як {prof} назвати допис і написати перший абзац, щоб блог знаходили в Google (дописи «Усім»/«Лише читачам» індексуються; без обіцянок топу) — приклад до/після",
 } as const;
 const PROFESSIONS = [
   "ілюстратору чи художниці", "дизайнеру", "фотографу", "відеомейкеру", "музиканту", "письменниці чи автору текстів",
@@ -144,7 +144,7 @@ const FORBIDDEN: [RegExp, string][] = [
   [/безкоштовн\w* підписк|підписк\w* (безкоштовн|за 0)|стеженн\w* (—|-|це|як) підписк/i, "безкоштовна підписка — її немає, «Стежити» це не підписка"],
   [/безкоштовн\w* (членств|рів)|річн\w* підписк|щорічн\w* підписк|вітальн\w* повідомл|ранн\w* доступ|опитуван|мерч/i, "можливості інших платформ, яких немає на SkyNovix"],
   [/подарунков\w* (сертифікат|карт)|подарува\w* (товар|підписк|іншій|другу|комусь)|купи\w* (у|в) подарунок (іншій|другу)/i, "дарування товару іншій людині — такого немає у факт-листі"],
-  [/patreon|патреон|boosty|бусті|gumroad|ko-fi|etsy|етсі|donationalerts|донейшн ?алертс|streamlabs|стрімлабс|streamelements/i, "назви інших платформ"],
+  [/patreon|патреон|boosty|бусті|gumroad|ko-fi|etsy|етсі|substack|kickstarter|teachable|kajabi|podia|bandcamp|\bkdp\b|onlyfans|donationalerts|донейшн ?алертс|streamlabs|стрімлабс|streamelements/i, "назви інших платформ"],
   [/(інтеграц\w*|підключ\w*) (з|до|із) (twitch|твіч|youtube|ютуб|tiktok|тікток|kick)/i, "інтеграції зі стрім-платформами — у факт-листі лише OBS-віджет"],
   // обіцянки швидкості виплат: у факт-листі лише «14 та 28 числа» + період утримання
   [/не (треба|потрібно|доведеться) (чекати|довго)|без очікуван\w* (виплат|грош)|швидк\w* виплат|гроші (одразу|відразу|швидко)/i, "обіцянки швидкості виплат"],
@@ -152,10 +152,12 @@ const FORBIDDEN: [RegExp, string][] = [
 const ALLOWED_PERCENTS = new Set(["6", "8", "10", "18", "5"]);
 const ALLOWED_GB = new Set(["1"]); // ліміт файлу товару — 1 ГБ
 
-function guard(text: string): string[] {
+// article — текст експертної статті: відсотки з неї дозволені (кейс), решта — лише з факт-листа
+function guard(text: string, article?: string): string[] {
   const problems = FORBIDDEN.filter(([re]) => re.test(text)).map(([, why]) => `згадано ${why} — цього немає на платформі`);
   for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s?%/g)) {
-    if (!ALLOWED_PERCENTS.has(m[1]!)) problems.push(`відсоток ${m[1]}% не з факт-листа`);
+    const inArticle = article && new RegExp(`${m[1]!.replace(/[.,]/, "[.,]")}\\s?%`).test(article);
+    if (!ALLOWED_PERCENTS.has(m[1]!) && !inArticle) problems.push(`відсоток ${m[1]}% не з факт-листа і не зі статті`);
   }
   for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s?(ГБ|Гб|гб|GB|Gb)/g)) {
     if (!ALLOWED_GB.has(m[1]!)) problems.push(`розмір ${m[1]} ГБ не з факт-листа (ліміт — 1 ГБ)`);
@@ -206,13 +208,125 @@ async function pickTheme(): Promise<Theme> {
   return candidates.sort((a, b) => lastUsed(b) - lastUsed(a))[0]!;
 }
 
-export async function runPromo({ dryRun, send }: RunOptions, forcedTheme?: Theme): Promise<void> {
+// 📚 Експертні статті про монетизацію творчості (власник 2026-10-21: «бери експертні статті, бери головне — і вже маєш
+// пост; пиши як професійний копірайтер»). Свіжість не критична — беремо за 45 днів, кожну статтю лише раз.
+const EXPERT_SOURCES = [
+  { name: "Simon Owens", url: "https://simonowens.substack.com/feed" }, // бізнес авторів і розсилок
+  { name: "Social Media Examiner", url: "https://www.socialmediaexaminer.com/feed/" },
+  { name: "Buffer", url: "https://buffer.com/resources/rss/" },
+  { name: "Influencer Marketing Hub", url: "https://influencermarketinghub.com/feed/" },
+  { name: "Embedded", url: "https://embedded.substack.com/feed" },
+  { name: "Creator Economy", url: "https://creatoreconomy.so/feed" },
+  { name: "Tubefilter", url: "https://www.tubefilter.com/feed/" },
+  { name: "Spotify Newsroom", url: "https://newsroom.spotify.com/feed/" },
+  { name: "DIY Musician", url: "https://diymusician.cdbaby.com/feed/" }, // музиканти
+  { name: "Ari's Take", url: "https://aristake.com/feed/" },
+  { name: "GameDiscoverCo", url: "https://newsletter.gamediscover.co/feed" }, // геймдев
+  { name: "How To Market A Game", url: "https://howtomarketagame.com/feed/" },
+  { name: "Jane Friedman", url: "https://janefriedman.com/feed/" }, // письменники
+  { name: "ALLi", url: "https://selfpublishingadvice.org/feed/" },
+  { name: "Written Word Media", url: "https://www.writtenwordmedia.com/feed/" },
+  { name: "BookBub", url: "https://insights.bookbub.com/feed/" },
+  { name: "Inbox Collective", url: "https://inboxcollective.com/feed/" },
+];
+const EXPERT_MAX_AGE_DAYS = 45;
+const EXPERT_TRIES = 4; // скільки статей пробуємо за запуск, поки GPT не знайде корисну
+
+interface ExpertArticle { source: string; title: string; url: string; text: string }
+
+async function expertCandidates(): Promise<{ source: string; title: string; url: string; publishedAt: Date | null }[]> {
+  const all: { source: string; title: string; url: string; publishedAt: Date | null }[] = [];
+  for (const s of EXPERT_SOURCES) {
+    try {
+      for (const a of await fetchArticles({ ...s, account: "knowledge" })) all.push(a);
+    } catch (err) {
+      console.error(`📚 ${s.name}: ${(err as Error).message}`);
+    }
+  }
+  const cutoff = Date.now() - EXPERT_MAX_AGE_DAYS * 86400000;
+  const fresh = all.filter((a) => a.publishedAt && a.publishedAt.getTime() >= cutoff);
+  const used = new Set(
+    (await prisma.article.findMany({ where: { url: { in: fresh.map((a) => a.url) } }, select: { url: true } })).map((r) => r.url),
+  );
+  // різні джерела по черзі (щоб не 4 пости поспіль про книжки), від новіших
+  const bySource = new Map<string, typeof fresh>();
+  for (const a of fresh.filter((a) => !used.has(a.url)).sort((x, y) => y.publishedAt!.getTime() - x.publishedAt!.getTime()))
+    bySource.set(a.source, [...(bySource.get(a.source) ?? []), a]);
+  const lastSources = (await prisma.promoPost.findMany({ where: { theme: "expert" }, orderBy: { createdAt: "desc" }, take: 6, select: { text: true } }))
+    .map((p) => p.text.match(/^📚 (.+)$/m)?.[1]);
+  const order = [...bySource.keys()].sort((a, b) => Number(lastSources.includes(a)) - Number(lastSources.includes(b)));
+  const out: typeof fresh = [];
+  for (let i = 0; out.length < EXPERT_TRIES && i < 10; i++) for (const s of order) if (bySource.get(s)![i] && out.length < EXPERT_TRIES) out.push(bySource.get(s)![i]!);
+  return out;
+}
+
+async function markExpert(a: { source: string; title: string; url: string }, status: "promo_used" | "promo_rejected", reason: string) {
+  await prisma.article.upsert({
+    where: { url: a.url },
+    update: { status, reason },
+    create: { url: a.url, title: a.title, source: a.source, status, reason, account: "promo" },
+  });
+}
+
+const EXPERT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["useful", "insight", "parts"],
+  properties: {
+    useful: { type: "boolean" },
+    insight: { type: "string" },
+    parts: { type: "array", minItems: 1, maxItems: 1, items: { type: "string" } },
+  },
+} as const;
+
+function expertBrief(a: ExpertArticle): string {
+  return `ФОРМАТ: пост на основі ЕКСПЕРТНОЇ СТАТТІ (нижче). Ти — сильний копірайтер старої школи, ще до ШІ: один пост —
+одна думка, гачок у першому рядку, конкретика з кейсу, ритм, жодної води. ШІ лише допомагає, текст має бути живим.
+
+1. useful — true ЛИШЕ якщо стаття — КЕЙС (як конкретний автор зібрав аудиторію чи почав заробляти) або ПРАКТИЧНИЙ
+   ПРИЙОМ (як збирати й утримувати аудиторію, що публікувати, як запустити й наповнити платну підписку чи членство,
+   як перетворити підписників соцмереж на власних читачів, як розсилка/блог дає стабільний дохід), з якого виходить
+   конкретний пост. false — новини й анонси індустрії, етика й суперечки про AI, суди, рейтинги й чарти, огляд одного
+   застосунку, реклама сервісу, специфіка США (податки, закони), загальна теорія без дій. Тоді parts = [""].
+   Сумніваєшся — false: краще пропустити статтю, ніж написати розмитий пост.
+2. insight — одне речення: головна думка статті своїми словами.
+3. Якщо useful — post (parts[0]):
+   - 1-й рядок — гачок із головною думкою (можна цифра чи результат із кейсу);
+   - суть прийому чи кейсу своїми словами, конкретно: що зробив автор, що вийшло, чому спрацювало;
+   - як застосувати українському автору — 2–4 конкретні кроки (через «— »);
+   - 1–2 речення, як це зробити на SkyNovix — ЛИШЕ факти з факт-листа, природно, без реклами й без «ми найкращі»;
+   - можна «західні автори», «дослідження показало», ім'я автора кейсу; цифри — ЛИШЕ ті, що є в статті;
+   - НЕ називай платформи-конкуренти (Patreon, Substack, Gumroad, Etsy, Ko-fi, Kickstarter, Teachable, Kajabi, Podia,
+     Bandcamp, Amazon KDP тощо) — пиши «платформа для підписок», «маркетплейс», «сервіс розсилок».
+     YouTube, Instagram, TikTok, Threads, Spotify, Google — можна.
+
+Стаття: «${a.title}» (${a.source})
+${a.text}`;
+}
+
+export async function runPromo({ dryRun, send }: RunOptions, forcedTheme?: Theme | "expert"): Promise<void> {
   const facts = readFileSync(FACTS_PATH, "utf8");
   const agent = readFileSync(AGENT_PATH, "utf8");
-  const theme = forcedTheme ?? (await pickTheme());
+  const special = forcedTheme && forcedTheme !== "expert" ? forcedTheme : await pickTheme();
+  // Спершу — пост за експертною статтею (крім свят); не знайшлось корисної — звичайний формат
+  const tryExpert = forcedTheme === "expert" || (!forcedTheme && special !== "holiday");
+  const expertQueue: ExpertArticle[] = [];
+  if (tryExpert) {
+    for (const c of await expertCandidates()) {
+      const ex = await extractArticle(c.url);
+      if (!ex || ex.text.length < 1500) {
+        if (!dryRun) await markExpert(c, "promo_rejected", "не вдалося прочитати статтю");
+        continue;
+      }
+      expertQueue.push({ ...c, text: ex.text.slice(0, 9000) });
+    }
+  }
+  let expert: ExpertArticle | null = null;
+  let theme: Theme | "expert" = special;
 
   const recent = await prisma.promoPost.findMany({ orderBy: { createdAt: "desc" }, take: 15, select: { text: true } });
-  const recentList = recent.map((r) => `- ${r.text.split("\n")[0]!.slice(0, 120)}`).join("\n") || "(ще не було)";
+  const recentList =
+    recent.map((r) => `- ${r.text.split("\n").find((l) => l.trim() && !l.startsWith("📚"))!.slice(0, 120)}`).join("\n") || "(ще не було)";
 
   const system = `${agent}
 
@@ -229,6 +343,14 @@ export async function runPromo({ dryRun, send }: RunOptions, forcedTheme?: Theme
 - НЕ ПЛУТАЙ: «підписка» — ЛИШЕ платна, за рівнями, з помісячним автосписанням. «Стежити» — це НЕ підписка, а безкоштовна
   кнопка; ті, хто стежить, — «читачі», вони бачать дописи «лише читачам». Ніколи не пиши «безкоштовна підписка».
 
+## Мета постів (власник 2026-10-21)
+Залучити на SkyNovix авторів різних професій — від музики до ігор, — щоб вони вели на своїй сторінці стрічку-блог
+(дописи «Усім» і «Лише читачам» індексуються Google), ділились нею зі своєю аудиторією і робили платну підписку на
+найкращі дописи. Але НЕ в лоб і без реклами: пост дає автору цінність — прийом, кейс, ідею, — а висновок «мені потрібен
+власний блог з читачами й підпискою» він робить сам. SkyNovix з'являється наприкінці як природний інструмент, 1–2 речення.
+Теми, що найкраще ведуть до мети: як збирати власну аудиторію, а не залежати від алгоритмів; що публікувати регулярно;
+що давати платним підписникам; як перетворити підписників у соцмережах на читачів; як блог допомагає знаходити автора в Google.
+
 ## Як писати (власник 2026-10-17: пости-«інструкції» про оплату/чекаут/PWYW — «лажа»; треба цікаве й корисне)
 - Пост — це КОРИСНА ШТУКА, яку автор може взяти й застосувати сьогодні: конкретні ідеї, назви, приклади до/після,
   кроки. Читач має подумати «о, збережу». SkyNovix — інструмент усередині (1–2 речення), а не тема поста.
@@ -239,6 +361,8 @@ export async function runPromo({ dryRun, send }: RunOptions, forcedTheme?: Theme
 - НЕ закінчуй формулою «Це не X, але Y», гаслами («Менше хаосу. Більше порядку.») чи загальною мораллю. Кінець —
   остання корисна порада або конкретна дія.
 - Не пиши про оплату, способи оплати, валюти, чекаут, PWYW, податки, ФОП, виплати — це нецікаво (власник).
+- НЕ роби головною думкою «продавайте цифрові товари» — такі пости набирають мало переглядів (власник 2026-10-21).
+  Товари можна згадати мимохідь, але фокус — блог, читачі, аудиторія, підписка.
 - Не пиши «все в одному профілі», «по шматках», «розпорошується» — уже було.
 - Не вигадуй статистику, ціни, «дослідження» й реальних авторів. Приклади товарів — придумані, як ідеї.
 - Форма: короткі абзаци з порожнім рядком; для ідей і кроків — перелік через «— » (кожен пункт конкретний).
@@ -262,19 +386,43 @@ ${facts}`;
 
   // професія чергується по колу — щоб ідеї були то для фотографа, то для музиканта, то для викладача
   const prof = PROFESSIONS[(await prisma.promoPost.count()) % PROFESSIONS.length]!;
-  const topic = label(theme).replaceAll("{prof}", prof);
-  const brief = specialBrief(theme, upcomingHoliday(kyivToday()));
-  const user = `Тема цього поста: ${topic}.${brief ? `\n\n${brief}` : ""}
+  const recentBlock = `Останні пости (не повторюй їхні думки й перші рядки):\n${recentList}`;
 
-Останні пости (не повторюй їхні думки й перші рядки):
-${recentList}`;
-
+  // 📚 Спершу експертні статті: GPT сам каже, чи є в статті корисна думка; немає — пробуємо наступну
+  type ExpertOut = { useful: boolean; insight: string; parts: string[] };
   let parts: string[] = [];
+  let expertInsight = "";
+  for (const a of expertQueue) {
+    const out = await askJson<ExpertOut>(system, `${expertBrief(a)}\n\n${recentBlock}`, "promo_expert", EXPERT_SCHEMA);
+    if (!out.useful || !out.parts[0]?.trim()) {
+      console.log(`📚 не підійшла: ${a.title} — ${out.insight}`);
+      if (!dryRun) await markExpert(a, "promo_rejected", out.insight || "немає корисної думки");
+      continue;
+    }
+    expert = a;
+    theme = "expert";
+    expertInsight = out.insight;
+    parts = [out.parts[0].trim()];
+    break;
+  }
+
+  const user = expert
+    ? `${expertBrief(expert)}\n\n${recentBlock}`
+    : (() => {
+        const brief = specialBrief(theme as Theme, upcomingHoliday(kyivToday()));
+        return `Тема цього поста: ${label(theme as Theme).replaceAll("{prof}", prof)}.${brief ? `\n\n${brief}` : ""}\n\n${recentBlock}`;
+      })();
+
   let feedback = "";
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const out = await askJson<{ parts: string[] }>(system, user + feedback, "promo", SCHEMA);
-    parts = out.parts.map((p) => p.trim()).filter(Boolean); // **жирне** лишаємо — у Telegram воно видно
-    const problems = guard(parts.join("\n"));
+    // для експертного поста перша чернетка вже є (з перевірки корисності)
+    if (!(expert && attempt === 1)) {
+      const out = expert
+        ? await askJson<ExpertOut>(system, user + feedback, "promo_expert", EXPERT_SCHEMA)
+        : await askJson<{ parts: string[] }>(system, user + feedback, "promo", SCHEMA);
+      parts = out.parts.map((p) => p.trim()).filter(Boolean); // **жирне** лишаємо — у Telegram воно видно
+    }
+    const problems = guard(parts.join("\n"), expert?.text);
     // стиль власника: замість «люди» — покупці/користувачі/читачі/прихильники; лише 1 спроба, пост через це не губимо
     if (attempt === 1 && /(^|[^а-яіїєґ'’])(люд(и|ей|ям|ьми|ях)|людин\w*)(?![а-яіїєґ])/i.test(parts.join("\n")))
       problems.push("слово «люди» — заміни на покупці/користувачі/читачі/підписники/прихильники за змістом");
@@ -303,7 +451,9 @@ ${recentList}`;
   // Фактчек кожної частини проти факт-листа — та сама перевірка, що й для грантів
   const notes: string[] = [];
   for (const [i, part] of parts.entries()) {
-    const fc = await factCheck("Факт-лист SkyNovix", "SkyNovix — факти", facts, part);
+    // експертний пост звіряємо і з факт-листом (про SkyNovix), і зі статтею (кейс, цифри)
+    const original = expert ? `${facts}\n\n## Експертна стаття «${expert.title}» (${expert.source})\n${expert.text}` : facts;
+    const fc = await factCheck("Факт-лист SkyNovix", "SkyNovix — факти", original, part);
     if (fc.verdict === "reject") {
       console.log(`🚀 фактчек відхилив частину ${i + 1}: ${fc.issues.join("; ")} — не надсилаю`);
       return;
@@ -329,7 +479,10 @@ ${recentList}`;
         part,
         {
           lines: [
-            `🚀 SkyNovix для Threads · ${theme}${label(theme).includes("{prof}") ? ` · ${prof}` : ""}${parts.length > 1 ? ` · частина ${i + 1}/${parts.length}` : ""}`,
+            expert
+              ? `🚀 SkyNovix для Threads · за статтею ${expert.source}: «${expert.title}»`
+              : `🚀 SkyNovix для Threads · ${theme}${label(theme as Theme).includes("{prof}") ? ` · ${prof}` : ""}${parts.length > 1 ? ` · частина ${i + 1}/${parts.length}` : ""}`,
+            ...(expert && expertInsight ? [`💡 ${expertInsight}`] : []),
             ...(i === lastIdx ? notes : []),
           ],
         },
@@ -338,5 +491,10 @@ ${recentList}`;
       );
     }
   }
-  if (!dryRun) await prisma.promoPost.create({ data: { theme, text: parts.join("\n\n---\n\n") } });
+  if (!dryRun) {
+    // для експертного поста першим рядком — джерело (за ним чергуємо джерела, див. expertCandidates)
+    const text = expert ? `📚 ${expert.source}\n${parts.join("\n\n")}` : parts.join("\n\n---\n\n");
+    await prisma.promoPost.create({ data: { theme, text, productUrl: expert?.url ?? null } });
+    if (expert) await markExpert(expert, "promo_used", expertInsight);
+  }
 }
