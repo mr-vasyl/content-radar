@@ -111,7 +111,8 @@ export async function runNews(): Promise<void> {
           continue;
         }
         // Та сама програма з іншого сайту під іншою назвою (Грант Радар і GetGrant) — ловимо за посиланням на першоджерело
-        if (analysis.link && (await sentWithLink(analysis.link))) {
+        // …і за адресою самої статті: її могли вже дати як 🔗 у пості з іншого агрегатора (УФС ← GetGrant)
+        if ((analysis.link && (await sentWithLink(analysis.link))) || (await sentWithLink(a.url))) {
           await record(a, "rejected_rules", { reason: `дубль за посиланням: ${analysis.link}` });
           console.log(`= дубль за посиланням: ${a.title}`);
           continue;

@@ -108,9 +108,12 @@ interface BusinessFacts {
 export async function analyzeBusiness(article: Article, fullText: string | null, links: ArticleLink[] = []): Promise<Analysis> {
   const body = fullText ?? article.content;
   const linkList = links.length ? links.map((l) => `- ${l.text || "(без тексту)"} — ${l.url}`).join("\n") : "(немає)";
+  // Дата оголошення: з RSS або з початку заголовка «26.02.2024 …» (сторінки фондів без RSS)
+  const m = article.title.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+  const announced = article.publishedAt ?? (m ? new Date(`${m[3]}-${m[2]}-${m[1]}T12:00:00Z`) : null);
   const r = await askJson<BusinessFacts>(
     SYSTEM_PROMPT,
-    `Джерело: ${article.source}\nЗаголовок: ${article.title}\n\n${body}\n\nПосилання зі статті:\n${linkList}`,
+    `Джерело: ${article.source}\nЗаголовок: ${article.title}\n${announced ? `Дата публікації: ${announced.toISOString().slice(0, 10)}\n` : ""}\n${body}\n\nПосилання зі статті:\n${linkList}`,
     "business",
     SCHEMA,
   );
@@ -126,6 +129,9 @@ export async function analyzeBusiness(article: Article, fullText: string | null,
   if (!r.ukraine_ok) cap(2, "не для бізнесу з України");
   if (!r.non_repayable) cap(2, "кредит/позика, не грант");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(r.deadline ?? "") && !r.open_now) cap(5, "незрозуміло, чи прийом відкритий зараз");
+  // Старе оголошення без дедлайну: «подача постійна» у 2024-му не означає, що програма відкрита зараз (УФС, 2026-10-20)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(r.deadline ?? "") && announced && Date.now() - announced.getTime() > 90 * 86400000)
+    cap(3, `старе оголошення (${announced.toISOString().slice(0, 10)}) без дедлайну`);
 
   const norm = (u: string) => u.replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
   const real = links.find((l) => norm(l.url) === norm(r.link ?? ""));
