@@ -116,7 +116,9 @@ export async function runNews(): Promise<void> {
           console.log(`= дубль за посиланням: ${a.title}`);
           continue;
         }
-        analysis.post = withToolLink(fc.post, analysis.link);
+        // Посилання в пості є ЗАВЖДИ: якщо GPT не знайшов у тексті окремої сторінки програми, даємо саму статтю.
+        // Для Telegram-джерел a.url — це вже першоджерело (сторінка фонду, форма), для агрегаторів — сторінка з умовами.
+        analysis.post = withToolLink(fc.post, analysis.link || a.url);
         if (analysis.hook) analysis.hook = fc.hook;
         const note = factNote(fc);
 
