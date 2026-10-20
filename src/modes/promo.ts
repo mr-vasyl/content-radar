@@ -29,7 +29,7 @@ export const THEMES = {
   feat_unlock: "Кнопка відкриття просто під замком («Стежити» чи «Підписатися на рівень…»): шлях читача {prof} від допису до підписки за один клік",
   feat_tiers: "Рівні підписки: вищий автоматично відкриває нижчі, підписник може перейти вище, а при скасуванні доступ лишається до кінця оплаченого періоду — як {prof} будує 2–3 рівні",
   feat_social: "Лайки, коментарі (з фільтром заборонених слів) і «поділитися» в Telegram/WhatsApp: як блог {prof} стає місцем розмови з аудиторією",
-  feat_google: "Дописи «Усім» і «Лише читачам» індексує Google, двома мовами сайту: як блог {prof} приводить нових читачів із пошуку, а не лише з соцмереж",
+  feat_google: "Google індексує все відкрите: сторінку автора (ім'я й опис профілю), товари й дописи «Усім»/«Лише читачам», двома мовами сайту — як {prof} приводить нових читачів і покупців із пошуку, а не лише з соцмереж",
   feat_embed: "Товар можна вбудувати прямо в допис: {prof} пише корисний допис, а в ньому — пов'язаний товар (без «купіть», просто поруч)",
   feat_funnel: "Воронка по товару — перегляди → кошик → продажі з % конверсії: що {prof} дізнається з цих цифр і що змінити, якщо купують мало",
   feat_stream: "Донати для стрімера: OBS-віджет з алертами, GIF від донатера, фільтр заборонених слів, сповіщення в Discord — як це виглядає на стрімі",
@@ -62,6 +62,7 @@ export const THEMES = {
   cheat_covers: "Яка обкладинка товару чи допису працює для {prof}: чітка головна річ, мало тексту, видно що всередині; превʼю з водяним знаком — 3 поради",
   cheat_product_ideas: "3–4 цифрові товари, які {prof} може зробити з того, що вже має (конкретні назви й формат файлу)",
   cheat_product_title: "Як {prof} назвати товар: що це + для кого + формат — 3 приклади «було → стало»",
+  cheat_profile: "Назва й опис профілю {prof} теж індексуються Google: як написати «про себе», щоб автора знаходили — хто ви, що робите, для кого; приклад до/після",
 } as const;
 
 const PROFESSIONS = [
@@ -241,7 +242,7 @@ async function pickTheme(): Promise<Theme | "expert"> {
 // Схожі теми — одна група: з групи не частіше, ніж раз на GROUP_COOLDOWN постів (власник 2026-10-22: три пости поспіль
 // були про назву й опис картки товару). Стара назва теми з тієї ж групи теж рахується.
 const GROUPS: Record<string, string[]> = {
-  desc: ["cheat_unique_desc", "cheat_desc_rules", "cheat_product_title", "cheat_titles", "cheat_post_rules", "mistakes", "google", "product_card"],
+  desc: ["cheat_unique_desc", "cheat_desc_rules", "cheat_product_title", "cheat_titles", "cheat_post_rules", "cheat_profile", "mistakes", "google", "product_card"],
   products: ["feat_categories", "cheat_product_ideas", "feat_exclusive", "feat_video_preview", "feat_reviews", "feat_embed", "feat_funnel", "ideas", "repackage"],
   visual: ["cheat_covers"],
   access: ["feat_levels", "feat_unlock", "cheat_week", "cheat_paid", "access_plan", "first_paid_post"],
