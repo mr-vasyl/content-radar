@@ -36,6 +36,10 @@ export interface Analysis {
   // Факти про умови; рішення «підходить чи ні» приймає код, а не загальна оцінка GPT
   applicants: "individuals" | "individuals_and_orgs" | "orgs_only" | "n/a";
   creative_sector: boolean;
+  // «Чисто й прозоро» для українця (власник 2026-10-20) — особливо для міжнародних open call
+  entry_fee?: boolean; // треба платити за участь/розгляд/публікацію/виставку
+  foreign_restrictions?: boolean; // потрібні громадянство, посвідка чи віза іншої країни; Україну виключено
+  transparent?: boolean; // зрозумілий організатор і умови, без підозрілих «вступних» схем
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -65,6 +69,12 @@ applicants для відкритої події (воркшоп, лекція, �
 creative_sector — true, якщо для креативної сфери (мистецтво, музика, кіно, театр, фото, дизайн, література й переклад,
 медіа й контент, культура й спадщина, освітні творчі проєкти, IT/цифрові продукти, креативний бізнес);
 false — охорона здоров'я, соцзахист, агро, ветерани, розвиток громад, інфраструктура тощо.
+entry_fee — true, якщо учасник має щось платити: вступний чи реєстраційний внесок, оплата за розгляд заявки, за участь,
+публікацію, каталог чи виставку (submission fee, entry fee, participation fee). Безкоштовна подача — false.
+foreign_restrictions — true, якщо подати можуть лише громадяни чи резиденти певних країн без України, або потрібні
+віза, посвідка на проживання чи громадянство іншої країни, або Україну прямо виключено. Інакше — false.
+transparent — true, якщо організатор зрозумілий (фонд, інституція, фестиваль, медіа з іменем) і умови прозорі;
+false — анонімний організатор, туманні умови, «конкурси», де переможець має щось купити чи оплатити.
 origin — ПЕРШОДЖЕРЕЛО, яке вкажемо в «За матеріалами»: якщо стаття лише передає чужу інформацію (агрегатор грантів —
 ГУРТ, Простір, Grant.Market; Telegram-канал з грантами; новина з посиланням на оголошення), то назва організації чи фонду,
 яка оголосила й дає гроші. Коротко, як назва: «ІЗОЛЯЦІЯ», «House of Europe», «Український інститут книги».
@@ -96,7 +106,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector"],
+  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector", "entry_fee", "foreign_restrictions", "transparent"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -110,6 +120,9 @@ const SCHEMA = {
     origin: { type: "string" },
     applicants: { type: "string", enum: ["individuals", "individuals_and_orgs", "orgs_only", "n/a"] },
     creative_sector: { type: "boolean" },
+    entry_fee: { type: "boolean" },
+    foreign_restrictions: { type: "boolean" },
+    transparent: { type: "boolean" },
   },
 } as const;
 
@@ -143,6 +156,24 @@ export async function analyze(article: Article, fullText: string | null, links: 
     result.score = Math.min(result.score, 2);
     result.post = "";
     result.hook = "";
+  }
+
+  // «Чисто й прозоро» для українця (власник 2026-10-20, коли дозволили міжнародні open call):
+  // платна участь, віза/посвідка/громадянство іншої країни, непрозорий організатор — не шлемо
+  if (isOpportunity) {
+    const dirty = result.entry_fee
+      ? "платна участь"
+      : result.foreign_restrictions
+        ? "обмеження для українців (віза, посвідка, громадянство)"
+        : result.transparent === false
+          ? "непрозорий організатор чи умови"
+          : null;
+    if (dirty) {
+      result.reason = `не підходить: ${dirty} — ${result.reason}`;
+      result.score = Math.min(result.score, 2);
+      result.post = "";
+      result.hook = "";
+    }
   }
 
   // Грант/конкурс без дедлайну — це загальна сторінка програми, а не відкритий набір (House of Europe «На переклад»:
