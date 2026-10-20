@@ -75,6 +75,11 @@ export const sources: Source[] = [
   // 2026-10-15
   { name: "Grant UP!", url: "GrantUP", account: "knowledge", telegram: true, business: "also" }, // ~4/день: премії, Docudays, open call (+ новини — відсіються)
   { name: "Літцентр", url: "litcentr", account: "knowledge", telegram: true }, // літконкурси й премії для письменників і перекладачів
+  // 2026-10-20
+  { name: "КУЛЬТУРА.МОЖЛИВОСТІ!", url: "culture_ua", account: "knowledge", telegram: true, business: "also" }, // ~3/день: резиденції, стипендії, гранти культури
+  { name: "УКФ щодня", url: "ucf_ua", account: "knowledge", telegram: true }, // офіційний канал УКФ, ~4/тиждень
+  // Перевірено 2026-10-20 й НЕ взято: Мінекономіки (новини й кредити), КОШТ (бізнес-новини), регіональні Дія.Бізнес
+  // (майже не пишуть), Громадський Простір TG (мертвий з 2024; сайт уже є), Український фонд стартапів TG (мертвий).
   { name: "ART BOT", url: "artbotme", account: "knowledge", telegram: true }, // open call для художників (рідко, але точно в ціль)
   // 💼 Лише для бізнес-каналу (2026-10-17)
   { name: "Грант Радар", url: "https://grantradar.com.ua/", account: "business", business: "only", linkPattern: /grantradar\.com\.ua\/hrant\/\d+-[\w-]+\/$/ },
