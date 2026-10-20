@@ -69,7 +69,8 @@ export const sources: Source[] = [
   { name: "Грантові фішки", url: "grantovyphishky", account: "knowledge", telegram: true, business: "also" }, // 32K
   { name: "Грантові фішки EU", url: "grantovyphishkyEU", account: "knowledge", telegram: true, business: "also" },
   { name: "Гранти та можливості", url: "grants_here", account: "knowledge", telegram: true, business: "also" }, // 21K
-  { name: "UA Grants", url: "uagrants", account: "knowledge", telegram: true, business: "also" }, // 19K, молодь і студенти
+  // UA Grants (@uagrants) — прибрано 2026-10-20: за тиждень 0 постів для нас (ESC-волонтерство, Erasmus+ обміни за кордоном),
+  // а посилання сховані за shorturl.at з перевіркою Cloudflare. unicompass — та сама ніша (молодь, навчання за кордоном).
   { name: "Гранти UA", url: "grantsua", account: "knowledge", telegram: true, business: "also" }, // 18K, багато ГО й гуманітарки — фільтри відсіють
   // 2026-10-15
   { name: "Grant UP!", url: "GrantUP", account: "knowledge", telegram: true, business: "also" }, // ~4/день: премії, Docudays, open call (+ новини — відсіються)
