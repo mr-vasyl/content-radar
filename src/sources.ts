@@ -33,6 +33,9 @@ export const sources: Source[] = [
 
   // Фонди й інституції — RSS
   { name: "Український інститут", url: "https://ui.org.ua/feed/", account: "knowledge" },
+  // 2026-10-20 (знайдено в linktree KULTMOZ): держпремії й гранти Президента молодим митцям; Culture Helps Solidarity
+  { name: "Держмистецтв", url: "https://arts.gov.ua/feed/", account: "knowledge" },
+  { name: "Інша освіта", url: "https://insha-osvita.org/feed/", account: "knowledge" },
   { name: "Мінкульт", url: "https://mcsc.gov.ua/feed/", account: "knowledge" },
   { name: "Мистецький арсенал", url: "https://artarsenal.in.ua/feed/", account: "knowledge" },
   { name: "Ізоляція", url: "https://izolyatsia.org/ua/rss/", account: "knowledge" },
