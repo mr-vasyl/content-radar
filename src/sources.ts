@@ -86,6 +86,12 @@ export const sources: Source[] = [
   { name: "Грант Радар TG", url: "granty_ukraine", account: "business", business: "only", telegram: true }, // ~5/день
   { name: "GetGrant Бізнес", url: "https://getgrant.ua/grant-category/business/", account: "business", business: "only",
     linkPattern: /getgrant\.ua\/grants-and-funding\/(?![\w-]*(analiz|pidbirka|daydzhest|daidzhest|ohliad))[\w-]+\/$/ },
+  // 2026-10-20: міжнародні для українського бізнесу
+  { name: "EU NEIGHBOURS East", url: "https://euneighbourseast.eu/opportunities/feed/", account: "knowledge", business: "also" }, // EU4Business та ін. для Східного партнерства
+  { name: "Український фонд стартапів", url: "https://usf.com.ua/news/", account: "business", business: "only",
+    linkPattern: /usf\.com\.ua\/[\w-]*(grant|program|konkurs|nabir|vidkryv|brave1)[\w-]*$/ },
+  // НЕ взято 2026-10-20: ONE PASS (наукові консорціуми Horizon), FundingHub (сайт на JS — бот не бачить списку),
+  // ПРООН і МОМ в Україні (сайти блокують бота), CSO Digital (не відповідає).
   // Перевірено для бізнесу й НЕ взято: t.me/grants_ukraine (1 пост за 3 дні, посилання на платних консультантів),
   // t.me/grant_market (Telegram не віддає канал ззовні; їхній сайт Grant.Market уже є), ua_bizidea, gurtrc.
   // Перевірено й НЕ взято: unicompass (навчання за кордоном, 1 пост за 3 дні, посилання на бот-файли),
