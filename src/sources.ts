@@ -43,7 +43,7 @@ export const sources: Source[] = [
   // ✍️ Письменники й перекладачі
   { name: "Читомо", url: "https://chytomo.com/feed/", account: "knowledge" },
   { name: "PEN Україна", url: "https://pen.org.ua/feed.rss", account: "knowledge" },
-  { name: "Літосвіта", url: "https://litosvita.com/feed/", account: "knowledge" },
+  // Літосвіта — прибрано 2026-10-20 (власник): платна школа, пише про свої курси й добірки книжок, а не можливості
   // 🎬 Кіно
   // Kinokolo — прибрано 2026-10-19: Cloudflare блокує сервери GitHub (і читалку), Telegram-канал закинутий з 2023
   { name: "Українська кіноакадемія", url: "https://uafilmacademy.org/", account: "knowledge", linkPattern: /uafilmacademy\.org\/news\/[^/]+\.html$/ },
