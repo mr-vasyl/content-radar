@@ -69,6 +69,26 @@ const PROFESSIONS = [
   "викладачу чи експерту", "розробнику", "геймдев-автору", "стрімеру", "AI-креатору",
 ];
 
+// Будова поста — по черзі (власник 2026-10-22: «тупо шаблоном лупиш» — три пости поспіль були списками назв у лапках
+// про подкастера). Будову й професію записуємо службовими рядками «🧱 …» і «👤 …» у PromoPost.text.
+const STRUCTURES = {
+  story: "МІНІ-ІСТОРІЯ: автор цієї професії зробив одну річ → що змінилось у читачів чи продажах → висновок одним реченням. Без переліку.",
+  before_after: "ОДИН ПРИКЛАД ДО/ПІСЛЯ: один конкретний приклад (не список), коротко чому «після» працює краще. Без переліку.",
+  mistake: "ПОМИЛКА → ЧОМУ ТАК РОБЛЯТЬ → ЯК КРАЩЕ: три коротких абзаци, без переліку.",
+  numbers: "РОЗРАХУНОК: почни з простого розрахунку чи цифри-ілюстрації, далі — що з цього випливає для автора. Без переліку.",
+  question: "ПИТАННЯ АВТОРА → ЧЕСНА ВІДПОВІДЬ: перший рядок — питання, яке автор ставить собі; далі пряма відповідь із поясненням.",
+  short: "КОРОТКА ДУМКА: 3–5 речень, одна ідея й один приклад. Найкоротший формат — до 400 символів.",
+  three: "ТРИ ПУНКТИ: вступ одним реченням і рівно 3 пункти через «— », кожен — пряма порада БЕЗ прикладів назв у лапках.",
+} as const;
+type Structure = keyof typeof STRUCTURES;
+
+// Корені професій — щоб упізнати професію в тексті старих постів, де службового рядка ще немає
+const PROF_STEMS: Record<string, RegExp> = {
+  "ілюстратору чи художниці": /ілюстрат|художни/i, "дизайнеру": /дизайнер/i, "фотографу": /фотограф/i,
+  "відеомейкеру": /відеомейкер/i, "музиканту": /музикант/i, "подкастеру": /подкаст/i, "письменниці чи автору текстів": /письменни|копірайтер/i,
+  "викладачу чи експерту": /викладач|експерт/i, "розробнику": /розробни/i, "геймдев-автору": /геймдев|гейм/i, "стрімеру": /стрімер/i, "AI-креатору": /AI-креатор/i,
+};
+
 type Format = "case" | "feat" | "opin" | "cheat";
 const FORMAT_ORDER: Format[] = ["case", "feat", "opin", "cheat"];
 const formatOf = (theme: string): Format | null =>
@@ -82,8 +102,8 @@ const FORMAT_BRIEFS: Record<Exclude<Format, "case">, string> = {
   opin: `ФОРМАТ «думка»: одна сильна теза, з якою хочеться погодитись або посперечатись у коментарях. Аргументуй 2–3
 конкретними прикладами чи розрахунком (наприклад, «100 підписників × 150 грн = 15 000 грн щомісяця»). SkyNovix НЕ
 згадуй зовсім — це пост-думка від експертів, які бачать, як працюють автори. Без питання в кінці.`,
-  cheat: `ФОРМАТ «шпаргалка»: конкретний список, який хочеться зберегти. Кожен пункт — готова ідея з прикладом назви,
-не загальні слова. SkyNovix — максимум одне речення наприкінці (або зовсім ні).`,
+  cheat: `ФОРМАТ «шпаргалка»: практична порада, яку хочеться зберегти. Форму задає БУДОВА нижче — не обов'язково список.
+Приклади назв у лапках — максимум ОДИН на пост. SkyNovix — максимум одне речення наприкінці (або зовсім ні).`,
 };
 
 // Особливі пости — не в ротації, бот вмикає їх сам (див. pickTheme)
@@ -330,7 +350,7 @@ function expertBrief(a: ExpertArticle): string {
 3. Якщо useful — post (parts[0]):
    - 1-й рядок — гачок із головною думкою (можна цифра чи результат із кейсу);
    - суть прийому чи кейсу своїми словами, конкретно: що зробив автор, що вийшло, чому спрацювало;
-   - як застосувати українському автору — 2–3 короткі кроки (через «— »);
+   - як застосувати українському автору — у формі, яку задає БУДОВА нижче (не обов'язково список);
    - увесь пост — 350–650 символів: суть кейсу в 2–3 реченнях, без переказу всієї статті;
    - SkyNovix — максимум ОДНЕ речення наприкінці, лише якщо природно (ЛИШЕ факти з факт-листа, без реклами);
      якщо не лягає — не згадуй зовсім: пост-кейс сильний сам по собі;
@@ -366,8 +386,9 @@ export async function runPromo({ dryRun, send }: RunOptions, forcedTheme?: Theme
   let theme: Theme | "expert" = special;
 
   const recent = await prisma.promoPost.findMany({ orderBy: { createdAt: "desc" }, take: 15, select: { text: true } });
-  const recentList =
-    recent.map((r) => `- ${r.text.split("\n").find((l) => l.trim() && !l.startsWith("📚"))!.slice(0, 120)}`).join("\n") || "(ще не було)";
+  // службові рядки «📚 джерело», «🧱 будова», «👤 професія» — не текст поста
+  const clean = (t: string) => t.split("\n").filter((l) => !/^(📚|🧱|👤) /.test(l)).join("\n").trim();
+  const recentList = recent.map((r) => `- ${clean(r.text).split("\n")[0]!.slice(0, 120)}`).join("\n") || "(ще не було)";
 
   const system = `${agent}
 
@@ -444,8 +465,24 @@ ${LANGUAGE}
 ${facts}`;
 
   // професія чергується по колу — щоб ідеї були то для фотографа, то для музиканта, то для викладача
-  const prof = PROFESSIONS[(await prisma.promoPost.count()) % PROFESSIONS.length]!;
-  const recentBlock = `Останні пости (не повторюй їхні думки й перші рядки):\n${recentList}`;
+  // Професія: не та, що була в останніх 4 постах (за службовим рядком «👤» або коренем слова в тексті)
+  const last4 = recent.slice(0, 4).map((r) => r.text);
+  const usedProf = (p: string) => last4.some((t) => t.includes(`👤 ${p}`) || PROF_STEMS[p]!.test(t));
+  const freshProfs = PROFESSIONS.filter((p) => !usedProf(p));
+  const pool = freshProfs.length ? freshProfs : PROFESSIONS;
+  const prof = pool[Math.floor(Math.random() * pool.length)]!;
+  // Будова: найдавніше використана з STRUCTURES
+  const usedStructures = recent.map((r) => r.text.match(/^🧱 (\w+)/m)?.[1]);
+  const structure = (Object.keys(STRUCTURES) as Structure[]).sort((a, b) => {
+    const ia = usedStructures.indexOf(a), ib = usedStructures.indexOf(b);
+    return (ib === -1 ? Infinity : ib) - (ia === -1 ? Infinity : ia);
+  })[0]!;
+  const recentBodies = recent.slice(0, 6).map((r, i) => `${i + 1}) ${clean(r.text).slice(0, 280).replace(/\n+/g, " ")}`).join("\n");
+  const recentBlock = `БУДОВА цього поста: ${STRUCTURES[structure]}
+
+Останні пости — НЕ повторюй їхні думки, приклади, образи (ті самі «чистий звук», «монтаж», ті самі назви), перші рядки
+й будову (якщо там були списки назв у лапках — тут без них):
+${recentBodies || "(ще не було)"}`;
 
   // 📚 Спершу експертні статті: GPT сам каже, чи є в статті корисна думка; немає — пробуємо наступну
   type ExpertOut = { useful: boolean; insight: string; parts: string[] };
@@ -570,7 +607,8 @@ ${facts}`;
   }
   if (!dryRun) {
     // для експертного поста першим рядком — джерело (за ним чергуємо джерела, див. expertCandidates)
-    const text = expert ? `📚 ${expert.source}\n${parts.join("\n\n")}` : parts.join("\n\n---\n\n");
+    const meta = `🧱 ${structure}\n👤 ${prof}\n`;
+    const text = expert ? `📚 ${expert.source}\n${meta}${parts.join("\n\n")}` : `${meta}${parts.join("\n\n---\n\n")}`;
     await prisma.promoPost.create({ data: { theme, text, productUrl: expert?.url ?? null } });
     if (expert) await markExpert(expert, "promo_used", expertInsight);
   }
