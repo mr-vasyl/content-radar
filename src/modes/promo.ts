@@ -218,9 +218,24 @@ async function pickTheme(): Promise<Theme | "expert"> {
   return format === "case" ? "expert" : leastUsedTheme(format, recent);
 }
 
-// Найдавніше використана тема формату (не та сама, що минулого разу)
+// Схожі теми — одна група: з групи не частіше, ніж раз на GROUP_COOLDOWN постів (власник 2026-10-22: три пости поспіль
+// були про назву й опис картки товару). Стара назва теми з тієї ж групи теж рахується.
+const GROUPS: Record<string, string[]> = {
+  desc: ["cheat_unique_desc", "cheat_desc_rules", "cheat_product_title", "cheat_titles", "cheat_post_rules", "mistakes", "google", "product_card"],
+  products: ["feat_categories", "cheat_product_ideas", "feat_exclusive", "feat_video_preview", "feat_reviews", "feat_embed", "feat_funnel", "ideas", "repackage"],
+  visual: ["cheat_covers"],
+  access: ["feat_levels", "feat_unlock", "cheat_week", "cheat_paid", "access_plan", "first_paid_post"],
+  subscription: ["feat_tiers", "subscription_ideas"],
+};
+const GROUP_COOLDOWN = 6;
+const groupOf = (theme: string) => Object.entries(GROUPS).find(([, keys]) => keys.includes(theme))?.[0];
+
+// Найдавніше використана тема формату (не та сама, що минулого разу, і не з групи, яка була в останніх постах)
 function leastUsedTheme(format: Exclude<Format, "case">, recent: string[]): Theme {
-  const keys = (Object.keys(THEMES) as (keyof typeof THEMES)[]).filter((k) => k.startsWith(`${format}_`));
+  const hotGroups = new Set(recent.slice(0, GROUP_COOLDOWN).map(groupOf).filter(Boolean));
+  const all = (Object.keys(THEMES) as (keyof typeof THEMES)[]).filter((k) => k.startsWith(`${format}_`));
+  const cool = all.filter((k) => !hotGroups.has(groupOf(k)));
+  const keys = cool.length ? cool : all;
   const lastUsed = (k: string) => {
     const i = recent.indexOf(k);
     return i === -1 ? Infinity : i;
