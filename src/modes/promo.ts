@@ -595,17 +595,15 @@ ${recentBodies || "(ще не було)"}`;
 
   if (send) {
     for (const [i, part] of parts.entries()) {
+      // Власник 2026-10-22: під постом нічого — лише текст, щоб копіювати одним рухом. Службове (тема, стаття,
+      // правки фактчеку) — лише в лог GitHub Actions.
+      console.log(
+        expert ? `🚀 за статтею ${expert.source}: «${expert.title}» — ${expertInsight}` : `🚀 ${theme} · ${prof}`,
+        ...(i === lastIdx && notes.length ? [`\n${notes.join("\n")}`] : []),
+      );
       await sendPost(
         part,
-        {
-          lines: [
-            expert
-              ? `🚀 SkyNovix для Threads · за статтею ${expert.source}: «${expert.title}»`
-              : `🚀 SkyNovix для Threads · ${theme}${label(theme as Theme).includes("{prof}") ? ` · ${prof}` : ""}${parts.length > 1 ? ` · частина ${i + 1}/${parts.length}` : ""}`,
-            ...(expert && expertInsight ? [`💡 ${expertInsight}`] : []),
-            ...(i === lastIdx ? notes : []),
-          ],
-        },
+        undefined,
         // 👍 на пост → видно в npm run stats, які теми заходять (у тестах не записуємо)
         dryRun ? undefined : { format: "promo", title: part.split("\n")[0]!.slice(0, 200), source: theme },
       );
