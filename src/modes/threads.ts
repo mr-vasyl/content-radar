@@ -19,6 +19,8 @@ import type { RunOptions } from "./types.ts";
 const SKY = telegramSky ?? telegram;
 const FACTS = () => readFileSync("content/skynovix-facts.md", "utf8");
 const DAY = 86400000;
+// Платформи-конкуренти SkyNovix: на них посилання в пості не ставимо (власник 2026-10-22). *.substack.com — теж (блоги на Substack).
+const COMPETITOR = /(^|\.)(substack\.com|patreon\.com|gumroad\.com|ko-fi\.com|beehiiv\.com|kit\.com|convertkit\.com|etsy\.com|teachable\.com|kajabi\.com|podia\.com|bandcamp\.com|boosty\.to|buymeacoffee\.com|memberful\.com|lemonsqueezy\.com|onlyfans\.com)$/i;
 
 const FORMATS = {
   news: { name: "Новина з поясненням", target: 0.25, maxAgeDays: 4 },
@@ -98,7 +100,7 @@ const ACCEPT = 70; // поріг власника
 const VOICE = `Голос: офіційний Threads SkyNovix — української платформи монетизації авторської творчості й маркетплейсу
 цифрових товарів. Серйозний бренд, який нічого не просить: ділимось тим, що бачимо у світі авторів.
 - Природна українська, короткі абзаци (1–2 речення), конкретний початок, одна головна думка.
-- 350–650 символів, максимум ~750. Перший рядок — 6–14 слів: факт, цифра, протиріччя або впізнавана ситуація.
+- 450–850 символів (власник 2026-10-22: «трішки більше тексту, не багато»), максимум ~950. Перший рядок — 6–14 слів: факт, цифра, протиріччя або впізнавана ситуація.
 - Без корпоративних штампів, клікбейту, надлишку емодзі, обіцянок, закликів до реєстрації й «ми раді».
 - Не завершуй кожен пост питанням — лише коли тема справді запрошує до змістовної відповіді.
 - Не вигадуй досвід користувачів, відгуки, продажі, статистику, доходи, цитати й умови платформ.
@@ -205,7 +207,7 @@ function decide(a: Article, v: Verdict): { score: number; accepted: boolean; why
 function problems(post: string, articleText?: string): string[] {
   const out: string[] = [];
   if (/skynovix/i.test(post)) out.push(...guard(post, articleText));
-  if (post.length > 800) out.push(`задовго (${post.length}) — скороти до 350–650`);
+  if (post.length > 1000) out.push(`задовго (${post.length}) — скороти до 450–850`);
   const cliche = post.match(/приєднуйтесь|спробуйте|реєструйтесь|зареєструйтесь|ми раді|у сучасному світі|варто зазначити|не секрет|ідеальн\w* рішенн|відкрийте для себе|ключ до успіху|давайте розбер/i);
   if (cliche) out.push(`штамп «${cliche[0]}»`);
   if (/(^|[^а-яіїєґ'’])(люд(и|ей|ям|ьми|ях)|людин\w*)(?![а-яіїєґ])/i.test(post)) out.push("слово «люди» — заміни на автори/читачі/покупці");
@@ -400,9 +402,11 @@ async function sendOne(): Promise<void> {
     return console.log(`🧵 надіслано [skynovix] ${p.label}`);
   }
   const pick = valid.filter((q) => q.stream === format).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0]!;
+  // Власник 2026-10-22: внизу «Посилання:» і під ним лінк на першоджерело — але НЕ на платформи-конкуренти
+  const withLink = COMPETITOR.test(new URL(pick.url.slice(4)).host) ? pick.post! : `${pick.post!.trim()}\n\nПосилання:\n${pick.url.slice(4)}`;
   const url = pick.url.slice(4);
   await sendPhotoPost(
-    pick.post!,
+    withLink,
     pick.hook ?? undefined,
     [`🧵 THREADS · ${FORMATS[format].name} · ${pick.score}/100 · ${pick.source}`, `джерело: ${url}`],
     { format: "promo", title: pick.title, url, source: format, score: pick.score ?? undefined },
