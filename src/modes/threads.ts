@@ -65,6 +65,31 @@ const AUTHORS = [
 ];
 const AUTHOR_SHARE = 0.4; // у форматі SkyNovix: 40% — автор, 60% — функція платформи
 
+// Сторінка автора — сітка товарів, Readability її не читає (тест 2026-10-22). Беремо назву, опис, картинку й видимий
+// текст сторінки + назви дописів блогу автора з sitemap.xml (дописи — головне: показуємо автора через блог, не товари).
+async function readAuthor(url: string): Promise<{ text: string; image?: string } | null> {
+  try {
+    const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0" };
+    const html = await (await fetch(url, { headers: UA, signal: AbortSignal.timeout(20000) })).text();
+    const meta = (p: string) => html.match(new RegExp(`(?:property|name)="${p}" content="([^"]+)"`))?.[1];
+    const title = html.match(/<title>([^<]+)/)?.[1]?.replace(/ — SkyNovix$/, "").trim() ?? "";
+    const visible = html
+      .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ");
+    const body = visible.slice(Math.max(0, visible.indexOf(`${title} —`)));
+    const slug = new URL(url).pathname.split("/").filter(Boolean).pop()!;
+    const sitemap = await (await fetch("https://skynovix.com/sitemap.xml", { headers: UA, signal: AbortSignal.timeout(20000) })).text();
+    const posts = [...new Set([...sitemap.matchAll(new RegExp(`/uk/${slug}/posts/([^<]+)`, "g"))].map((m) => m[1]!))];
+    const postTitles = posts.map((p) => p.replace(/-[a-z0-9]{8}$/, "").replace(/-/g, " ")).slice(0, 12);
+    const text = `Автор: ${title}\nОпис: ${meta("description") ?? ""}\nДописів у блозі: ${posts.length}${postTitles.length ? ` (теми, транслітом: ${postTitles.join("; ")})` : ""}\n\nСторінка:\n${body.slice(0, 4000)}`;
+    return { text, image: meta("og:image") };
+  } catch {
+    return null;
+  }
+}
+
 const ANALYZE_PER_RUN = 20;
 const ACCEPT = 70; // поріг власника
 
@@ -90,6 +115,10 @@ discussion — ДИСКУСІЯ: одна сильна аргументован�
 monetization — МОДЕЛЬ МОНЕТИЗАЦІЇ: один спосіб заробітку з матеріалу — як працює, переваги, обмеження.
 product_idea — ІДЕЯ ПРОДУКТУ: конкретна навичка → реалістичний цифровий продукт, який із неї можна зробити.
 none — немає конкретної думки, факту чи користі (мотивація, шаблонні поради, реклама, загальні новини).
+Як обирати (тест 2026-10-22: майже все йшло в discussion): матеріал про те, ЯК автор чи проєкт ЗАРОБЛЯЄ (підписка,
+продаж, спонсорство, членство, власний імпринт) → monetization; про ТРУДНОЩІ автора (сумнів, вигорання, нема часу,
+нема аудиторії, не купують) → problem; про навичку чи нішу, з якої можна зробити продукт → product_idea; свіжий запуск чи
+зміна платформи → news; discussion — ЛИШЕ коли в матеріалі є спірна позиція, з якою можна не погодитись.
 
 # Оцінка — кожен критерій окремо, чесно
 relevance 0–25 — відповідність аудиторії SkyNovix (творці, які заробляють на своєму);
@@ -307,13 +336,16 @@ export async function skynovixPost(recent: string, forceAuthor?: boolean): Promi
   let ref: string;
   if (useAuthor) {
     const author = [...AUTHORS].sort((a, b) => lastAt(`thr:skynovix:${a.url}`) - lastAt(`thr:skynovix:${b.url}`))[0]!;
-    const page = await extractArticle(author.url);
+    const page = await readAuthor(author.url);
     if (!page) return null;
     image = page.image;
     original = `${page.text}\n\n## Факт-лист SkyNovix\n${facts}`;
     brief = `ФОРМАТ «автор SkyNovix»: коротко представ автора ${author.name} — хто він, що створює, як веде свою сторінку
 й блог на SkyNovix (дописи, рубрики, підхід). Лише факти зі сторінки нижче. Товари — максимум згадкою, без «купіть»
 і без цін (власник: «поменше товар авторів пхати»). Не вигадуй продажів, читачів, відгуків і цитат.
+Пиши лише про те, що в автора Є, — ніколи не згадуй, чого немає («поки без дописів», «мало читачів», «немає відгуків»):
+це публічний пост про нашого автора, він має звучати з повагою. Кількість читачів/підписників не згадуй.
+Покажи, ЧИМ цікавий підхід автора іншим творцям (ніша, формат, як подає себе) — щоб читач подумав «о, так можна».
 Сторінка автора:\n${page.text.slice(0, 6000)}`;
     label = `автор: ${author.name}`;
     ref = `thr:skynovix:${author.url}`;

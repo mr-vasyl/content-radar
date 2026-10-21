@@ -9,11 +9,14 @@ import { runNews } from "./modes/news.ts";
 import { runSaves } from "./modes/saves.ts";
 import { runPromo } from "./modes/promo.ts";
 import { runSell } from "./modes/sell.ts";
+import { runThreads } from "./modes/threads.ts";
 
 const MODES = {
   news: () => runNews(),
   saves: () => runSaves({ dryRun: false, send: true }),
-  promo: () => runPromo({ dryRun: false, send: true }),
+  // 🧵 з 2026-10-22 — Threads v3 (src/modes/threads.ts); стара генерація лишилась як режим promo_old
+  promo: () => runThreads({ dryRun: false, send: true }),
+  promo_old: () => runPromo({ dryRun: false, send: true }),
   sell: () => runSell({ dryRun: false, send: true }), // 🛍 «Продавай своє»
 } as const;
 
