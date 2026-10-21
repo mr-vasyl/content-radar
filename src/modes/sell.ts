@@ -18,7 +18,8 @@ import { sendPhotoPost } from "../sendToTelegram.ts";
 import type { Source } from "../sources.ts";
 import type { RunOptions } from "./types.ts";
 
-export const CHANNEL_NAME = "Продавай своє"; // TODO: посилання на канал, коли власник створить
+export const CHANNEL_NAME = "Продавай своє";
+export const CHANNEL_URL = "https://t.me/prodavai_svoie";
 
 const RUBRICS = {
   discover: { name: "Відкривай", target: 0.25, maxAgeDays: 60 },
@@ -219,9 +220,11 @@ export async function judge(a: Article): Promise<Judged | null> {
   return { article: a, verdict, ...d, image: ex?.image };
 }
 
-// Готовий текст для бота: пост → назва каналу → «Все цікаве — за посиланням» → посилання в самому кінці (власник)
-export function compose(post: string, url: string): string {
-  return `${post.trim()}\n\n🛍 ${CHANNEL_NAME}\n\nВсе цікаве — за посиланням 👇\n${url}`;
+// Хвіст поста (власник 2026-10-21): посилання вшиті в слова — «🛍 Продавай своє» веде на канал,
+// «за посиланням» — на першоджерело; після цього нічого.
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export function tail(url: string): string {
+  return `\n\n<a href="${CHANNEL_URL}">🛍 ${CHANNEL_NAME}</a>\n\nДетальніше — <a href="${esc(url)}">за посиланням</a> 👈`;
 }
 
 export async function collect(limit = ANALYZE_PER_RUN, opts: { dryRun?: boolean } = {}): Promise<Judged[]> {
@@ -325,13 +328,13 @@ async function sendFromQueue(): Promise<boolean> {
   const pick = valid.filter((q) => q.stream === rubric).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0]!;
 
   const url = pick.url.slice(5);
-  await sendPhotoPost(compose(pick.post!, url), pick.hook ?? undefined, [`🛍 ПРОДАВАЙ СВОЄ · ${RUBRICS[rubric].name} · ${pick.score}/100 · ${pick.source}`], {
-    format: "sell",
-    title: pick.title,
-    url,
-    source: rubric,
-    score: pick.score ?? undefined,
-  });
+  await sendPhotoPost(
+    pick.post!,
+    pick.hook ?? undefined,
+    [`🛍 ПРОДАВАЙ СВОЄ · ${RUBRICS[rubric].name} · ${pick.score}/100 · ${pick.source}`],
+    { format: "sell", title: pick.title, url, source: rubric, score: pick.score ?? undefined },
+    tail(url),
+  );
   await prisma.article.update({ where: { id: pick.id }, data: { status: "sell_sent" } });
   console.log(`🛍 надіслано [${rubric}] ${pick.score} ${pick.title}`);
   return true;

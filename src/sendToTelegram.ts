@@ -91,9 +91,10 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
 
 // 🛍 «Продавай своє»: пост із картинкою (фото + підпис). Підпис у Telegram — до 1024 символів; довший пост або
 // картинка, яку Telegram не зміг завантажити, — звичайне повідомлення з прев'ю картинки над текстом.
-export async function sendPhotoPost(post: string, image: string | undefined, meta: string[], track?: Track): Promise<void> {
-  let text = toTelegramHtml(post);
-  if (meta.length) text += `\n———\n<i>${meta.map(escapeHtml).join("\n")}</i>`;
+// tailHtml — готовий HTML після поста (посилання, вшиті в слова). meta — службове: окремим повідомленням ПІД постом
+// (власник 2026-10-21: у самому пості після посилання нічого не має бути).
+export async function sendPhotoPost(post: string, image: string | undefined, meta: string[], track?: Track, tailHtml = ""): Promise<void> {
+  const text = toTelegramHtml(post) + tailHtml;
   const plainLength = text.replace(/<[^>]+>/g, "").length;
   let msg: { message_id: number } | null = null;
   if (image && plainLength <= 1024) {
@@ -110,6 +111,12 @@ export async function sendPhotoPost(post: string, image: string | undefined, met
       link_preview_options: image ? { url: image, prefer_large_media: true, show_above_text: true } : { is_disabled: true },
     });
   }
+  if (meta.length)
+    await telegram.sendMessage(chatId, `<i>${meta.map(escapeHtml).join("\n")}</i>`, {
+      parse_mode: "HTML",
+      disable_notification: true,
+      reply_parameters: { message_id: msg.message_id },
+    });
   if (track) {
     await prisma.sentMessage.create({
       data: { messageId: msg.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
