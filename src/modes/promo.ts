@@ -193,7 +193,7 @@ const ALLOWED_PERCENTS = new Set(["6", "8", "10", "18", "5"]);
 const ALLOWED_GB = new Set(["1"]); // ліміт файлу товару — 1 ГБ
 
 // article — текст експертної статті: відсотки з неї дозволені (кейс), решта — лише з факт-листа
-function guard(text: string, article?: string): string[] {
+export function guard(text: string, article?: string): string[] {
   const problems = FORBIDDEN.filter(([re]) => re.test(text)).map(([, why]) => `згадано ${why} — цього немає на платформі`);
   for (const m of text.matchAll(/(\d+(?:[.,]\d+)?)\s?%/g)) {
     const inArticle = article && new RegExp(`${m[1]!.replace(/[.,]/, "[.,]")}\\s?%`).test(article);

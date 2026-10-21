@@ -7,6 +7,10 @@ import type { Account } from "./sources.ts";
 export const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
 const chatId = process.env.TELEGRAM_CHAT_ID!;
 
+// 👍-кнопка під кожним постом, який записуємо для статистики (обробляє pollReactions у reactions.ts)
+export const LIKE = "like";
+const likeKeyboard = { inline_keyboard: [[{ text: "👍 Зайшло", callback_data: LIKE }]] };
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -73,6 +77,7 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true, // власник попросив: пости без звуку
+    ...(track ? { reply_markup: likeKeyboard } : {}),
   });
   if (track) {
     await prisma.sentMessage.create({
@@ -111,12 +116,16 @@ export async function sendPhotoPost(post: string, image: string | undefined, met
       link_preview_options: image ? { url: image, prefer_large_media: true, show_above_text: true } : { is_disabled: true },
     });
   }
-  if (meta.length)
-    await telegram.sendMessage(chatId, `<i>${meta.map(escapeHtml).join("\n")}</i>`, {
+  // 👍-кнопка — на службовому повідомленні під постом, щоб сам пост пересилався в канал чистим
+  if (meta.length) {
+    const metaMsg = await telegram.sendMessage(chatId, `<i>${meta.map(escapeHtml).join("\n")}</i>`, {
       parse_mode: "HTML",
       disable_notification: true,
       reply_parameters: { message_id: msg.message_id },
+      ...(track ? { reply_markup: likeKeyboard } : {}),
     });
+    msg = metaMsg; // лайк прийде з цього повідомлення — під його id і записуємо
+  }
   if (track) {
     await prisma.sentMessage.create({
       data: { messageId: msg.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
