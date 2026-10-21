@@ -5,6 +5,9 @@ import { TEASER_END } from "./gpt.ts";
 import type { Account } from "./sources.ts";
 
 export const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
+// 🧵 Окремий бот для постів SkyNovix (власник 2026-10-22). Немає токена — пости йдуть у головний бот.
+// У SentMessage його повідомлення пишемо з МІНУСОМ (messageId = -id): у двох ботів номери повідомлень можуть збігатися.
+export const telegramSky = process.env.TELEGRAM_BOT_TOKEN_SKYNOVIX ? new Telegram(process.env.TELEGRAM_BOT_TOKEN_SKYNOVIX) : null;
 const chatId = process.env.TELEGRAM_CHAT_ID!;
 
 // 👍-кнопка під кожним постом, який записуємо для статистики (обробляє pollReactions у reactions.ts)
@@ -98,19 +101,30 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
 // картинка, яку Telegram не зміг завантажити, — звичайне повідомлення з прев'ю картинки над текстом.
 // tailHtml — готовий HTML після поста (посилання, вшиті в слова). meta — службове: окремим повідомленням ПІД постом
 // (власник 2026-10-21: у самому пості після посилання нічого не має бути).
-export async function sendPhotoPost(post: string, image: string | undefined, meta: string[], track?: Track, tailHtml = ""): Promise<void> {
+// bot — через якого бота слати (telegramSky — пости SkyNovix); якщо окремий бот не зміг — шлемо через головний
+export async function sendPhotoPost(post: string, image: string | undefined, meta: string[], track?: Track, tailHtml = "", bot: Telegram = telegram): Promise<void> {
+  try {
+    await sendPhotoPostVia(bot, post, image, meta, track, tailHtml);
+  } catch (err) {
+    if (bot === telegram) throw err;
+    console.error(`Окремий бот не надіслав (${(err as Error).message}) — шлю через головний`);
+    await sendPhotoPostVia(telegram, post, image, meta, track, tailHtml);
+  }
+}
+
+async function sendPhotoPostVia(bot: Telegram, post: string, image: string | undefined, meta: string[], track: Track | undefined, tailHtml: string): Promise<void> {
   const text = toTelegramHtml(post) + tailHtml;
   const plainLength = text.replace(/<[^>]+>/g, "").length;
   let msg: { message_id: number } | null = null;
   if (image && plainLength <= 1024) {
     try {
-      msg = await telegram.sendPhoto(chatId, image, { caption: text, parse_mode: "HTML", disable_notification: true });
+      msg = await bot.sendPhoto(chatId, image, { caption: text, parse_mode: "HTML", disable_notification: true });
     } catch (err) {
       console.error(`Картинка не пройшла (${image}): ${(err as Error).message} — шлю текстом`);
     }
   }
   if (!msg) {
-    msg = await telegram.sendMessage(chatId, text, {
+    msg = await bot.sendMessage(chatId, text, {
       parse_mode: "HTML",
       disable_notification: true,
       link_preview_options: image ? { url: image, prefer_large_media: true, show_above_text: true } : { is_disabled: true },
@@ -118,7 +132,7 @@ export async function sendPhotoPost(post: string, image: string | undefined, met
   }
   // 👍-кнопка — на службовому повідомленні під постом, щоб сам пост пересилався в канал чистим
   if (meta.length) {
-    const metaMsg = await telegram.sendMessage(chatId, `<i>${meta.map(escapeHtml).join("\n")}</i>`, {
+    const metaMsg = await bot.sendMessage(chatId, `<i>${meta.map(escapeHtml).join("\n")}</i>`, {
       parse_mode: "HTML",
       disable_notification: true,
       reply_parameters: { message_id: msg.message_id },
@@ -128,7 +142,7 @@ export async function sendPhotoPost(post: string, image: string | undefined, met
   }
   if (track) {
     await prisma.sentMessage.create({
-      data: { messageId: msg.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
+      data: { messageId: bot === telegram ? msg.message_id : -msg.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
     });
   }
 }

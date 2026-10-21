@@ -1,4 +1,4 @@
-﻿name: Content Radar
+name: Content Radar
 
 on:
   # Розклад живе в Supabase (pg_cron → GitHub API), див. scripts/setupCron.ts.
@@ -26,6 +26,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      TELEGRAM_BOT_TOKEN_SKYNOVIX: ${{ secrets.TELEGRAM_BOT_TOKEN_SKYNOVIX }} # окремий бот для постів SkyNovix
       GITHUB_TOKEN: ${{ github.token }} # для пошуку репозиторіїв (вищий ліміт GitHub API)
       MODE: ${{ inputs.mode || 'news' }}
 

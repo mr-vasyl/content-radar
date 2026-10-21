@@ -10,11 +10,13 @@ import { extractArticle } from "../extractText.ts";
 import { askJson, LANGUAGE } from "../gpt.ts";
 import { factCheck } from "../factCheck.ts";
 import { makeDuplicateChecker } from "../dedup.ts";
-import { sendPhotoPost } from "../sendToTelegram.ts";
+import { sendPhotoPost, telegram, telegramSky } from "../sendToTelegram.ts";
 import { guard, THEMES } from "./promo.ts";
 import type { Source } from "../sources.ts";
 import type { RunOptions } from "./types.ts";
 
+// пости SkyNovix — в окремий бот (власник 2026-10-22); немає токена — у головний
+const SKY = telegramSky ?? telegram;
 const FACTS = () => readFileSync("content/skynovix-facts.md", "utf8");
 const DAY = 86400000;
 
@@ -393,7 +395,7 @@ async function sendOne(): Promise<void> {
   if (format === "skynovix") {
     const p = await skynovixPost(recent);
     if (!p) return console.log("🧵 SkyNovix-пост не пройшов перевірку");
-    await sendPhotoPost(p.post, p.image, [`🧵 THREADS · SkyNovix · ${p.label}`], { format: "promo", title: p.post.split("\n")[0]!.slice(0, 200), source: "skynovix" });
+    await sendPhotoPost(p.post, p.image, [`🧵 THREADS · SkyNovix · ${p.label}`], { format: "promo", title: p.post.split("\n")[0]!.slice(0, 200), source: "skynovix" }, "", SKY);
     await prisma.article.create({ data: { url: `thr:sent:${Date.now()}`, title: p.label, source: "SkyNovix", account: "threads", status: "thr_sent", stream: "skynovix", post: p.post } });
     return console.log(`🧵 надіслано [skynovix] ${p.label}`);
   }
@@ -404,6 +406,8 @@ async function sendOne(): Promise<void> {
     pick.hook ?? undefined,
     [`🧵 THREADS · ${FORMATS[format].name} · ${pick.score}/100 · ${pick.source}`, `джерело: ${url}`],
     { format: "promo", title: pick.title, url, source: format, score: pick.score ?? undefined },
+    "",
+    SKY,
   );
   await prisma.article.update({ where: { id: pick.id }, data: { status: "thr_sent" } });
   console.log(`🧵 надіслано [${format}] ${pick.score} ${pick.title}`);

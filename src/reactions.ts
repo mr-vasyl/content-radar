@@ -1,19 +1,25 @@
 // 👍 Реакції власника на пости в боті. Забираємо їх на початку кожного запуску через getUpdates
 // (вебхука немає — бот не працює постійно). Telegram зберігає непрочитані оновлення ~24 год,
 // а запуски в нас кожні 2 години, тож нічого не губиться.
+// Ботів два: головний і окремий для SkyNovix (повідомлення SkyNovix-бота в SentMessage — з мінусом, див. sendToTelegram).
+import type { Telegram } from "telegraf";
 import { prisma } from "./db.ts";
-import { LIKE, telegram } from "./sendToTelegram.ts";
+import { LIKE, telegram, telegramSky } from "./sendToTelegram.ts";
 
-const OFFSET_KEY = "telegram_update_offset";
 const LIKED = "liked";
 
 export async function pollReactions(): Promise<void> {
-  const state = await prisma.botState.findUnique({ where: { key: OFFSET_KEY } });
+  await pollBot(telegram, "telegram_update_offset", 1);
+  if (telegramSky) await pollBot(telegramSky, "telegram_update_offset_sky", -1);
+}
+
+async function pollBot(bot: Telegram, offsetKey: string, sign: 1 | -1): Promise<void> {
+  const state = await prisma.botState.findUnique({ where: { key: offsetKey } });
   let offset = state ? Number(state.value) : 0;
   let total = 0;
 
   for (;;) {
-    const updates = await telegram.getUpdates(0, 100, offset, ["message_reaction", "callback_query"]);
+    const updates = await bot.getUpdates(0, 100, offset, ["message_reaction", "callback_query"]);
     if (updates.length === 0) break;
 
     for (const u of updates) {
@@ -23,15 +29,15 @@ export async function pollReactions(): Promise<void> {
       if ("callback_query" in u && "data" in u.callback_query && u.callback_query.data === LIKE && u.callback_query.message) {
         const m = u.callback_query.message;
         const res = await prisma.sentMessage.updateMany({
-          where: { messageId: m.message_id },
+          where: { messageId: sign * m.message_id },
           data: { reaction: "👍", reactedAt: new Date() },
         });
         total += res.count;
         // кнопка міняється на «зараховано» (із запізненням — бот прокидається за розкладом)
-        await telegram
+        await bot
           .editMessageReplyMarkup(m.chat.id, m.message_id, undefined, { inline_keyboard: [[{ text: "👍 Зараховано", callback_data: LIKED }]] })
           .catch(() => {});
-        await telegram.answerCbQuery(u.callback_query.id, "👍 Зараховано").catch(() => {}); // старі запити Telegram уже не приймає — це нормально
+        await bot.answerCbQuery(u.callback_query.id, "👍 Зараховано").catch(() => {}); // старі запити Telegram уже не приймає — це нормально
         continue;
       }
       if (!("message_reaction" in u)) continue;
@@ -39,13 +45,13 @@ export async function pollReactions(): Promise<void> {
       // беремо останній емодзі; порожній список — реакцію зняли
       const emoji = r.new_reaction.map((x) => (x.type === "emoji" ? x.emoji : x.type)).at(-1) ?? null;
       const res = await prisma.sentMessage.updateMany({
-        where: { messageId: r.message_id },
+        where: { messageId: sign * r.message_id },
         data: { reaction: emoji, reactedAt: emoji ? new Date(r.date * 1000) : null },
       });
       total += res.count;
     }
-    await prisma.botState.upsert({ where: { key: OFFSET_KEY }, update: { value: String(offset) }, create: { key: OFFSET_KEY, value: String(offset) } });
+    await prisma.botState.upsert({ where: { key: offsetKey }, update: { value: String(offset) }, create: { key: offsetKey, value: String(offset) } });
   }
 
-  if (total) console.log(`👍 реакцій оновлено: ${total}`);
+  if (total) console.log(`👍 реакцій оновлено (${sign > 0 ? "головний бот" : "SkyNovix-бот"}): ${total}`);
 }
