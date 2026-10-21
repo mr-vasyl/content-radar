@@ -116,9 +116,11 @@ async function sendPhotoPostVia(bot: Telegram, post: string, image: string | und
   const text = toTelegramHtml(post) + tailHtml;
   const plainLength = text.replace(/<[^>]+>/g, "").length;
   let msg: { message_id: number } | null = null;
+  // без службового повідомлення (бот SkyNovix, власник 2026-10-22) — 👍-кнопка прямо під постом
+  const keyboard = track && !meta.length ? { reply_markup: likeKeyboard } : {};
   if (image && plainLength <= 1024) {
     try {
-      msg = await bot.sendPhoto(chatId, image, { caption: text, parse_mode: "HTML", disable_notification: true });
+      msg = await bot.sendPhoto(chatId, image, { caption: text, parse_mode: "HTML", disable_notification: true, ...keyboard });
     } catch (err) {
       console.error(`Картинка не пройшла (${image}): ${(err as Error).message} — шлю текстом`);
     }
@@ -128,6 +130,7 @@ async function sendPhotoPostVia(bot: Telegram, post: string, image: string | und
       parse_mode: "HTML",
       disable_notification: true,
       link_preview_options: image ? { url: image, prefer_large_media: true, show_above_text: true } : { is_disabled: true },
+      ...keyboard,
     });
   }
   // 👍-кнопка — на службовому повідомленні під постом, щоб сам пост пересилався в канал чистим

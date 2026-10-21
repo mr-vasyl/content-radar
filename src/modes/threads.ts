@@ -397,7 +397,8 @@ async function sendOne(): Promise<void> {
   if (format === "skynovix") {
     const p = await skynovixPost(recent);
     if (!p) return console.log("🧵 SkyNovix-пост не пройшов перевірку");
-    await sendPhotoPost(p.post, p.image, [`🧵 THREADS · SkyNovix · ${p.label}`], { format: "promo", title: p.post.split("\n")[0]!.slice(0, 200), source: "skynovix" }, "", SKY);
+    console.log(`🧵 THREADS · SkyNovix · ${p.label}`);
+    await sendPhotoPost(p.post, p.image, [], { format: "promo", title: p.post.split("\n")[0]!.slice(0, 200), source: "skynovix" }, "", SKY);
     await prisma.article.create({ data: { url: `thr:sent:${Date.now()}`, title: p.label, source: "SkyNovix", account: "threads", status: "thr_sent", stream: "skynovix", post: p.post } });
     return console.log(`🧵 надіслано [skynovix] ${p.label}`);
   }
@@ -405,10 +406,12 @@ async function sendOne(): Promise<void> {
   // Власник 2026-10-22: внизу «Посилання:» і під ним лінк на першоджерело — але НЕ на платформи-конкуренти
   const withLink = COMPETITOR.test(new URL(pick.url.slice(4)).host) ? pick.post! : `${pick.post!.trim()}\n\nПосилання:\n${pick.url.slice(4)}`;
   const url = pick.url.slice(4);
+  console.log(`🧵 THREADS · ${FORMATS[format].name} · ${pick.score}/100 · ${pick.source} · ${url}`);
   await sendPhotoPost(
     withLink,
     pick.hook ?? undefined,
-    [`🧵 THREADS · ${FORMATS[format].name} · ${pick.score}/100 · ${pick.source}`, `джерело: ${url}`],
+    [], // власник 2026-10-22: у боті SkyNovix під постом нічого службового — лише в лог
+
     { format: "promo", title: pick.title, url, source: format, score: pick.score ?? undefined },
     "",
     SKY,
