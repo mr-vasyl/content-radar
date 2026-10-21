@@ -20,6 +20,7 @@ import type { RunOptions } from "./types.ts";
 
 export const CHANNEL_NAME = "Продавай своє";
 export const CHANNEL_URL = "https://t.me/prodavai_svoie";
+export const CHANNEL_ICON = "💎"; // власник 2026-10-21: замість 🛍 — «цікавіша іконка»
 
 const RUBRICS = {
   discover: { name: "Відкривай", target: 0.25, maxAgeDays: 60 },
@@ -224,7 +225,7 @@ export async function judge(a: Article): Promise<Judged | null> {
 // «за посиланням» — на першоджерело; після цього нічого.
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 export function tail(url: string): string {
-  return `\n\n<a href="${CHANNEL_URL}">🛍 ${CHANNEL_NAME}</a>\n\nДетальніше — <a href="${esc(url)}">за посиланням</a> 👈`;
+  return `\n\n<a href="${CHANNEL_URL}">${CHANNEL_ICON} ${CHANNEL_NAME}</a>\n\nДетальніше — <a href="${esc(url)}">за посиланням</a> 👈`;
 }
 
 export async function collect(limit = ANALYZE_PER_RUN, opts: { dryRun?: boolean } = {}): Promise<Judged[]> {
