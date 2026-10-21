@@ -15,6 +15,8 @@ const JOBS: { name: string; schedule: string; mode: string }[] = [
   // Зупинено 2026-10-13 разом з каналами «Креатори UA» і «AI для творців»: tools (пн), story (ср), evergreen (вт, чт)
   { name: "content-radar-promo", schedule: "37 6,9,13,17 * * *", mode: "promo" }, // 9:37, 12:37, 16:37, 20:37 — пост про SkyNovix для Threads
   { name: "content-radar-saves", schedule: "47 11 * * 5", mode: "saves" }, // п'ятниця 14:47 — «💰 Можливості тижня»
+  // 🛍 «Продавай своє» (2026-10-21): 9:47, 12:47, 15:47, 18:47, 21:47 — кожен запуск ≤1 пост, разом ≤5 на день
+  { name: "content-radar-sell", schedule: "47 6,9,12,15,18 * * *", mode: "sell" },
 ];
 
 const SECRET_NAME = "github_dispatch_token";

@@ -12,6 +12,7 @@ export interface ArticleLink {
 export interface Extracted {
   text: string;
   links: ArticleLink[]; // посилання з тексту статті — щоб GPT міг дати пряме посилання на інструмент
+  image?: string; // головна картинка статті (og:image / twitter:image) — для постів «Продавай своє»
 }
 
 // Дістає основний текст статті і посилання з нього. null — якщо сайт не віддав або не вдалось розпарсити.
@@ -29,7 +30,18 @@ export async function extractArticle(url: string): Promise<Extracted | null> {
     const dom = new JSDOM(html, { url, virtualConsole: new VirtualConsole() });
     let text: string | undefined;
     const links: ArticleLink[] = [];
+    let image: string | undefined;
     try {
+      const og = dom.window.document
+        .querySelector('meta[property="og:image"], meta[name="og:image"], meta[name="twitter:image"], meta[property="twitter:image"]')
+        ?.getAttribute("content");
+      if (og) {
+        try {
+          image = new URL(og, url).toString();
+        } catch {
+          /* кривий URL картинки — без неї */
+        }
+      }
       const parsed = new Readability(dom.window.document).parse();
       text = parsed?.textContent?.trim();
       if (parsed?.content) {
@@ -58,7 +70,7 @@ export async function extractArticle(url: string): Promise<Extracted | null> {
     }
 
     if (!text || text.length < 300) return null;
-    return { text: text.replace(/\s+/g, " ").slice(0, MAX_CHARS), links: links.slice(0, MAX_LINKS) };
+    return { text: text.replace(/\s+/g, " ").slice(0, MAX_CHARS), links: links.slice(0, MAX_LINKS), image };
   } catch {
     return null;
   }

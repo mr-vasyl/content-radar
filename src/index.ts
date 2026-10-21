@@ -8,11 +8,13 @@ import { pollReactions } from "./reactions.ts";
 import { runNews } from "./modes/news.ts";
 import { runSaves } from "./modes/saves.ts";
 import { runPromo } from "./modes/promo.ts";
+import { runSell } from "./modes/sell.ts";
 
 const MODES = {
   news: () => runNews(),
   saves: () => runSaves({ dryRun: false, send: true }),
   promo: () => runPromo({ dryRun: false, send: true }),
+  sell: () => runSell({ dryRun: false, send: true }), // 🛍 «Продавай своє»
 } as const;
 
 const mode = (process.argv[2] || process.env.MODE || "news") as keyof typeof MODES;

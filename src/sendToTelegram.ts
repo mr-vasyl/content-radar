@@ -39,7 +39,7 @@ function channelSignature(account: Account): string {
 
 // Що записати про пост, щоб потім зіставити з ним твою реакцію
 export interface Track {
-  format: "news" | "saves" | "promo";
+  format: "news" | "saves" | "promo" | "sell";
   title: string;
   url?: string;
   source?: string;
@@ -85,6 +85,34 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
         account: track.account ?? null,
         score: track.score ?? null,
       },
+    });
+  }
+}
+
+// 🛍 «Продавай своє»: пост із картинкою (фото + підпис). Підпис у Telegram — до 1024 символів; довший пост або
+// картинка, яку Telegram не зміг завантажити, — звичайне повідомлення з прев'ю картинки над текстом.
+export async function sendPhotoPost(post: string, image: string | undefined, meta: string[], track?: Track): Promise<void> {
+  let text = toTelegramHtml(post);
+  if (meta.length) text += `\n———\n<i>${meta.map(escapeHtml).join("\n")}</i>`;
+  const plainLength = text.replace(/<[^>]+>/g, "").length;
+  let msg: { message_id: number } | null = null;
+  if (image && plainLength <= 1024) {
+    try {
+      msg = await telegram.sendPhoto(chatId, image, { caption: text, parse_mode: "HTML", disable_notification: true });
+    } catch (err) {
+      console.error(`Картинка не пройшла (${image}): ${(err as Error).message} — шлю текстом`);
+    }
+  }
+  if (!msg) {
+    msg = await telegram.sendMessage(chatId, text, {
+      parse_mode: "HTML",
+      disable_notification: true,
+      link_preview_options: image ? { url: image, prefer_large_media: true, show_above_text: true } : { is_disabled: true },
+    });
+  }
+  if (track) {
+    await prisma.sentMessage.create({
+      data: { messageId: msg.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
     });
   }
 }

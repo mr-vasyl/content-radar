@@ -6,9 +6,9 @@ on:
   workflow_dispatch: # запуск з Supabase за розкладом і кнопка "Run workflow" вручну
     inputs:
       mode:
-        description: "Режим: news — гранти, saves — «Можливості тижня», promo — пост про SkyNovix"
+        description: "Режим: news — гранти, saves — «Можливості тижня», promo — пост про SkyNovix, sell — «Продавай своє»"
         type: choice
-        options: [news, saves, promo]
+        options: [news, saves, promo, sell]
         default: news
 
 # Якщо попередній запуск ще працює — новий чекає, а не біжить паралельно (щоб не було дублів)
