@@ -24,6 +24,15 @@ export function notCreativeReason(a: Article): string | null {
   return NOT_CREATIVE.test(a.title) ? "грант/програма не для креаторів" : null;
 }
 
+// Медіа-джерела, де можливості трапляються зрідка серед звичайних новин (аудит 2026-10-24: dev.ua і Детектор медіа —
+// 167 оцінок GPT за 3 дні, надіслано 4). Їхні статті йдуть на GPT, лише якщо заголовок схожий на можливість.
+const NOISY_SOURCES = new Set(["dev.ua", "Детектор медіа", "Studway", "Мінкульт", "Читомо"]);
+const OPPORTUNITY_WORDS =
+  /грант|конкурс|преміі|премі|стипенді|резиденц|open ?call|опенкол|набір|прийом (заявок|робіт|творів)|заявк|подати|подавай|реєстрац|хакатон|джем|фестивал|воркшоп|тренінг|школ|курс|лаборатор|програм|відбір|шукаємо|запрошу|можливіст|фінансуванн|підтримк/i;
+export function noisyReason(a: Article): string | null {
+  return NOISY_SOURCES.has(a.source) && !OPPORTUNITY_WORDS.test(a.title) ? "звичайна новина медіа (за заголовком)" : null;
+}
+
 export function ruleRejectReason(a: Article): string | null {
   for (const [re, why] of URL_RULES) if (re.test(a.url)) return why;
   for (const [re, why] of TITLE_RULES) if (re.test(a.title)) return why;

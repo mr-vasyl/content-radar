@@ -13,6 +13,7 @@ import { extractArticle } from "../extractText.ts";
 import { askJson, LANGUAGE } from "../gpt.ts";
 import { factCheck } from "../factCheck.ts";
 import { makeDuplicateChecker } from "../dedup.ts";
+import { prefilter } from "../prefilter.ts";
 import { deadlineTooLate } from "../summarize.ts";
 import { sendPhotoPost } from "../sendToTelegram.ts";
 import type { Source } from "../sources.ts";
@@ -210,7 +211,7 @@ export async function judge(a: Article): Promise<Judged | null> {
   const text = ex?.text ?? a.content;
   if (!text || text.length < 300) return null; // нема з чого писати
   const date = a.publishedAt ? `Дата публікації: ${a.publishedAt.toISOString().slice(0, 10)}\n` : "";
-  const verdict = await askJson<Verdict>(SYSTEM_PROMPT, `Джерело: ${a.source}\nЗаголовок: ${a.title}\n${date}\n${text}`, "sell", SCHEMA);
+  const verdict = await askJson<Verdict>(SYSTEM_PROMPT, `Джерело: ${a.source}\nЗаголовок: ${a.title}\n${date}\n${text.slice(0, 5000)}`, "sell", SCHEMA);
   const d = decide(a, verdict);
   if (d.accepted) {
     // фактчек проти оригіналу: виправляє дрібне, відхиляє вигадане
@@ -259,8 +260,19 @@ export async function collect(limit = ANALYZE_PER_RUN, opts: { dryRun?: boolean 
   const isDupTitle = makeDuplicateChecker(prev.map((p) => p.title));
   const keys = new Set(prev.map((p) => p.tags).filter(Boolean));
 
+  // 💸 спершу дешевий відбір за заголовками: повністю читаємо лише найперспективніші (аудит витрат 2026-10-24)
+  const keep = await prefilter(batch, "«Продавай своє»: люди, які створюють своє, незвичайні знахідки, цифрові продукти, інструменти для творців, можливості й зміни для авторів", 7);
   const out: Judged[] = [];
   for (const a of batch) {
+    if (!keep.has(a.url)) {
+      if (!opts.dryRun)
+        await prisma.article.upsert({
+          where: { url: key(a.url) },
+          update: {},
+          create: { url: key(a.url), title: a.title, source: a.source, publishedAt: a.publishedAt, account: "sell", status: "sell_rejected", reason: "попередній відбір за заголовком" },
+        });
+      continue;
+    }
     try {
       const dup = isDupTitle(a.title);
       const j = dup ? null : await judge(a);

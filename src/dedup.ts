@@ -54,6 +54,30 @@ export async function recentSentTitles(days = 30): Promise<string[]> {
   return rows.map((r) => r.title);
 }
 
+// 🔁 Та сама програма під іншою назвою з іншого агрегатора (аудит 2026-10-24: BLOOM, «65% на дослідження», хакатон OBRIO
+// прийшли двічі — заголовки й посилання різні, тож ні схожість слів, ні посилання не ловили). Перед надсиланням —
+// короткий запит до GPT зі списком уже надісланого за 14 днів. Дешево: ~1–2 тис. токенів, лише для постів, що пройшли.
+export async function sameAsRecent(title: string, post: string): Promise<string | null> {
+  const rows = await prisma.article.findMany({
+    where: { status: "sent", createdAt: { gte: new Date(Date.now() - 14 * 86400000) } },
+    orderBy: { createdAt: "desc" },
+    take: 80,
+    select: { title: true },
+  });
+  if (!rows.length) return null;
+  const list = rows.map((r, i) => `${i + 1}. ${r.title.slice(0, 140)}`).join("\n");
+  const { askJson } = await import("./gpt.ts");
+  const r = await askJson<{ duplicate_of: number }>(
+    `Ти перевіряєш дублі в каналі грантів. Дубль — це ТА САМА програма/конкурс/можливість (той самий організатор і той
+самий набір), навіть якщо назва написана інакше. Різні раунди, різні програми одного фонду чи схожа тема — НЕ дубль.
+Поверни duplicate_of — номер зі списку, якщо новий пост про те саме; інакше 0.`,
+    `Уже надіслано:\n${list}\n\nНовий: ${title}\n${post.slice(0, 600)}`,
+    "dup_check",
+    { type: "object", additionalProperties: false, required: ["duplicate_of"], properties: { duplicate_of: { type: "integer" } } },
+  );
+  return r.duplicate_of > 0 && r.duplicate_of <= rows.length ? rows[r.duplicate_of - 1]!.title : null;
+}
+
 type Status = "sent" | "rejected_rules" | "rejected_ai";
 
 // Записує статтю з рішенням щодо неї — наступний запуск її пропустить.

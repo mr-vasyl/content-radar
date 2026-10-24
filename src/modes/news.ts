@@ -1,8 +1,8 @@
 import { prisma } from "../db.ts";
 import { sources } from "../sources.ts";
 import { fetchArticles, type Article } from "../fetchArticles.ts";
-import { filterNew, makeDuplicateChecker, recentSentTitles, record } from "../dedup.ts";
-import { notCreativeReason, ruleRejectReason } from "../ruleFilter.ts";
+import { filterNew, makeDuplicateChecker, recentSentTitles, record, sameAsRecent } from "../dedup.ts";
+import { noisyReason, notCreativeReason, ruleRejectReason } from "../ruleFilter.ts";
 import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
 import { analyzeBusiness } from "../business.ts";
@@ -55,7 +55,7 @@ export async function runNews(): Promise<void> {
   const candidates: Article[] = [];
   for (const a of fresh) {
     const mode = businessMode.get(a.source);
-    const why = ruleRejectReason(a) ?? (mode ? null : notCreativeReason(a));
+    const why = ruleRejectReason(a) ?? noisyReason(a) ?? (mode ? null : notCreativeReason(a));
     if (why) {
       await record(a, "rejected_rules", { reason: why });
       continue;
@@ -103,6 +103,13 @@ export async function runNews(): Promise<void> {
 
       // Надсилаємо лише можливості; звичайні новини з медіа-джерел — "other", не шлемо
       if (analysis.account !== "other" && analysis.score >= minScoreFor(analysis.account)) {
+        // Та сама програма вже була з іншого агрегатора під іншою назвою — не шлемо (і не платимо за фактчек)
+        const same = await sameAsRecent(a.title, analysis.post);
+        if (same) {
+          await record(a, "rejected_rules", { reason: `дубль (GPT): ${same}` });
+          console.log(`= дубль за змістом: ${a.title} ≈ ${same}`);
+          continue;
+        }
         // Фактчек: звіряємо пост з оригіналом; перекручене — виправляємо, непідтверджене — не шлемо
         const fc = await factCheck(a.source, a.title, fullText ?? a.content, analysis.post, analysis.hook);
         if (fc.verdict === "reject") {
