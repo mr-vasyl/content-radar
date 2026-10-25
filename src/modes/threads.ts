@@ -630,11 +630,28 @@ export async function sharpenHook(post: string): Promise<string> {
     );
     const hook = (r.options[r.best - 1] ?? r.options[0] ?? "").trim().replace(/^[«"]|[»"]$/g, "");
     if (!hook || hook.length > 120 || COMPETITOR_NAME.test(hook)) return post;
-    lines[0] = first.replace(sentence, hook);
+    // короткий перший рядок замінюємо цілком: інакше гачок дублював хвіст рядка («Це не вирок. Це не вирок.», 2026-10-25)
+    lines[0] = first.length <= 160 ? hook : first.replace(sentence, hook);
     return lines.join("\n");
   } catch {
     return post;
   }
+}
+
+// Переписати готовий пост за поточними правилами голосу (зміст і факти — ті самі). Для навчання на відгуках власника.
+export async function rewritePost(post: string, format: string): Promise<string> {
+  const sky = format === "skynovix";
+  const system = sky ? `${VOICE}\n\n## Факт-лист SkyNovix (єдине джерело правди)\n${FACTS()}` : VOICE;
+  const r = await askJson<{ post: string }>(
+    system,
+    `Перепиши пост за правилами голосу: простіше, коротші речення, без термінів і канцеляриту, той самий зміст і факти —
+нічого нового не додавай.${sky ? " Прямо назви платформу («На SkyNovix…») і поясни з двох боків: що робить автор і що отримує підписник." : ""}
+Без посилань і без рядка «Джерело».\n\nПост:\n${post}`,
+    "rewrite",
+    GEN_SCHEMA,
+  );
+  if (sky && guard(r.post).length) return post;
+  return r.post;
 }
 
 // Власник 2026-10-25: посилання внизу не ставимо — лише назву джерела текстом (і не для конкурентів)
