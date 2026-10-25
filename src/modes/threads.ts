@@ -158,7 +158,9 @@ story — ІСТОРІЯ АВТОРА: реальна людина, що вон�
 free_tool — БЕЗКОШТОВНИЙ ІНСТРУМЕНТ: сервіс чи програма для творців, безкоштовні або з безкоштовним тарифом (це має бути в
   тексті!): що робить, кому знадобиться, конкретний приклад використання. Не платформи для продажу, не для програмістів.
 news — НОВИНА ДЛЯ АВТОРІВ: свіжа зміна YouTube/Instagram/TikTok/Threads/Spotify, нова можливість заробітку чи
-  важлива подія для творців — що сталося й що це змінює для автора.
+  важлива подія для творців — що сталося й що це змінює для автора. ЛИШЕ якщо це ПРЯМО впливає на заробіток, охоплення
+  чи роботу звичайного автора (нова функція, зміна алгоритму чи виплат, новий спосіб монетизації). Угоди медіакомпаній,
+  права на шоу, новини зірок, корпоративні призначення — це none (тест 2026-10-25: «Netflix забирає шоу» — не для нас).
 discussion — ДИСКУСІЯ: одна сильна теза з матеріалу з 1–2 аргументами, з якою хочеться посперечатись.
 none — немає конкретної історії/факту/користі.
 
@@ -592,6 +594,49 @@ ${SHORT_FEATURES}
   return { title: a.title, posts };
 }
 
+// ── 🪝 Гачок: перше речення переписуємо окремим кроком (власник 2026-10-25: «перше речення роби, щоб чіпляло»).
+// Аналіз 8 тестових: чіпляли цифра+контраст («Гітара на карантині — і 100 млн прослуховувань»); не чіпляли абстракції
+// («працює конкретика»), невідомі назви на початку, вузькі теми. Дешево: лише для постів, що йдуть у бот.
+const HOOK_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["options", "best"],
+  properties: { options: { type: "array", minItems: 3, maxItems: 3, items: { type: "string" } }, best: { type: "integer" } },
+} as const;
+
+export async function sharpenHook(post: string): Promise<string> {
+  const lines = post.split("\n");
+  const first = lines[0]!.trim();
+  const sentence = first.match(/^.+?[.!?…](?=\s|$)/)?.[0] ?? first; // перше речення першого рядка
+  try {
+    const r = await askJson<{ options: string[]; best: number }>(
+      `Ти — копірайтер Threads. Перепиши ПЕРШЕ РЕЧЕННЯ поста так, щоб автор (художник, музикант, письменник, блогер) зупинив
+скрол. Напиши 3 варіанти й обери найсильніший (best — номер 1–3). Формули, що працюють:
+- конкретна цифра чи результат: «100 мільйонів прослуховувань почались із гітари на карантині.»
+- протиріччя: «Чим рідше вона постила, тим більше її читали.»
+- пряме звернення до болю: «Ти не поганий автор. Ти просто ставиш ціну зі страху.»
+- інтрига з конкретикою: «Одна зміна в профілі — і замовники почали писати самі.»
+Правила: до 12 слів; українською; без невідомих імен і назв на початку (їх можна далі в тексті); без абстракцій
+(«працює конкретика», «важливо розуміти»); без клікбейту, якого пост не виправдовує; без емодзі й лапок навколо;
+зміст — той самий, що в пості (нічого не вигадуй).`,
+      `Пост:\n${post}\n\nПерше речення, яке переписуємо: ${sentence}`,
+      "hook",
+      HOOK_SCHEMA,
+    );
+    const hook = (r.options[r.best - 1] ?? r.options[0] ?? "").trim().replace(/^[«"]|[»"]$/g, "");
+    if (!hook || hook.length > 120 || COMPETITOR_NAME.test(hook)) return post;
+    lines[0] = first.replace(sentence, hook);
+    return lines.join("\n");
+  } catch {
+    return post;
+  }
+}
+
+// Власник 2026-10-25: посилання внизу не ставимо — лише назву джерела текстом (і не для конкурентів)
+function withSource(post: string, source: string): string {
+  return COMPETITOR_NAME.test(source) ? post : `${post.trim()}\n\nДжерело: ${source}`;
+}
+
 // ── Відправка: 1 пост за запуск (8 запусків на день), формат із найбільшим недобором до цільової частки ──
 async function sendOne(): Promise<void> {
   const sent = await prisma.sentMessage.findMany({ where: { format: "promo" }, orderBy: { createdAt: "desc" }, take: 24, select: { source: true } });
@@ -619,14 +664,15 @@ async function sendOne(): Promise<void> {
     if (!p) return console.log(`🧵 ${format}: пост не пройшов перевірку`);
     const image = "image" in p ? (p.image as string | undefined) : undefined;
     console.log(`🧵 THREADS · ${FORMATS[format].name} · ${p.label}`);
+    p.post = await sharpenHook(p.post);
     await sendPhotoPost(p.post, image, [], { format: "promo", title: p.post.split("\n")[0]!.slice(0, 200), source: format }, "", SKY);
     await prisma.article.create({ data: { url: `thr:sent:${Date.now()}`, title: p.label, source: "SkyNovix", account: "threads", status: "thr_sent", stream: format, post: p.post } });
     return console.log(`🧵 надіслано [${format}] ${p.label}`);
   }
   const pick = valid.filter((q) => q.stream === format).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0]!;
   const url = pick.url.slice(4).replace(/#\d+$/, ""); // поради з гайду мають «#1» — у посиланні не треба
-  // Власник 2026-10-22: внизу «Посилання:» і під ним лінк на першоджерело — але НЕ на платформи-конкуренти
-  const withLink = COMPETITOR.test(new URL(url).host) ? pick.post! : `${pick.post!.trim()}\n\nПосилання:\n${url}`;
+  // гачок + внизу «Джерело: назва» текстом (власник 2026-10-25: посилання не ставимо)
+  const withLink = withSource(await sharpenHook(pick.post!), pick.source);
   console.log(`🧵 THREADS · ${FORMATS[format].name} · ${pick.score}/100 · ${pick.source} · ${url}`);
   await sendPhotoPost(withLink, pick.hook ?? undefined, [], { format: "promo", title: pick.title, url, source: format, score: pick.score ?? undefined }, "", SKY);
   await prisma.article.update({ where: { id: pick.id }, data: { status: "thr_sent" } });
