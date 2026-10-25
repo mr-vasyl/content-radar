@@ -78,6 +78,16 @@ export const sources: Source[] = [
   // 2026-10-15
   { name: "Grant UP!", url: "GrantUP", account: "knowledge", telegram: true, business: "also" }, // ~4/день: премії, Docudays, open call (+ новини — відсіються)
   { name: "Літцентр", url: "litcentr", account: "knowledge", telegram: true }, // літконкурси й премії для письменників і перекладачів
+  // 2026-10-26 (власник: тематика — не лише гранти, а й навчання, безкоштовні події, курси й ресурси; аналіз TGStat)
+  { name: "Твій космос можливостей", url: "tviyspace", account: "knowledge", telegram: true, business: "also" }, // ~20/тиждень, з посиланнями
+  { name: "МОЖЛИВОСТІ", url: "Mozhlyvosti", account: "knowledge", telegram: true, business: "also" }, // 99K: курси, вебінари (+вакансії — фільтр відсіє)
+  { name: "Просвіта", url: "ProsvitaUA", account: "knowledge", telegram: true }, // безкоштовні курси (DaVinci, дизайн…)
+  { name: "Kyiv Art", url: "kyiv_art", account: "knowledge", telegram: true }, // виставки, презентації, події в Києві
+  { name: "Creative Practice", url: "creativepracticeua", account: "knowledge", telegram: true }, // дизайн: навчання, події
+  { name: "Онлайн-івенти", url: "events_ua", account: "knowledge", telegram: true }, // вебінари, майстер-класи
+  { name: "Prometheus", url: "prometheusmooc", account: "knowledge", telegram: true }, // безкоштовні курси
+  // НЕ взято 2026-10-26: Гончаренко центри (загальні курси не для творців), Творча рада й «Художник, малюй!» (без посилань,
+  // лише роботи/уроки), Дія.Освіта (курси для держслужбовців), Український інститут книги (сайт не читається ботом).
   // 2026-10-20
   { name: "КУЛЬТУРА.МОЖЛИВОСТІ!", url: "culture_ua", account: "knowledge", telegram: true, business: "also" }, // ~3/день: резиденції, стипендії, гранти культури
   { name: "УКФ щодня", url: "ucf_ua", account: "knowledge", telegram: true }, // офіційний канал УКФ, ~4/тиждень
