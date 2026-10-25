@@ -263,7 +263,7 @@ function problems(post: string, maxLen = 900): string[] {
   if (/skynovix/i.test(post)) out.push(...guard(post).filter((p) => !p.includes("назви інших платформ")));
   if (post.length > maxLen) out.push(`задовго (${post.length}) — скороти`);
   if (/«?(Лише читачам|Лише підписникам)»?|«Усім»/i.test(post)) out.push("не пиши назви рівнів доступу — просто «для аудиторії» або «закрито за підпискою»");
-  const cliche = post.match(/в одному профілі|в одному місці|по шматках|приєднуйтесь|спробуйте|реєструйтесь|зареєструйтесь|ми раді|у сучасному світі|варто зазначити|не секрет|ідеальн\w* рішенн|відкрийте для себе|ключ до успіху|давайте розбер/i);
+  const cliche = post.match(/по шматках|приєднуйтесь|спробуйте|реєструйтесь|зареєструйтесь|ми раді|у сучасному світі|варто зазначити|не секрет|ідеальн\w* рішенн|відкрийте для себе|ключ до успіху|давайте розбер/i);
   if (cliche) out.push(`штамп «${cliche[0]}»`);
   if (/(^|[^а-яіїєґ'’])(люд(и|ей|ям|ьми|ях)|людин\w*)(?![а-яіїєґ])/i.test(post)) out.push("слово «люди» — заміни на автори/читачі/покупці");
   return out;
@@ -429,7 +429,23 @@ const LIST_TOPICS: Record<string, string> = {
 
 const GEN_SCHEMA = { type: "object", additionalProperties: false, required: ["post"], properties: { post: { type: "string" } } } as const;
 
-// 🙋 «Якщо ти… → на SkyNovix можеш…» (власник 2026-10-25): тип автора × функція SkyNovix. Лише факти з факт-листа.
+// 🙋 Пост про можливість SkyNovix для типу автора (власник 2026-10-25/26). Лише факти з факт-листа.
+// Зразок власника 2026-10-26 — «ось як має звучати вірно і зрозуміло»:
+const OWNER_SAMPLE = `**Твої історії можуть приносити не лише прочитання, а й дохід.**
+
+На SkyNovix можна вести власний блог, публікувати тексти й відкривати частину матеріалів лише для підписників.
+
+Наприклад, письменник може викласти уривок нової історії у відкритому доступі, а продовження залишити для тих, хто стежить за його сторінкою або оформив платну підписку.
+
+Відкриті дописи можуть з'являтися в Google, тож нові читачі зможуть знайти автора через пошук. А на його сторінці зібрані публікації, цифрові товари та інформація про нього — усе в одному місці.`;
+const SAMPLE_RULES = `Пиши ТОЧНО в стилі зразка власника нижче (будова й простота, не слова):
+1) перший рядок — **жирна** вигода для автора: що його творчість може дати (дохід, читачів, спокій), не «якщо ти…»;
+2) просто, що можна зробити на SkyNovix — звичайними словами;
+3) «Наприклад, …» — одна жива сцена з конкретним автором;
+4) кінець — ще одна практична вигода, спокійно, без гасел і закликів.
+450–750 символів, 4–5 коротких абзаців. Назви рівнів доступу не пиши — «відкрито для всіх», «для тих, хто стежить»,
+«для підписників». Зразок:
+${OWNER_SAMPLE}`;
 const PERSONA_FEATURES: Record<string, string> = {
   blog: "вести блог-сторінку з дописами — її індексує Google, тож тебе знаходять і з пошуку",
   readers: "публікувати дописи для своєї аудиторії й так збирати навколо себе читачів",
@@ -480,12 +496,15 @@ export async function personaPost(recent: string): Promise<{ post: string; label
   let original = FACTS();
   if (story) {
     k = `story:${story.id}`;
-    brief = `ФОРМАТ «історія → якщо ти…». Спершу 1–2 короткі абзаци — РЕАЛЬНА історія нижче (лише її факти, гачок у першому
-рядку: цифра, поворот, несподіванка). Потім місток: «Якщо ти …» (обери тип автора, якому ця історія найближча: ${whoList}) —
-і що на SkyNovix ти можеш зробити те саме чи схоже. Обери ОДНУ функцію, яка прямо пасує до історії:
+    brief = `ФОРМАТ «історія → можливість на SkyNovix». Будова:
+1) перший рядок — **жирна** вигода для автора, натхненна історією (що його творчість може дати);
+2) 1–2 речення — РЕАЛЬНА історія нижче як доказ (лише її факти: хто, що зробив, що вийшло);
+3) «На SkyNovix можна…» — ОДНА функція, яка прямо пасує до історії (для типу автора: ${whoList}):
 ${featureList}
-Прямо називай «SkyNovix». Без «реєструйся», «приєднуйся», без обіцянок заробітку. Назви платформ-конкурентів з історії
-не повторюй. 400–750 символів.
+4) «Наприклад, …» — як це виглядає в українського автора такого ж типу;
+5) кінець — ще одна практична вигода, спокійно.
+Без «реєструйся», «приєднуйся», без обіцянок заробітку. Назви платформ-конкурентів з історії не повторюй. 500–850 символів.
+${SAMPLE_RULES}
 Історія (з джерела ${story.source}):\n${story.post}`;
     original = `${story.post}\n\n## Факт-лист SkyNovix\n${FACTS()}`;
   } else {
@@ -495,18 +514,25 @@ ${featureList}
     k = `${persona}|${f}`;
     await prisma.article.upsert({ where: { url: `thr:gen:persona-who:${persona}` }, update: { createdAt: new Date() }, create: { url: `thr:gen:persona-who:${persona}`, title: persona, source: "SkyNovix", account: "threads", status: "thr_gen" } });
     await prisma.article.upsert({ where: { url: `thr:gen:persona-feat-${persona}:${f}` }, update: { createdAt: new Date() }, create: { url: `thr:gen:persona-feat-${persona}:${f}`, title: k, source: "SkyNovix", account: "threads", status: "thr_gen" } });
-    brief = `ФОРМАТ «якщо ти…». Перший рядок: «Якщо ти ${PERSONAS[persona]!.who}…». Далі 2–3 короткі абзаци: на SkyNovix ти можеш
-${PERSONA_FEATURES[f]}. Покажи просто, як це виглядає в житті такого автора (один конкретний приклад) і що йому це дає.
-Прямо називай «SkyNovix». Без «реєструйся», «приєднуйся», без обіцянок заробітку. 250–550 символів. Лише факти з факт-листа.`;
+    brief = `ФОРМАТ «можливість на SkyNovix» для автора, який ${PERSONAS[persona]!.who}. Функція: на SkyNovix можна
+${PERSONA_FEATURES[f]}. Без «реєструйся», «приєднуйся», без обіцянок заробітку. Лише факти з факт-листа.
+${SAMPLE_RULES}`;
   }
   const system = `${VOICE}\n\n## Факт-лист SkyNovix (єдине джерело правди)\n${FACTS()}`;
   const user = `${brief}\n\nОстанні пости (не повторюй):\n${recent}`;
   let { post } = await askJson<{ post: string }>(system, user, "threads_persona", GEN_SCHEMA);
-  const issues = [...guard(post), ...problems(post, 700).filter((x) => !x.startsWith("згадано"))];
+  const issues = [...guard(post), ...problems(post, 950).filter((x) => !x.startsWith("згадано"))];
   if (issues.length) ({ post } = await askJson<{ post: string }>(system, `${user}\n\nПопередня версія мала проблеми: ${issues.join("; ")}. Напиши заново.`, "threads_persona", GEN_SCHEMA));
-  if (guard(post).length || COMPETITOR_NAME.test(post)) return null;
+  const bad = [...guard(post), ...(COMPETITOR_NAME.test(post) ? ["назва конкурента"] : [])];
+  if (bad.length) {
+    console.log(`🙋 ${k} відкинуто: ${bad.join("; ")}`);
+    return null;
+  }
   const fc = await factCheck("SkyNovix", k, original, post, "", { noNovelty: true });
-  if (fc.verdict === "reject") return null;
+  if (fc.verdict === "reject") {
+    console.log(`🙋 ${k} — фактчек: ${fc.issues.join("; ")}`);
+    return null;
+  }
   if (story) await prisma.article.update({ where: { id: story.id }, data: { status: "thr_used_persona" } });
   const ref = `thr:gen:persona:${k}`;
   await prisma.article.upsert({ where: { url: ref }, update: { createdAt: new Date() }, create: { url: ref, title: k, source: "SkyNovix", account: "threads", status: "thr_gen" } });
@@ -573,7 +599,8 @@ export async function skynovixPost(recent: string, forceAuthor?: boolean): Promi
 Власник 2026-10-25: пиши ПРОСТО, як пояснюєш другу, і прямо назви платформу — «На SkyNovix…». Короткі речення, без
 термінів і канцеляриту (не «без дублювання доступів», а «підписався на дорожчий рівень — бачиш і все з дешевших»).
 Поясни з двох боків: що робить автор і що отримує читач/підписник. Один простий приклад (ілюстратор, музикант…).
-Лише факти з факт-листа.`;
+Лише факти з факт-листа.
+${SAMPLE_RULES}`;
     label = `функція: ${k}`;
     ref = `thr:skynovix:${k}`;
   }
@@ -773,7 +800,8 @@ async function sendOne(): Promise<void> {
     if (!p) return console.log(`🧵 ${format}: пост не пройшов перевірку`);
     const image = "image" in p ? (p.image as string | undefined) : undefined;
     console.log(`🧵 THREADS · ${FORMATS[format].name} · ${p.label}`);
-    if (format !== "persona") p.post = await sharpenHook(p.post); // у «Якщо ти…» перший рядок — це вже гачок
+    // у постах про SkyNovix перший рядок — жирна вигода за зразком власника, гачком не переписуємо
+    if (format !== "persona" && format !== "skynovix") p.post = await sharpenHook(p.post);
     await sendPhotoPost(p.post, image, [], { format: "promo", title: p.post.split("\n")[0]!.slice(0, 200), source: format }, "", SKY);
     await prisma.article.create({ data: { url: `thr:sent:${Date.now()}`, title: p.label, source: "SkyNovix", account: "threads", status: "thr_sent", stream: format, post: p.post } });
     return console.log(`🧵 надіслано [${format}] ${p.label}`);
