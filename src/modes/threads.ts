@@ -100,7 +100,7 @@ const AUTHOR_SHARE = 0.4; // у форматі SkyNovix: 40% — автор, 60%
 // Лише те, що є у факт-листі.
 const SHORT_FEATURES = `Функції SkyNovix (лише ці, нічого понад):
 - ціна «0+» / «плати скільки хочеш» (PWYW): можна віддавати безкоштовно або за довільну суму від 10 грн — збирати аудиторію;
-- блог автора з трьома рівнями доступу дописів: «Усім», «Лише читачам» (після безкоштовного «Стежити»), «Лише підписникам»;
+- блог автора: дописи можна публікувати відкрито для аудиторії, а можна закривати за підпискою;
 - платна підписка за рівнями з помісячним автосписанням; вищий рівень відкриває нижчі;
 - донати від аудиторії, OBS-віджет для стрімів, сповіщення в Discord;
 - ексклюзивний товар — продається один раз і зникає з каталогу;
@@ -139,6 +139,8 @@ const ACCEPT = 70;
 const VOICE = `Голос: офіційний Threads SkyNovix — української платформи для авторів, які заробляють на своєму (блог, підписки,
 донати, цифрові товари). Ми вже велика платформа: нічого не просимо, ділимось цікавим і корисним.
 - Природна українська, короткі абзаци (1–2 речення), одна головна думка.
+- Про доступ до дописів пиши просто: «можна публікувати для аудиторії, а можна закрити контент за підпискою». НЕ
+  використовуй назви рівнів «Усім», «Лише читачам», «Лише підписникам» — це заплутує (власник 2026-10-25).
 - ПРОСТО, як пояснюєш другу: короткі речення, звичайні слова, без термінів і канцеляриту (власник 2026-10-25:
   «більш просто розʼяснюй і щоб просто читалось»). Якщо згадуєш SkyNovix — прямо: «На SkyNovix…».
 - ПЕРШИЙ РЯДОК вирішує все (6–14 слів): впізнавана ситуація, несподіваний факт/цифра або протиріччя.
@@ -260,7 +262,8 @@ function problems(post: string, maxLen = 900): string[] {
   if (comp) out.push(`назва конкурента «${comp[0]}» — прибери, пиши без назви платформи`);
   if (/skynovix/i.test(post)) out.push(...guard(post).filter((p) => !p.includes("назви інших платформ")));
   if (post.length > maxLen) out.push(`задовго (${post.length}) — скороти`);
-  const cliche = post.match(/приєднуйтесь|спробуйте|реєструйтесь|зареєструйтесь|ми раді|у сучасному світі|варто зазначити|не секрет|ідеальн\w* рішенн|відкрийте для себе|ключ до успіху|давайте розбер/i);
+  if (/«?(Лише читачам|Лише підписникам)»?|«Усім»/i.test(post)) out.push("не пиши назви рівнів доступу — просто «для аудиторії» або «закрито за підпискою»");
+  const cliche = post.match(/в одному профілі|в одному місці|по шматках|приєднуйтесь|спробуйте|реєструйтесь|зареєструйтесь|ми раді|у сучасному світі|варто зазначити|не секрет|ідеальн\w* рішенн|відкрийте для себе|ключ до успіху|давайте розбер/i);
   if (cliche) out.push(`штамп «${cliche[0]}»`);
   if (/(^|[^а-яіїєґ'’])(люд(и|ей|ям|ьми|ях)|людин\w*)(?![а-яіїєґ])/i.test(post)) out.push("слово «люди» — заміни на автори/читачі/покупці");
   return out;
@@ -429,8 +432,8 @@ const GEN_SCHEMA = { type: "object", additionalProperties: false, required: ["po
 // 🙋 «Якщо ти… → на SkyNovix можеш…» (власник 2026-10-25): тип автора × функція SkyNovix. Лише факти з факт-листа.
 const PERSONA_FEATURES: Record<string, string> = {
   blog: "вести блог-сторінку з дописами — її індексує Google, тож тебе знаходять і з пошуку",
-  readers: "публікувати дописи «Лише читачам» — вони відкриваються після безкоштовної кнопки «Стежити», так збираєш свою аудиторію",
-  subs: "зробити платну підписку на найцікавіше — кілька рівнів, щомісячне автосписання, вищий рівень відкриває нижчі",
+  readers: "публікувати дописи для своєї аудиторії й так збирати навколо себе читачів",
+  subs: "закрити найцікавіший контент за платною підпискою — підписник платить щомісяця й бачить усе закрите",
   donations: "приймати донати від своєї аудиторії",
   pwyw: "виставити товар за ціною «0+» — покупець платить скільки хоче, від 0 або від 10 грн; так збираєш перших покупців",
   audio: "додавати аудіо в дописи — звукову хвилю бачать усі, а слухати можуть ті, хто відкрив допис",
@@ -463,21 +466,48 @@ async function leastUsed(prefix: string, keys: string[]): Promise<string> {
 }
 
 export async function personaPost(recent: string): Promise<{ post: string; label: string } | null> {
-  const pairs = Object.entries(PERSONAS).flatMap(([p, v]) => v.features.map((f) => `${p}|${f}`));
-  const k = await leastUsed("persona", pairs);
-  const [p, f] = k.split("|") as [string, keyof typeof PERSONA_FEATURES];
-  const brief = `ФОРМАТ «якщо ти…». Перший рядок: «Якщо ти ${PERSONAS[p]!.who}…» (можна трохи перефразувати, але звернення
-«якщо ти» лишається). Далі 2–3 короткі абзаци: на SkyNovix ти можеш ${PERSONA_FEATURES[f]}. Покажи просто, як це виглядає
-в житті такого автора (один конкретний приклад) і що йому це дає — аудиторію, дохід, спокій. Прямо називай «SkyNovix».
-Без «реєструйся», «приєднуйся», «спробуй», без обіцянок заробітку. 250–550 символів. Лише факти з факт-листа.`;
+  // Власник 2026-10-25: «перед тим якийсь цікавий абзац — десь брати історію і асоціювати зі SkyNovix». Спершу —
+  // реальна історія з черги (знайдена в джерелах), потім місток «Якщо ти… — на SkyNovix можеш…» з функцією під неї.
+  // Історія з черги після цього в канал окремо не піде (статус thr_used_persona).
+  // історії беремо з «story», а якщо їх нема — з «discussion» (там переважно інтерв'ю й історії авторів, і їх у черзі надлишок)
+  const story =
+    (await prisma.article.findFirst({ where: { status: "thr_queue", stream: "story", url: { startsWith: "thr:" }, post: { not: null } }, orderBy: { score: "desc" } })) ??
+    (await prisma.article.findFirst({ where: { status: "thr_queue", stream: "discussion", url: { startsWith: "thr:" }, post: { not: null } }, orderBy: { score: "desc" } }));
+  const featureList = Object.entries(PERSONA_FEATURES).map(([k, v]) => `- ${k}: ${v}`).join("\n");
+  const whoList = Object.values(PERSONAS).map((v) => `«якщо ти ${v.who}»`).join(", ");
+  let k: string;
+  let brief: string;
+  let original = FACTS();
+  if (story) {
+    k = `story:${story.id}`;
+    brief = `ФОРМАТ «історія → якщо ти…». Спершу 1–2 короткі абзаци — РЕАЛЬНА історія нижче (лише її факти, гачок у першому
+рядку: цифра, поворот, несподіванка). Потім місток: «Якщо ти …» (обери тип автора, якому ця історія найближча: ${whoList}) —
+і що на SkyNovix ти можеш зробити те саме чи схоже. Обери ОДНУ функцію, яка прямо пасує до історії:
+${featureList}
+Прямо називай «SkyNovix». Без «реєструйся», «приєднуйся», без обіцянок заробітку. Назви платформ-конкурентів з історії
+не повторюй. 400–750 символів.
+Історія (з джерела ${story.source}):\n${story.post}`;
+    original = `${story.post}\n\n## Факт-лист SkyNovix\n${FACTS()}`;
+  } else {
+    // запасний варіант: чергуємо ТИП автора (раніше йшли три пости поспіль про письменника), а в ньому — функцію
+    const persona = await leastUsed("persona-who", Object.keys(PERSONAS));
+    const f = await leastUsed(`persona-feat-${persona}`, PERSONAS[persona]!.features);
+    k = `${persona}|${f}`;
+    await prisma.article.upsert({ where: { url: `thr:gen:persona-who:${persona}` }, update: { createdAt: new Date() }, create: { url: `thr:gen:persona-who:${persona}`, title: persona, source: "SkyNovix", account: "threads", status: "thr_gen" } });
+    await prisma.article.upsert({ where: { url: `thr:gen:persona-feat-${persona}:${f}` }, update: { createdAt: new Date() }, create: { url: `thr:gen:persona-feat-${persona}:${f}`, title: k, source: "SkyNovix", account: "threads", status: "thr_gen" } });
+    brief = `ФОРМАТ «якщо ти…». Перший рядок: «Якщо ти ${PERSONAS[persona]!.who}…». Далі 2–3 короткі абзаци: на SkyNovix ти можеш
+${PERSONA_FEATURES[f]}. Покажи просто, як це виглядає в житті такого автора (один конкретний приклад) і що йому це дає.
+Прямо називай «SkyNovix». Без «реєструйся», «приєднуйся», без обіцянок заробітку. 250–550 символів. Лише факти з факт-листа.`;
+  }
   const system = `${VOICE}\n\n## Факт-лист SkyNovix (єдине джерело правди)\n${FACTS()}`;
   const user = `${brief}\n\nОстанні пости (не повторюй):\n${recent}`;
   let { post } = await askJson<{ post: string }>(system, user, "threads_persona", GEN_SCHEMA);
   const issues = [...guard(post), ...problems(post, 700).filter((x) => !x.startsWith("згадано"))];
   if (issues.length) ({ post } = await askJson<{ post: string }>(system, `${user}\n\nПопередня версія мала проблеми: ${issues.join("; ")}. Напиши заново.`, "threads_persona", GEN_SCHEMA));
   if (guard(post).length || COMPETITOR_NAME.test(post)) return null;
-  const fc = await factCheck("SkyNovix", k, FACTS(), post);
+  const fc = await factCheck("SkyNovix", k, original, post, "", { noNovelty: true });
   if (fc.verdict === "reject") return null;
+  if (story) await prisma.article.update({ where: { id: story.id }, data: { status: "thr_used_persona" } });
   const ref = `thr:gen:persona:${k}`;
   await prisma.article.upsert({ where: { url: ref }, update: { createdAt: new Date() }, create: { url: ref, title: k, source: "SkyNovix", account: "threads", status: "thr_gen" } });
   return { post: fc.post, label: `persona: ${k}` };
@@ -503,7 +533,7 @@ ${SHORT_FEATURES}`;
   if (issues.length) ({ post } = await askJson<{ post: string }>(VOICE, `${user}\n\nПопередня версія мала проблеми: ${issues.join("; ")}. Напиши заново.`, "threads_gen", GEN_SCHEMA));
   if (problems(post, format === "recognition" ? 650 : 950).some((p) => p.startsWith("назва конкурента") || p.startsWith("згадано"))) return null;
   if (/skynovix/i.test(post)) {
-    const fc = await factCheck("SkyNovix", k, FACTS(), post);
+    const fc = await factCheck("SkyNovix", k, FACTS(), post, "", { noNovelty: true });
     if (fc.verdict === "reject") return null;
     post = fc.post;
   }
@@ -553,7 +583,7 @@ export async function skynovixPost(recent: string, forceAuthor?: boolean): Promi
   const issues = [...guard(post), ...problems(post).filter((p) => !p.startsWith("згадано"))];
   if (issues.length) ({ post } = await askJson<{ post: string }>(system, `${user}\n\nПопередня версія мала проблеми: ${issues.join("; ")}. Напиши заново.`, "threads_sky", GEN_SCHEMA));
   if (guard(post).length) return null;
-  const fc = await factCheck("SkyNovix", label, original, post);
+  const fc = await factCheck("SkyNovix", label, original, post, "", { noNovelty: true });
   if (fc.verdict === "reject") return null;
   await prisma.article.upsert({ where: { url: ref }, update: { createdAt: new Date() }, create: { url: ref, title: label, source: "SkyNovix", account: "threads", status: "thr_skynovix" } });
   return { post: fc.post, label, image };

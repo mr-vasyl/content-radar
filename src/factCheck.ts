@@ -52,9 +52,13 @@ const SCHEMA = {
   },
 } as const;
 
-export async function factCheck(source: string, title: string, original: string, post: string, hook = ""): Promise<FactCheck> {
+// noNovelty — для постів про SkyNovix: правило «що існувало раніше» тут шкодить (фактчек дописував «на інших платформах
+// таке вже було», 2026-10-25)
+export async function factCheck(source: string, title: string, original: string, post: string, hook = "", opts: { noNovelty?: boolean } = {}): Promise<FactCheck> {
   const r = await askJson<FactCheck>(
-    SYSTEM_PROMPT,
+    opts.noNovelty
+      ? `${SYSTEM_PROMPT}\n\nДЛЯ ЦЬОГО ПОСТА: пункт про existed_before НЕ застосовуй — не додавай речень про те, що щось існувало раніше чи є на інших платформах. Перевіряй лише, чи немає вигаданого й перекрученого.`
+      : SYSTEM_PROMPT,
     `ОРИГІНАЛ (${source}): ${title}\n\n${original}\n\n=====\n\nПОСТ:\n${post}\n\n=====\n\nГАЧОК:\n${hook || "(немає)"}`,
     "fact_check",
     SCHEMA,
