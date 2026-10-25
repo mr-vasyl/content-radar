@@ -13,12 +13,11 @@ import pg from "pg";
 const JOBS: { name: string; schedule: string; mode: string }[] = [
   { name: "content-radar", schedule: "17 5-19/2 * * *", mode: "news" }, // щодня 8:17–22:17, кожні 2 год
   // Зупинено 2026-10-13 разом з каналами «Креатори UA» і «AI для творців»: tools (пн), story (ср), evergreen (вт, чт)
-  // SkyNovix для Threads (власник 2026-10-22: «два після шостої, два до шостої»). За зимовим часом Києва (UTC+2, з 25.10):
-  // 11:37, 15:37, 18:37, 21:37; до 25.10 (UTC+3) — на годину пізніше, але так само 2 після 18:00.
-  { name: "content-radar-promo", schedule: "37 9,13,16,19 * * *", mode: "promo" },
+  // SkyNovix для Threads — 8 на день (власник 2026-10-25), 4 до 18:00 і 4 після. Київ узимку = UTC+2:
+  // 9:37, 11:37, 13:37, 16:37 | 18:37, 19:37, 21:37, 22:37
+  { name: "content-radar-promo", schedule: "37 7,9,11,14,16,17,19,20 * * *", mode: "promo" },
   { name: "content-radar-saves", schedule: "47 11 * * 5", mode: "saves" }, // п'ятниця 14:47 — «💰 Можливості тижня»
-  // 🛍 «Продавай своє» (2026-10-21): 9:47, 12:47, 15:47, 18:47, 21:47 — кожен запуск ≤1 пост, разом ≤5 на день
-  { name: "content-radar-sell", schedule: "47 6,9,12,15,18 * * *", mode: "sell" },
+  // 🛍 «Продавай своє» — закрито власником 2026-10-25 (не пішло); код лишився (mode sell)
 ];
 
 const SECRET_NAME = "github_dispatch_token";
