@@ -40,6 +40,7 @@ export interface Analysis {
   entry_fee?: boolean; // треба платити за участь/розгляд/публікацію/виставку
   foreign_restrictions?: boolean; // потрібні громадянство, посвідка чи віза іншої країни; Україну виключено
   transparent?: boolean; // зрозумілий організатор і умови, без підозрілих «вступних» схем
+  always_open?: boolean; // безкоштовний курс/ресурс, доступний будь-коли (без набору й дедлайну)
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -69,6 +70,8 @@ applicants для відкритої події (воркшоп, лекція, �
 creative_sector — true, якщо для креативної сфери (мистецтво, музика, кіно, театр, фото, дизайн, література й переклад,
 медіа й контент, культура й спадщина, освітні творчі проєкти, IT/цифрові продукти, креативний бізнес);
 false — охорона здоров'я, соцзахист, агро, ветерани, розвиток громад, інфраструктура тощо.
+always_open — true ЛИШЕ для безкоштовного онлайн-курсу, гайду чи ресурсу, який доступний будь-коли без набору й заявки
+(курс у власному темпі, безкоштовна бібліотека, інструмент). Грант, конкурс, премія, резиденція, програма з набором — false.
 entry_fee — true, якщо учасник має щось платити: вступний чи реєстраційний внесок, оплата за розгляд заявки, за участь,
 публікацію, каталог чи виставку (submission fee, entry fee, participation fee). Безкоштовна подача — false.
 foreign_restrictions — true, якщо подати можуть лише громадяни чи резиденти певних країн без України, або потрібні
@@ -106,7 +109,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector", "entry_fee", "foreign_restrictions", "transparent"],
+  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector", "entry_fee", "foreign_restrictions", "transparent", "always_open"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -123,6 +126,7 @@ const SCHEMA = {
     entry_fee: { type: "boolean" },
     foreign_restrictions: { type: "boolean" },
     transparent: { type: "boolean" },
+    always_open: { type: "boolean" },
   },
 } as const;
 
@@ -178,7 +182,9 @@ export async function analyze(article: Article, fullText: string | null, links: 
 
   // Грант/конкурс без дедлайну — це загальна сторінка програми, а не відкритий набір (House of Europe «На переклад»:
   // власник опублікував, набрав 1000 переглядів і зніс, бо незрозуміло, чи прийом відкритий). Не шлемо.
-  if (isOpportunity && !/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "")) {
+  // …крім безкоштовних курсів і ресурсів, доступних будь-коли (онлайн-курс у власному темпі): у них дедлайну немає за
+  // природою (власник 2026-10-26: тематика — ще й навчання, курси й корисні ресурси)
+  if (isOpportunity && !/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "") && !result.always_open) {
     result.reason = `грант без дедлайну — незрозуміло, чи набір відкритий — ${result.reason}`;
     result.score = Math.min(result.score, 5);
     result.post = "";

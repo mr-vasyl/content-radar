@@ -89,7 +89,10 @@ export async function runNews(): Promise<void> {
     }
     try {
       const extracted = await extractArticle(a.url);
-      const fullText = extracted?.text ?? null;
+      // Telegram-радар: дедлайн і суми часто є лише в самому пості каналу, а на сторінці-першоджерелі — ні (аудит 2026-10-26:
+      // премія Леонтовича, стипендія OSA відкинуті як «без дедлайну»). Тому GPT бачить і пост каналу, і першоджерело.
+      const isTelegram = sources.find((s) => s.name === a.source)?.telegram;
+      const fullText = isTelegram && a.content ? `Пост каналу:\n${a.content}\n\nСторінка першоджерела:\n${extracted?.text ?? "(не прочиталась)"}` : (extracted?.text ?? null);
       // Спершу — канал для митців; що не підійшло й прийшло з грантового джерела — перевіряємо як бізнес-грант
       let analysis: Analysis | null = null;
       if (!skipCreative.has(a.url)) analysis = await analyze(a, fullText, extracted?.links);
