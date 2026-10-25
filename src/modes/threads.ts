@@ -30,10 +30,11 @@ const COMPETITOR_NAME =
   /\b(Substack|Patreon|Gumroad|Ko-?fi|Etsy|Amazon|KDP|Kindle Unlimited|Kickstarter|beehiiv|ConvertKit|Teachable|Kajabi|Podia|Bandcamp|Boosty|OnlyFans|Fourthwall|Lemon ?Squeezy|Buy Me a Coffee|Memberful)\b|Сабстек|Патреон|Амазон|Етсі|Кікстартер/i;
 
 const FORMATS = {
-  story: { name: "Історія автора", target: 0.2, maxAgeDays: 90, source: "article" },
-  tip: { name: "Порада з гайду", target: 0.2, maxAgeDays: 120, source: "article" }, // гайд → 3–4 пости (cutGuide)
+  story: { name: "Історія автора", target: 0.15, maxAgeDays: 90, source: "article" },
+  tip: { name: "Порада з гайду", target: 0.15, maxAgeDays: 120, source: "article" }, // гайд → 3–4 пости (cutGuide)
+  persona: { name: "Якщо ти… → SkyNovix", target: 0.15, maxAgeDays: 0, source: "generated" }, // власник 2026-10-25
   recognition: { name: "Впізнавана ситуація", target: 0.15, maxAgeDays: 0, source: "generated" },
-  free_tool: { name: "Безкоштовний інструмент", target: 0.15, maxAgeDays: 30, source: "article" },
+  free_tool: { name: "Безкоштовний інструмент", target: 0.1, maxAgeDays: 30, source: "article" },
   news: { name: "Новина для авторів", target: 0.1, maxAgeDays: 4, source: "article" },
   list: { name: "Список", target: 0.1, maxAgeDays: 0, source: "generated" },
   discussion: { name: "Дискусія", target: 0.05, maxAgeDays: 60, source: "article" },
@@ -425,10 +426,61 @@ const LIST_TOPICS: Record<string, string> = {
 
 const GEN_SCHEMA = { type: "object", additionalProperties: false, required: ["post"], properties: { post: { type: "string" } } } as const;
 
+// 🙋 «Якщо ти… → на SkyNovix можеш…» (власник 2026-10-25): тип автора × функція SkyNovix. Лише факти з факт-листа.
+const PERSONA_FEATURES: Record<string, string> = {
+  blog: "вести блог-сторінку з дописами — її індексує Google, тож тебе знаходять і з пошуку",
+  readers: "публікувати дописи «Лише читачам» — вони відкриваються після безкоштовної кнопки «Стежити», так збираєш свою аудиторію",
+  subs: "зробити платну підписку на найцікавіше — кілька рівнів, щомісячне автосписання, вищий рівень відкриває нижчі",
+  donations: "приймати донати від своєї аудиторії",
+  pwyw: "виставити товар за ціною «0+» — покупець платить скільки хоче, від 0 або від 10 грн; так збираєш перших покупців",
+  audio: "додавати аудіо в дописи — звукову хвилю бачать усі, а слухати можуть ті, хто відкрив допис",
+  video: "вбудовувати відео YouTube чи Twitch прямо в допис",
+  files: "додавати в допис файли, які завантажать лише ті, хто має доступ",
+  exclusive: "продати річ як «ексклюзивний товар» — лише одна копія, після продажу зникає з каталогу",
+  products: "продавати цифрові товари в каталозі — без абонплати",
+  stream: "підключити донати на стрім: OBS-віджет показує алерти, а сповіщення можуть приходити в Discord",
+  bilingual: "оформити товар українською й англійською — його бачать і англомовні покупці",
+};
+const PERSONAS: Record<string, { who: string; features: (keyof typeof PERSONA_FEATURES)[] }> = {
+  writer: { who: "любиш писати цікаві тексти й розповідати історії", features: ["blog", "readers", "subs"] },
+  illustrator: { who: "малюєш і маєш папку з роботами", features: ["products", "exclusive", "readers", "subs"] },
+  photographer: { who: "фотографуєш і маєш свої пресети чи архів", features: ["products", "pwyw", "blog"] },
+  musician: { who: "пишеш музику", features: ["audio", "subs", "donations"] },
+  podcaster: { who: "ведеш подкаст або записуєш голосові розбори", features: ["audio", "subs", "readers"] },
+  streamer: { who: "стрімиш", features: ["stream", "donations", "video"] },
+  teacher: { who: "вмієш пояснювати й навчати", features: ["products", "subs", "files"] },
+  audience: { who: "вже маєш аудиторію в Instagram чи TikTok", features: ["readers", "subs", "donations"] },
+  designer: { who: "робиш шаблони, шрифти чи макети", features: ["products", "bilingual", "pwyw"] },
+  gamedev: { who: "робиш ігри чи ассети", features: ["products", "video", "blog"] },
+  beginner: { who: "тільки починаєш і ще нічого не продаєш", features: ["pwyw", "readers", "blog"] },
+  bookwriter: { who: "пишеш книжку чи вже маєш рукопис", features: ["products", "subs", "readers"] },
+};
+
 async function leastUsed(prefix: string, keys: string[]): Promise<string> {
   const used = await prisma.article.findMany({ where: { url: { in: keys.map((k) => `thr:gen:${prefix}:${k}`) } }, select: { url: true, createdAt: true } });
   const at = (k: string) => used.find((u) => u.url === `thr:gen:${prefix}:${k}`)?.createdAt.getTime() ?? 0;
   return [...keys].sort((a, b) => at(a) - at(b))[0]!;
+}
+
+export async function personaPost(recent: string): Promise<{ post: string; label: string } | null> {
+  const pairs = Object.entries(PERSONAS).flatMap(([p, v]) => v.features.map((f) => `${p}|${f}`));
+  const k = await leastUsed("persona", pairs);
+  const [p, f] = k.split("|") as [string, keyof typeof PERSONA_FEATURES];
+  const brief = `ФОРМАТ «якщо ти…». Перший рядок: «Якщо ти ${PERSONAS[p]!.who}…» (можна трохи перефразувати, але звернення
+«якщо ти» лишається). Далі 2–3 короткі абзаци: на SkyNovix ти можеш ${PERSONA_FEATURES[f]}. Покажи просто, як це виглядає
+в житті такого автора (один конкретний приклад) і що йому це дає — аудиторію, дохід, спокій. Прямо називай «SkyNovix».
+Без «реєструйся», «приєднуйся», «спробуй», без обіцянок заробітку. 250–550 символів. Лише факти з факт-листа.`;
+  const system = `${VOICE}\n\n## Факт-лист SkyNovix (єдине джерело правди)\n${FACTS()}`;
+  const user = `${brief}\n\nОстанні пости (не повторюй):\n${recent}`;
+  let { post } = await askJson<{ post: string }>(system, user, "threads_persona", GEN_SCHEMA);
+  const issues = [...guard(post), ...problems(post, 700).filter((x) => !x.startsWith("згадано"))];
+  if (issues.length) ({ post } = await askJson<{ post: string }>(system, `${user}\n\nПопередня версія мала проблеми: ${issues.join("; ")}. Напиши заново.`, "threads_persona", GEN_SCHEMA));
+  if (guard(post).length || COMPETITOR_NAME.test(post)) return null;
+  const fc = await factCheck("SkyNovix", k, FACTS(), post);
+  if (fc.verdict === "reject") return null;
+  const ref = `thr:gen:persona:${k}`;
+  await prisma.article.upsert({ where: { url: ref }, update: { createdAt: new Date() }, create: { url: ref, title: k, source: "SkyNovix", account: "threads", status: "thr_gen" } });
+  return { post: fc.post, label: `persona: ${k}` };
 }
 
 export async function generatedPost(format: "recognition" | "list", recent: string): Promise<{ post: string; label: string } | null> {
@@ -682,11 +734,16 @@ async function sendOne(): Promise<void> {
   const recent = await recentPostsBlock();
 
   if (FORMATS[format].source === "generated") {
-    const p = format === "skynovix" ? await skynovixPost(recent) : await generatedPost(format as "recognition" | "list", recent);
+    const p =
+      format === "skynovix"
+        ? await skynovixPost(recent)
+        : format === "persona"
+          ? await personaPost(recent)
+          : await generatedPost(format as "recognition" | "list", recent);
     if (!p) return console.log(`🧵 ${format}: пост не пройшов перевірку`);
     const image = "image" in p ? (p.image as string | undefined) : undefined;
     console.log(`🧵 THREADS · ${FORMATS[format].name} · ${p.label}`);
-    p.post = await sharpenHook(p.post);
+    if (format !== "persona") p.post = await sharpenHook(p.post); // у «Якщо ти…» перший рядок — це вже гачок
     await sendPhotoPost(p.post, image, [], { format: "promo", title: p.post.split("\n")[0]!.slice(0, 200), source: format }, "", SKY);
     await prisma.article.create({ data: { url: `thr:sent:${Date.now()}`, title: p.label, source: "SkyNovix", account: "threads", status: "thr_sent", stream: format, post: p.post } });
     return console.log(`🧵 надіслано [${format}] ${p.label}`);
