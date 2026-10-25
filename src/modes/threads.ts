@@ -146,7 +146,8 @@ const VOICE = `Голос: офіційний Threads SkyNovix — україн�
   «більш просто розʼяснюй і щоб просто читалось»). Якщо згадуєш SkyNovix — прямо: «На SkyNovix…».
 - ПЕРШИЙ РЯДОК вирішує все (6–14 слів): впізнавана ситуація, несподіваний факт/цифра або протиріччя.
 - КОРОТКО Й ЛАКОНІЧНО (власник 2026-10-26: «все пиши простіше, коротко й лаконічно, не відходь від теми»):
-  300–600 символів, максимум ~700. Кожне речення працює на тему — без вступів, повторів і «води».
+  зазвичай 300–600 символів; якщо зміст не вміщується в 3 абзаци — до 800 (власник). Кожне речення працює на тему —
+  без вступів, повторів і «води».
 - Без корпоративних штампів, клікбейту, надлишку емодзі, обіцянок, закликів до реєстрації й «ми раді».
 - Питання в кінці — лише коли тема справді запрошує до відповіді.
 - Не вигадуй досвід, відгуки, продажі, статистику, доходи й цитати.
@@ -259,7 +260,7 @@ function decide(a: Article, v: Verdict): { score: number; accepted: boolean; why
 }
 
 // Перевірки тексту: конкуренти, штампи, «люди», довжина; згадано SkyNovix — правила факт-листа
-function problems(post: string, maxLen = 750): string[] {
+function problems(post: string, maxLen = 850): string[] {
   const out: string[] = [];
   const comp = post.match(COMPETITOR_NAME);
   if (comp) out.push(`назва конкурента «${comp[0]}» — прибери, пиши без назви платформи`);
@@ -524,7 +525,7 @@ ${SAMPLE_RULES}`;
   const system = `${VOICE}\n\n## Факт-лист SkyNovix (єдине джерело правди)\n${FACTS()}`;
   const user = `${brief}\n\nОстанні пости (не повторюй):\n${recent}`;
   let { post } = await askJson<{ post: string }>(system, user, "threads_persona", GEN_SCHEMA);
-  const issues = [...guard(post), ...problems(post, 750).filter((x) => !x.startsWith("згадано"))];
+  const issues = [...guard(post), ...problems(post, 850).filter((x) => !x.startsWith("згадано"))];
   if (issues.length) ({ post } = await askJson<{ post: string }>(system, `${user}\n\nПопередня версія мала проблеми: ${issues.join("; ")}. Напиши заново.`, "threads_persona", GEN_SCHEMA));
   const bad = [...guard(post), ...(COMPETITOR_NAME.test(post) ? ["назва конкурента"] : [])];
   if (bad.length) {
@@ -825,7 +826,7 @@ ${SAMPLE_RULES}
   );
   const posts: string[] = [];
   for (const [i, t] of (r.useful ? r.tips : []).entries()) {
-    const bad = [...guard(t.post), ...problems(t.post, 750).filter((x) => !x.startsWith("згадано"))];
+    const bad = [...guard(t.post), ...problems(t.post, 850).filter((x) => !x.startsWith("згадано"))];
     if (bad.length) {
       console.log(`📰 пост ${i + 1} відкинуто: ${bad.join("; ")}`);
       continue;
