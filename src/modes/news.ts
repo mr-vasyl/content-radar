@@ -7,7 +7,7 @@ import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
 import { analyzeBusiness } from "../business.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
-import { factCheck, factNote } from "../factCheck.ts";
+import { factCheck } from "../factCheck.ts";
 import { withToolLink } from "../digest.ts";
 
 // Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
@@ -131,18 +131,13 @@ export async function runNews(): Promise<void> {
         // Для Telegram-джерел a.url — це вже першоджерело (сторінка фонду, форма), для агрегаторів — сторінка з умовами.
         analysis.post = withToolLink(fc.post, analysis.link || a.url);
         if (analysis.hook) analysis.hook = fc.hook;
-        const note = factNote(fc);
-
+        // Під лінією — лише «За матеріалами» й «Оригінал» (власник 2026-10-29: без оцінки, назви й правок фактчеку;
+        // канал видно з підпису над лінією)
         await sendPost(analysis.post, {
           tags: analysis.tags,
           account: analysis.account,
           source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
-          lines: [
-            `${analysis.account === "business" ? "💼 БІЗНЕС-КАНАЛ" : "📰"} ⭐ ${analysis.score}/10 · ${analysis.stream}`,
-            a.title,
-            ...(analysis.origin?.trim() && analysis.origin.trim() !== a.source ? [`знайдено на: ${a.source}`] : []),
-            ...(note ? [note] : []),
-          ],
+          lines: [],
           link: { url: a.url, label: "Оригінал" },
         }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
         if (analysis.hook) await sendHook(analysis.hook);
