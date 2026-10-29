@@ -156,8 +156,10 @@ export async function sendHook(hook: string): Promise<void> {
   // прибираємо заклики GPT в кінці (наш, старий «Посилання — у шапці профілю», «…у нашому Telegram»)
   // і ставимо наш завжди однаково — окремим абзацом
   plain = plain.replace(/(\n+[^\n]*(шапці профілю|нашому Telegram|у Telegram)[^\n]*)+\s*$/iu, "").trim();
+  // власник 2026-10-29: без смайликів у тексті й без заголовка «Для Threads» — повідомлення копіюється як є
+  plain = plain.replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]️?/gu, "").replace(/[ \t]{2,}/g, " ").replace(/^ +| +$/gm, "");
   plain = `${plain}\n\n${TEASER_END}`;
-  await telegram.sendMessage(chatId, `🧵 <i>Для Threads</i>\n\n${escapeHtml(plain)}`, {
+  await telegram.sendMessage(chatId, escapeHtml(plain), {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true,
