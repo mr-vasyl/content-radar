@@ -13,9 +13,9 @@ import pg from "pg";
 const JOBS: { name: string; schedule: string; mode: string }[] = [
   { name: "content-radar", schedule: "17 5-19/2 * * *", mode: "news" }, // щодня 8:17–22:17, кожні 2 год
   // Зупинено 2026-10-13 разом з каналами «Креатори UA» і «AI для творців»: tools (пн), story (ср), evergreen (вт, чт)
-  // SkyNovix для Threads — 8 на день (власник 2026-10-25), 4 до 18:00 і 4 після. Київ узимку = UTC+2:
-  // 9:37, 11:37, 13:37, 16:37 | 18:37, 19:37, 21:37, 22:37
-  { name: "content-radar-promo", schedule: "37 7,9,11,14,16,17,19,20 * * *", mode: "promo" },
+  // SkyNovix для Threads (mode promo, 8 на день) — вимкнено власником 2026-10-29: тепер готові пости власника
+  // публікуються в Threads автоматично (схема threads у Supabase). Код лишився; увімкнути — повернути рядок:
+  // { name: "content-radar-promo", schedule: "37 7,9,11,14,16,17,19,20 * * *", mode: "promo" },
   { name: "content-radar-saves", schedule: "47 11 * * 5", mode: "saves" }, // п'ятниця 14:47 — «💰 Можливості тижня»
   // 🛍 «Продавай своє» — закрито власником 2026-10-25 (не пішло); код лишився (mode sell)
 ];

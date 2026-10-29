@@ -150,3 +150,5 @@ case (кейс зі статті `EXPERT_SOURCES`; SkyNovix ≤1 речення)
 ⚠️ у бот SkyNovix; повтор публікації — того самого контейнера (без дублів). Токен (60 днів) оновлює `threads-refresh` (пн);
 звіт за день — `threads-report` 23:50. Створення/оновлення: `npm run setup-threads`.
 Токени: `THREADS_TOKEN_1=…`, `THREADS_TOKEN_2=…` у `.env` → `npm run threads -- accounts` (назви акаунтів «1», «2»). Керування: `npm run threads -- account <назва> <токен>` | `import <назва> <файл>` (пости через рядок `---`) | `test <назва>` | `status` | `pause|resume <назва>`.
+- ⏸ 2026-10-29: генерацію постів SkyNovix (mode `promo`, Threads v4) ВИМКНЕНО — cron `content-radar-promo` прибрано
+  (`scripts/setupCron.ts`), код лишився. Замість неї — готові пости власника через автопублікацію в Threads (схема `threads`).
