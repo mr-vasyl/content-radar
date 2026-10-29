@@ -149,4 +149,4 @@ case (кейс зі статті `EXPERT_SOURCES`; SkyNovix ≤1 речення)
 `threads_publish`). >480 символів — ланцюжок відповідями (по абзацах). Помилка → повтор через 15 хв, після 3 — `failed` і
 ⚠️ у бот SkyNovix; повтор публікації — того самого контейнера (без дублів). Токен (60 днів) оновлює `threads-refresh` (пн);
 звіт за день — `threads-report` 23:50. Створення/оновлення: `npm run setup-threads`.
-Керування: `npm run threads -- account <назва> <токен>` | `import <назва> <файл>` (пости через рядок `---`) | `test <назва>` | `status` | `pause|resume <назва>`.
+Токени: `THREADS_TOKEN_1=…`, `THREADS_TOKEN_2=…` у `.env` → `npm run threads -- accounts` (назви акаунтів «1», «2»). Керування: `npm run threads -- account <назва> <токен>` | `import <назва> <файл>` (пости через рядок `---`) | `test <назва>` | `status` | `pause|resume <назва>`.

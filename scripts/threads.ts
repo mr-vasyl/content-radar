@@ -136,6 +136,12 @@ const [cmd, a1, a2] = process.argv.slice(2);
 await db.connect();
 try {
   if (cmd === "account" && a1 && a2) await account(a1, a2);
+  // токени з .env (THREADS_TOKEN_1=…, THREADS_TOKEN_2=…) — щоб не пересилати їх у чат; назва акаунта = суфікс
+  else if (cmd === "accounts") {
+    const found = Object.entries(process.env).filter(([k, v]) => k.startsWith("THREADS_TOKEN_") && v);
+    if (!found.length) console.log("У .env немає рядків THREADS_TOKEN_1=… / THREADS_TOKEN_2=…");
+    for (const [k, v] of found) await account(k.slice("THREADS_TOKEN_".length).toLowerCase(), v!.trim());
+  }
   else if (cmd === "import" && a1 && a2) await importPosts(a1, a2);
   else if (cmd === "test" && a1) {
     const r = await db.query(
