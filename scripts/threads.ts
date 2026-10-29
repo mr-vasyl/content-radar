@@ -119,6 +119,74 @@ async function importPosts(name: string, file: string) {
   console.log(`✓ ${name}: ${posts.length} постів (з них ланцюжків: ${chains}) на ${days} днів`);
 }
 
+// План власника: «30.10» / «2 листопада» → «Акаунт 1 …» / «Акаунт 2 …» → «Допис N» (+ заголовок) → рядки-абзаци.
+// Кожен рядок — абзац (у Threads — з порожнім рядком між ними); пункти «— …» лишаються списком.
+const MONTHS = ["січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"];
+type PlanPost = { day: string; account: string; text: string };
+export function parsePlan(raw: string, year = new Date().getFullYear()): PlanPost[] {
+  const out: PlanPost[] = [];
+  let day = "", account = "", lines: string[] | null = null;
+  const flush = () => {
+    if (lines?.length && day && account) {
+      let text = "";
+      for (const l of lines) {
+        const prev = text.split("\n").at(-1) ?? "";
+        text += !text ? l : /^[—–-]\s/.test(l) && (/^[—–-]\s/.test(prev) || prev.endsWith(":")) ? `\n${l}` : `\n\n${l}`;
+      }
+      out.push({ day, account, text });
+    }
+    lines = null;
+  };
+  for (const rawLine of raw.replace(/\r/g, "").split("\n")) {
+    const l = rawLine.trim();
+    if (!l || /^_{5,}$/.test(l)) continue;
+    let m;
+    if ((m = l.match(/^(\d{1,2})\.(\d{1,2})$/)) || (m = l.match(new RegExp(`^(\\d{1,2})\\s+(${MONTHS.join("|")})$`, "i")))) {
+      flush();
+      const mon = /^\d+$/.test(m[2]!) ? Number(m[2]) : MONTHS.indexOf(m[2]!.toLowerCase()) + 1;
+      day = `${year}-${String(mon).padStart(2, "0")}-${m[1]!.padStart(2, "0")}`;
+    } else if ((m = l.match(/^Акаунт\s+(\d)/))) {
+      flush();
+      account = m[1]!;
+    } else if ((m = l.match(/^Допис\s+\d+\.?\s*(.*)$/))) {
+      flush();
+      lines = m[1] ? [m[1]] : [];
+    } else if (lines) lines.push(l);
+  }
+  flush();
+  return out;
+}
+
+async function importPlan(file: string, dry: boolean) {
+  const posts = parsePlan(readFileSync(file, "utf8").replace(/^﻿/, ""), 2026);
+  const groups = new Map<string, PlanPost[]>();
+  for (const p of posts) groups.set(`${p.day}|${p.account}`, [...(groups.get(`${p.day}|${p.account}`) ?? []), p]);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Kyiv" });
+  let added = 0, chains = 0;
+  for (const [key, list] of groups) {
+    const [day, acc] = key.split("|") as [string, string];
+    const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+    console.log(`${day} акаунт ${acc}: ${list.length} постів, довжини ${list.map((p) => p.text.length).join("/")}`);
+    if (dry) continue;
+    if (day <= today) { console.log("   ↳ пропущено: дата вже настала"); continue; }
+    const fresh = [];
+    for (const p of list)
+      if (!(await db.query("select 1 from threads.posts where account = $1 and part = 0 and text = $2", [acc, splitPost(p.text)[0]])).rowCount) fresh.push(p);
+    if (!fresh.length) continue;
+    const busy = (await db.query("select scheduled_at from threads.posts where account <> $1 and part = 0 and scheduled_at > now()", [acc])).rows.map((r) => (r.scheduled_at as Date).getTime());
+    const times = dayTimes(y, m - 1, d, busy); // пости дня йдуть у порядку плану
+    for (const [j, p] of fresh.entries()) {
+      const parts = splitPost(p.text);
+      if (parts.length > 1) chains++;
+      const root = (await db.query("insert into threads.posts (account, part, text, scheduled_at) values ($1, 0, $2, $3) returning id", [acc, parts[0], times[j]])).rows[0].id;
+      for (let k = 1; k < parts.length; k++)
+        await db.query("insert into threads.posts (account, root_id, part, text, status) values ($1, $2, $3, $4, 'waiting')", [acc, root, k, parts[k]]);
+      added++;
+    }
+  }
+  console.log(`${dry ? "Перевірка" : "✓ додано"}: ${dry ? posts.length : added} постів${dry ? "" : `, з них ланцюжків: ${chains}`}`);
+}
+
 async function status() {
   console.table((await db.query(`
     select a.name, a.username, a.paused, to_char(a.token_expires at time zone 'Europe/Kyiv', 'DD.MM.YYYY') token_until,
@@ -152,7 +220,8 @@ try {
   } else if ((cmd === "pause" || cmd === "resume") && a1) {
     await db.query("update threads.accounts set paused = $2 where name = $1", [a1, cmd === "pause"]);
     console.log(`✓ ${a1}: ${cmd === "pause" ? "пауза" : "працює"}`);
-  } else if (cmd === "status") await status();
+  } else if (cmd === "plan" && a1) await importPlan(a1, a2 === "dry");
+  else if (cmd === "status") await status();
   else console.log("npm run threads -- account <назва> <токен> | import <назва> <файл> | test <назва> | status | pause|resume <назва>");
 } finally {
   await db.end();
