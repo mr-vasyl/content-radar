@@ -33,7 +33,13 @@ export function displayUrl(url: string): string {
   }
 }
 
-// Пряме посилання на інструмент/ресурс у кінці поста (над хештегами): «🔗 https://…» — Telegram робить його клікабельним
+// Пряме посилання в кінці поста (над хештегами), сховане в слово (власник 2026-10-29): «🔗 Форма реєстрації» або «🔗 Джерело».
+// Пишемо markdown [слово](url) — toTelegramHtml робить з нього <a>; сама адреса лишається в тексті для пошуку дублів.
+const FORM_LINK =
+  /docs\.google\.com\/forms|forms\.gle|forms\.office|typeform|jotform|tally\.so|airtable\.com\/(app|shr)|surveymonkey|smapply|submittable|fluxx|\/(apply|application|register|registration|signup|sign-up|form|anketa|zayavka)\b|реєстрац/i;
+export function linkLabel(url: string): string {
+  return FORM_LINK.test(url) ? "Форма реєстрації" : "Джерело";
+}
 export function withToolLink(post: string, link: string): string {
   if (!link) return post;
   let clean = link;
@@ -44,7 +50,7 @@ export function withToolLink(post: string, link: string): string {
   } catch {
     /* лишаємо як є */
   }
-  return `${post.trim()}\n\n🔗 ${clean}`;
+  return `${post.trim()}\n\n🔗 [${linkLabel(clean)}](${clean})`;
 }
 
 const schema = (max: number) => ({

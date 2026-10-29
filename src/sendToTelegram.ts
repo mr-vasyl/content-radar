@@ -23,7 +23,8 @@ function escapeHtml(s: string): string {
 export function toTelegramHtml(text: string): string {
   return escapeHtml(text)
     .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
-    .replace(/(^|\s)_(.+?)_(?=\s|$)/g, "$1<i>$2</i>");
+    .replace(/(^|\s)_(.+?)_(?=\s|$)/g, "$1<i>$2</i>")
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>'); // [слово](url) → сховане посилання
 }
 
 export interface Footer {
