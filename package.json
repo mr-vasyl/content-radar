@@ -8,7 +8,9 @@
     "preview": "tsx src/preview.ts",
     "check-sources": "tsx scripts/checkSources.ts",
     "setup-cron": "tsx scripts/setupCron.ts",
-    "stats": "tsx scripts/stats.ts"
+    "stats": "tsx scripts/stats.ts",
+    "setup-threads": "tsx scripts/setupThreads.ts",
+    "threads": "tsx scripts/threads.ts"
   },
   "keywords": [],
   "author": "",
