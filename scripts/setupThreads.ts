@@ -46,6 +46,7 @@ create table if not exists threads.posts (
   created timestamptz not null default now()
 );
 create index if not exists posts_due on threads.posts (status, scheduled_at);
+alter table threads.accounts add column if not exists blocked_since timestamptz; -- Meta тимчасово закрила доступ
 
 -- Відповідь не завжди JSON (HTML-помилка, таймаут) — не падаємо
 create or replace function threads.try_json(t text) returns jsonb language plpgsql immutable as $$
@@ -79,6 +80,10 @@ begin
     end if;
     cid := case when resp.status_code = 200 then threads.try_json(resp.content) ->> 'id' end;
     if cid is not null then
+      if (select blocked_since from threads.accounts where name = r.account) is not null then
+        update threads.accounts set blocked_since = null where name = r.account;
+        perform threads.notify('✅ Threads (' || r.account || '): доступ повернувся, публікую далі.');
+      end if;
       if r.status = 'creating' then
         update threads.posts set status = 'created', container_id = cid, request_id = null, updated = now() where id = r.id;
       else
@@ -86,6 +91,20 @@ begin
         -- наступна частина ланцюжка — відповіддю на цю
         update threads.posts set status = 'queued', reply_to = cid, scheduled_at = now() + interval '20 seconds', updated = now()
           where root_id = coalesce(r.root_id, r.id) and part = r.part + 1 and status = 'waiting';
+      end if;
+    elsif resp.content like '%OAuthException%' then
+      -- Meta тимчасово закрила доступ (2026-10-30 «API access blocked» на ~1 год): це не вина поста —
+      -- спроби не рахуємо, чекаємо 20 хв; власнику — одне попередження, доки доступ не повернеться
+      -- creating → знову queued через 20 хв; publishing → знову created (той самий контейнер), крок 2 чекає, доки updated мине
+      update threads.posts set status = case when r.status = 'publishing' then 'created' else 'queued' end,
+        request_id = null, error = left(resp.content, 500),
+        scheduled_at = case when r.status = 'publishing' then scheduled_at else now() + interval '20 minutes' end,
+        updated = case when r.status = 'publishing' then now() + interval '20 minutes' else now() end
+      where id = r.id;
+      if (select blocked_since from threads.accounts where name = r.account) is null then
+        update threads.accounts set blocked_since = now() where name = r.account;
+        perform threads.notify('⚠️ Threads (' || r.account || '): Meta тимчасово не пускає (' || left(threads.try_json(resp.content) -> 'error' ->> 'message', 100)
+          || '). Пости чекають, пробую кожні 20 хв. Прийде ✅, коли запрацює.');
       end if;
     else
       -- невдала публікація → повторюємо публікацію ТОГО Ж контейнера (контейнер публікується лише раз — без дублів)
@@ -116,6 +135,9 @@ begin
   for r in select distinct on (ps.account) ps.*, a.user_id, a.token from threads.posts ps
            join threads.accounts a on a.name = ps.account
            where ps.status = 'queued' and ps.scheduled_at <= now() and not a.paused
+             -- після паузи/блоку не публікуємо пачкою: новий пост — не раніше ніж через 60 хв після попереднього
+             and (ps.part > 0 or not exists (select 1 from threads.posts x where x.account = ps.account and x.part = 0
+                  and (x.published_at > now() - interval '60 minutes' or x.status in ('creating', 'created', 'publishing'))))
            order by ps.account, ps.scheduled_at loop
     p := jsonb_build_object('media_type', 'TEXT', 'text', r.text, 'access_token', r.token);
     if r.reply_to is not null then p := p || jsonb_build_object('reply_to_id', r.reply_to); end if;
