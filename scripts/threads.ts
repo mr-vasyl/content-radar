@@ -201,7 +201,8 @@ async function uploadImage(file: string): Promise<string> {
   const name = file.replace(/\\/g, "/").split("/").at(-1)!;
   const r = await fetch(`${base}/object/threads/${name}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": name.endsWith(".png") ? "image/png" : "image/jpeg", "x-upsert": "true" },
+    // новий ключ sb_secret_… — лише в apikey; старий service_role (JWT) — ще й у Authorization
+    headers: { ...(key.startsWith("sb_") ? {} : { Authorization: `Bearer ${key}` }), apikey: key,"Content-Type": name.endsWith(".png") ? "image/png" : "image/jpeg", "x-upsert": "true" },
     body: readFileSync(file),
   });
   if (!r.ok) throw new Error(`Storage не прийняв ${name}: ${r.status} ${(await r.text()).slice(0, 200)}`);
@@ -230,14 +231,14 @@ async function photoPosts(name: string, file: string, dir: string) {
       console.log(`   = вже є: «${parts[0]!.slice(0, 50)}…»`);
       continue;
     }
-    // час: 18:00–23:40 за Києвом (власник 2026-10-31), ≥75 хв від інших постів цього акаунта і ≥20 хв від іншого акаунта
+    // час: 18:00–23:40 за Києвом (власник 2026-10-31), ≥60 хв від постів цього акаунта (як і в tick) і ≥10 хв від іншого — вечори щільні
     const dayStart = kyiv(y, m, d, 0).getTime();
     const near = (await db.query("select account, scheduled_at from threads.posts where part = 0 and scheduled_at between $1 and $2",
       [new Date(dayStart - 3 * 3600000), new Date(dayStart + 27 * 3600000)])).rows as { account: string; scheduled_at: Date }[];
     let at: Date | null = null;
     for (let i = 0; i < 500 && !at; i++) {
       const t = kyiv(y, m, d, rnd(18 * 60, 23 * 60 + 40));
-      if (near.every((p) => Math.abs(p.scheduled_at.getTime() - t.getTime()) >= (p.account === name ? MIN_GAP : OTHER_GAP) * 60000)) at = t;
+      if (near.every((p) => Math.abs(p.scheduled_at.getTime() - t.getTime()) >= (p.account === name ? 60 : 10) * 60000)) at = t;
     }
     if (!at) throw new Error(`не вдалось підібрати час на ${y}-${m + 1}-${d}`);
     const pool = images.filter((f) => f !== prevImage);
