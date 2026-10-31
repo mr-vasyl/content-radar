@@ -115,7 +115,7 @@ GPT лише витягує факти, рішення — в `analyze` (`summar
 Офіс — ні. Мета власника: швидке зростання, частина аудиторії — майбутні продавці SkyNovix, згодом дохід з реклами.
 - Запуск: у тому самому прогоні, що й гранти (mode `news` → `runNews`, потім `runOrders`); окремо — `npm start -- orders`.
   Тест: `npm run preview orders [send]` (`ORDERS_LIMIT=10`), без запису в БД.
-- `src/orders.ts`: `ORDER_SOURCES` (13: Kyiv Independent /jobs (сторінка; перше читання позначає наявне баченим), Freelancehunt RSS, DOU Дизайн/Маркетинг віддалено, Djinni Дизайн, Jobicy, Dribbble, Coroflot,
+- `src/orders.ts`: `ORDER_SOURCES` (16 + robota.ua через api.rabota.ua (`fetchRobota`, scheduleId=3 — віддалено, 14 ключових слів); DOU також Художники/Копірайтинг/Відео; Kyiv Independent /jobs (сторінка; перше читання позначає наявне баченим), Freelancehunt RSS, DOU Дизайн/Маркетинг віддалено, Djinni Дизайн, Jobicy, Dribbble, Coroflot,
   WWR, Contest Watchers (+фото), TG @ua_ugc, @cresume); `notCreativeOrder` — для Freelancehunt/DOU Маркетинг/Крезюме лише творчі слова
   в заголовку; потім `prefilter` (8 за запуск) → `analyzeOrder` (GPT — лише факти) → КОД: not_offer, не творче, офіс, недоступно
   з України, оплата не підтверджена (Freelancehunt без суми чи #оплата в UGC Україна = «за домовленістю»; бренди/UGC з умовами лише в анкеті — «умови в анкеті бренду», рішення власника), внесок, передоплата, велике неоплачуване тестове,

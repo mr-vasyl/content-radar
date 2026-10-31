@@ -14,7 +14,7 @@ import { factCheck } from "../factCheck.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
 import {
-  analyzeOrder, notCreativeOrder, orderTeaser, ORDER_SOURCES, PRODUCT_IDEAS, priorityOf, productPost, rubricOf, RUBRICS, weeklyPrices,
+  analyzeOrder, fetchRobota, notCreativeOrder, orderTeaser, ORDER_SOURCES, PRODUCT_IDEAS, priorityOf, productPost, rubricOf, RUBRICS, weeklyPrices,
   withOrderLink, type Meta, type Rubric,
 } from "../orders.ts";
 import type { RunOptions } from "./types.ts";
@@ -58,6 +58,11 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
     } catch (err) {
       console.error(`Помилка з джерелом ${s.name}:`, (err as Error).message);
     }
+  }
+  try {
+    all.push(...(await fetchRobota()));
+  } catch (err) {
+    console.error("Помилка з robota.ua:", (err as Error).message);
   }
   const cutoff = Date.now() - MAX_AGE_DAYS * DAY;
   const recent = all.filter((a) => !a.publishedAt || a.publishedAt.getTime() >= cutoff);
@@ -165,7 +170,9 @@ async function sendFromQueue(): Promise<void> {
   const order = (Object.keys(RUBRICS) as Rubric[]).sort((a, b) => (done.get(a) ?? 0) / total - RUBRICS[a].target - ((done.get(b) ?? 0) / total - RUBRICS[b].target));
   // Спершу — пропозиції з прямою подачею (усе, крім Freelancehunt); Freelancehunt — лише якщо більше нічого немає
   const pool = live.some((q) => q.source !== "Freelancehunt") ? live.filter((q) => q.source !== "Freelancehunt") : live;
-  const best = (r: Rubric) => pool.filter((q) => rubricOf(q.stream ?? "") === r).sort((a, b) => priorityOf(b.stream!, b.score ?? 0) - priorityOf(a.stream!, a.score ?? 0))[0];
+  // з конкретною сумою — вище, ніж «за домовленістю» чи «умови в анкеті»
+  const rank = (q: (typeof live)[number]) => priorityOf(q.stream!, q.score ?? 0) + ((JSON.parse(q.hook ?? "{}") as Meta).payStatus === "amount" ? 5 : 0);
+  const best = (r: Rubric) => pool.filter((q) => rubricOf(q.stream ?? "") === r).sort((a, b) => rank(b) - rank(a))[0];
   const rubric = order.find((r) => best(r));
   const q = rubric && best(rubric);
   if (!q || !rubric) return;

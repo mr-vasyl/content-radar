@@ -26,6 +26,9 @@ export const ORDER_SOURCES: Source[] = [
   // 🏠 Віддалена робота — Україна
   S("DOU Дизайн", "https://jobs.dou.ua/vacancies/feeds/?category=Design&remote"),
   S("DOU Маркетинг", "https://jobs.dou.ua/vacancies/feeds/?category=Marketing&remote"), // сценаристи, UGC, motion
+  S("DOU Художники", "https://jobs.dou.ua/vacancies/feeds/?category=Artist&remote"), // 2D/3D, ігровий арт, AI-артисти, часто freelance
+  S("DOU Копірайтинг", "https://jobs.dou.ua/vacancies/feeds/?category=Copywriting&remote"),
+  S("DOU Відео", "https://jobs.dou.ua/vacancies/feeds/?category=Video&remote"), // монтаж, відеокреатори (+QA — відсіє фільтр)
   S("Djinni Дизайн", "https://djinni.co/jobs/rss/?primary_keyword=Design"), // інші ключові слова Djinni ігнорує
   // 🌍 Віддалена робота — міжнародні
   S("Jobicy", "https://jobicy.com/?feed=job_feed&job_categories=design-multimedia"),
@@ -43,9 +46,36 @@ export const ORDER_SOURCES: Source[] = [
 ];
 
 // Джерела, де багато нетворчого (Excel, CRM, продажі) — на GPT лише за творчими словами в заголовку
-const NEEDS_CREATIVE_WORDS = new Set(["Freelancehunt", "DOU Маркетинг", "Крезюме"]);
+const NEEDS_CREATIVE_WORDS = new Set(["Freelancehunt", "DOU Маркетинг", "DOU Відео", "Крезюме", "robota.ua"]);
 const CREATIVE_WORDS =
   /дизайн|design|логот|logo|ілюстр|иллюстр|illustr|малю|рису|draw|банер|баннер|banner|креатив|creative|постер|poster|обклад|облож|cover|етикет|этикет|упаков|пакуван|packag|брендбук|айдентик|брендинг|branding|шрифт|font|іконк|иконк|icon|стікер|стикер|відео|видео|video|монтаж|edit|ролик|reels|shorts|анімац|анимац|animat|motion|моушн|3d|3д|рендер|render|візуаліз|визуализ|фото|photo|зйомк|съемк|ретуш|retouch|музик|music|звук|sound|аудіо|аудио|audio|озвуч|voice|диктор|подкаст|podcast|текст|copywrit|копірайт|копирайт|сценар|script|стат(ей|ті|тя)|article|редакт|editor|переклад|перевод|translat|контент|content|ugc|блогер|blogger|smm|презентац|presentation|інфограф|инфограф|книг|book|комікс|комикс|персонаж|character|арт|art|ігр|игр|game/i;
+// 🇺🇦 robota.ua: сайт закритий Cloudflare, але відкритий пошук api.rabota.ua віддає вакансії (2026-10-31).
+// scheduleId=3 — віддалена робота. Сторінка вакансії для бота закрита, тож текст для GPT — короткий опис з пошуку.
+const ROBOTA_KEYWORDS = ["дизайнер", "ілюстратор", "художник", "фотограф", "відеограф", "відеомонтаж", "моушн", "аніматор", "3D", "копірайтер", "контент-мейкер", "UGC", "звукорежисер", "диктор"];
+export async function fetchRobota(): Promise<Article[]> {
+  const out = new Map<string, Article>();
+  for (const kw of ROBOTA_KEYWORDS) {
+    const res = await fetch(`https://api.rabota.ua/vacancy/search?keyWords=${encodeURIComponent(kw)}&scheduleId=3`, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) throw new Error(`robota.ua: ${res.status}`);
+    const r = (await res.json()) as { documents: { id: number; notebookId: number; name: string; companyName: string; date: string; salaryFrom: number; salaryTo: number; salaryComment?: string; cityName: string; shortDescription: string }[] };
+    for (const d of r.documents) {
+      const url = `https://robota.ua/company${d.notebookId}/vacancy${d.id}`;
+      const pay = d.salaryFrom || d.salaryTo ? `Зарплата: ${d.salaryFrom || ""}${d.salaryTo ? `–${d.salaryTo}` : ""} грн/міс ${d.salaryComment ?? ""}` : "Зарплата не вказана";
+      out.set(url, {
+        source: "robota.ua", account: "orders", url,
+        title: `${d.name} — ${d.companyName}`,
+        publishedAt: new Date(d.date),
+        content: `Вакансія з robota.ua (графік: віддалена робота). Компанія: ${d.companyName}. Місто компанії: ${d.cityName}. ${pay}.
+${d.shortDescription}`,
+      });
+    }
+  }
+  return [...out.values()];
+}
+
 export function notCreativeOrder(a: Article): string | null {
   return NEEDS_CREATIVE_WORDS.has(a.source) && !CREATIVE_WORDS.test(a.title) ? "не творче (за заголовком)" : null;
 }
@@ -121,6 +151,8 @@ pay_status — "amount" (сума чи діапазон вказані), "negoti
 співпраці й оплати — в анкеті чи формі за посиланням; бартер прямо не згаданий), "unclear" (про оплату нічого, бартер, «за досвід», «за відгук»,
 «безкоштовно», «undisclosed» без інших ознак оплати).
 Проєкт на біржі фрилансу (джерело Freelancehunt) оплачуваний за природою: якщо суми немає — "negotiable".
+Вакансія компанії на роботу за наймом чи контракт (remote_fulltime, remote_contract) оплачувана за природою: якщо зарплату
+не вказано — "negotiable".
 Хештег #оплата в пості каналу UGC Україна означає, що робота оплачувана: якщо суми немає — "negotiable".
 pay_min, pay_max — числа рівно з тексту (без пробілів; одна сума — обидва однакові; немає — 0).
 pay_currency — "UAH", "USD", "EUR", "other" або "" (немає суми). pay_period — "project" (за проєкт/замовлення), "hour",
