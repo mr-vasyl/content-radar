@@ -2,6 +2,7 @@
 //   npm start              — новини (за замовчуванням)
 //   npm start -- saves     — 💰 можливості тижня
 //   npm start -- promo     — 🚀 пост про SkyNovix для Threads
+//   npm start -- orders    — 🧾 «Замовлення для креаторів»
 import "dotenv/config";
 import { prisma } from "./db.ts";
 import { pollReactions } from "./reactions.ts";
@@ -10,14 +11,31 @@ import { runSaves } from "./modes/saves.ts";
 import { runPromo } from "./modes/promo.ts";
 import { runSell } from "./modes/sell.ts";
 import { runThreads } from "./modes/threads.ts";
+import { runOrders } from "./modes/orders.ts";
 
 const MODES = {
-  news: () => runNews(),
+  // гранти, а одразу за ними — 🧾 «Замовлення для креаторів» (в одному прогоні, щоб не тратити хвилини GitHub на npm ci)
+  news: async () => {
+    let newsErr: unknown = null;
+    try {
+      await runNews();
+    } catch (err) {
+      newsErr = err;
+    }
+    try {
+      await runOrders({ dryRun: false, send: true });
+    } catch (err) {
+      console.error("Замовлення впали:", err);
+      newsErr ??= err;
+    }
+    if (newsErr) throw newsErr;
+  },
   saves: () => runSaves({ dryRun: false, send: true }),
   // 🧵 з 2026-10-22 — Threads v3 (src/modes/threads.ts); стара генерація лишилась як режим promo_old
   promo: () => runThreads({ dryRun: false, send: true }),
   promo_old: () => runPromo({ dryRun: false, send: true }),
   sell: () => runSell({ dryRun: false, send: true }), // 🛍 «Продавай своє»
+  orders: () => runOrders({ dryRun: false, send: true }), // 🧾 «Замовлення для креаторів»
 } as const;
 
 const mode = (process.argv[2] || process.env.MODE || "news") as keyof typeof MODES;

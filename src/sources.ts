@@ -1,9 +1,10 @@
 // Тематичний акаунт, для якого джерело переважно пише.
 // Єдиний канал — гранти й можливості (account "knowledge"). Канали «Креатори UA» і «AI для творців» видалено
 // 2026-10-13; їхні перевірені RSS-сайти збережено в src/archive/sourcesArchive.ts.
-// 2026-10-17: другий канал — «Гранти для бізнесу» (account "business", src/business.ts).
+// 2026-10-17…10-31 був канал «Гранти для бізнесу» — власник закрив (не ріс); ФОП-гранти тепер ідуть у канал грантів (src/fop.ts).
+// 2026-10-31: «Замовлення для креаторів» (account "orders", src/orders.ts, власні джерела ORDER_SOURCES).
 // 2026-10-19 був третій канал «AI для творців» — 2026-10-20 власник його прибрав; джерела — в src/archive/sourcesArchive.ts.
-export type Account = "knowledge" | "business";
+export type Account = "knowledge" | "orders";
 
 export interface Source {
   name: string; // назва платформи для підпису "за матеріалами: ..."
@@ -11,25 +12,25 @@ export interface Source {
   account: Account;
   linkPattern?: RegExp; // сайт без RSS: читаємо сторінку url і беремо посилання за цим шаблоном
   telegram?: boolean; // url — юзернейм публічного Telegram-каналу; з постів беремо посилання на першоджерело
-  // 💼 бізнес-канал: "also" — що не підійшло митцям, перевіряємо як бізнес-грант; "only" — лише для бізнесу
-  business?: "also" | "only";
+  // 🧾 ФОП-гранти (у канал грантів): "also" — що не підійшло митцям, перевіряємо як грант для ФОП; "only" — лише як ФОП-грант
+  fop?: "also" | "only";
 }
 
 // 💰 Гранти, конкурси, стипендії, резиденції й можливості для українських митців і авторів.
 // «За матеріалами» — завжди першоджерело (фонд, що оголосив), а не ці агрегатори.
 export const sources: Source[] = [
   // Агрегатори грантів
-  { name: "ГУРТ", url: "https://gurt.org.ua/rss/section/grants/", account: "knowledge", business: "also" }, // лише розділ «Гранти»
-  { name: "Grant.Market", url: "https://grant.market/rss.xml", account: "knowledge", business: "also" },
+  { name: "ГУРТ", url: "https://gurt.org.ua/rss/section/grants/", account: "knowledge", fop: "also" }, // лише розділ «Гранти»
+  { name: "Grant.Market", url: "https://grant.market/rss.xml", account: "knowledge", fop: "also" },
   { name: "ІСАР Єднання", url: "https://ednannia.ua/?format=feed&type=rss", account: "knowledge" },
   // Простір: RSS розділу грантів порожній — читаємо сторінку; лише «Конкурси та гранти», без вакансій і тендерів
-  { name: "Простір", url: "https://www.prostir.ua/category/grants/", account: "knowledge", linkPattern: /prostir\.ua\/\?grants=[\w-]+$/, business: "also" },
+  { name: "Простір", url: "https://www.prostir.ua/category/grants/", account: "knowledge", linkPattern: /prostir\.ua\/\?grants=[\w-]+$/, fop: "also" },
   // 2026-10-15: розширення — за добу приходив 1 грант. GetGrant — лише розділ «Культура» (там Гранти Президента молодим
   // митцям, УКФ «Мистецькі дебюти», Gaude Polonia…); огляди донорів і добірки по країнах («analiz», «pidbirka»,
   // «польські/американські гранти для України») не беремо — це старі зведення, не один конкретний набір.
   { name: "GetGrant", url: "https://getgrant.ua/grant-category/culture/", account: "knowledge",
     linkPattern: /getgrant\.ua\/grants-and-funding\/(?![\w-]*(analiz|pidbirka|daydzhest|daidzhest|ohliad|ukrainski|dlia-ukrain|dlya-ukrain|vidkryt|derzhavni-granty))[\w-]+\/$/ },
-  { name: "Час змін", url: "https://chaszmin.com.ua/feed/", account: "knowledge", business: "also" }, // ~3/день, є премії й резиденції для митців
+  { name: "Час змін", url: "https://chaszmin.com.ua/feed/", account: "knowledge", fop: "also" }, // ~3/день, є премії й резиденції для митців
 
   // Фонди й інституції — RSS
   { name: "Український інститут", url: "https://ui.org.ua/feed/", account: "knowledge" },
@@ -69,18 +70,18 @@ export const sources: Source[] = [
 
   // 📡 Грантові Telegram-канали (конкуренти) як «радар»: з постів беремо лише посилання на першоджерело,
   // читаємо його й пишемо СВІЙ пост; «За матеріалами» — фонд, а не канал. Аналіз конкурентів — 2026-10-13.
-  { name: "Грантові фішки", url: "grantovyphishky", account: "knowledge", telegram: true, business: "also" }, // 32K
-  { name: "Грантові фішки EU", url: "grantovyphishkyEU", account: "knowledge", telegram: true, business: "also" },
-  { name: "Гранти та можливості", url: "grants_here", account: "knowledge", telegram: true, business: "also" }, // 21K
+  { name: "Грантові фішки", url: "grantovyphishky", account: "knowledge", telegram: true, fop: "also" }, // 32K
+  { name: "Грантові фішки EU", url: "grantovyphishkyEU", account: "knowledge", telegram: true, fop: "also" },
+  { name: "Гранти та можливості", url: "grants_here", account: "knowledge", telegram: true, fop: "also" }, // 21K
   // UA Grants (@uagrants) — прибрано 2026-10-20: за тиждень 0 постів для нас (ESC-волонтерство, Erasmus+ обміни за кордоном),
   // а посилання сховані за shorturl.at з перевіркою Cloudflare. unicompass — та сама ніша (молодь, навчання за кордоном).
-  { name: "Гранти UA", url: "grantsua", account: "knowledge", telegram: true, business: "also" }, // 18K, багато ГО й гуманітарки — фільтри відсіють
+  { name: "Гранти UA", url: "grantsua", account: "knowledge", telegram: true, fop: "also" }, // 18K, багато ГО й гуманітарки — фільтри відсіють
   // 2026-10-15
-  { name: "Grant UP!", url: "GrantUP", account: "knowledge", telegram: true, business: "also" }, // ~4/день: премії, Docudays, open call (+ новини — відсіються)
+  { name: "Grant UP!", url: "GrantUP", account: "knowledge", telegram: true, fop: "also" }, // ~4/день: премії, Docudays, open call (+ новини — відсіються)
   { name: "Літцентр", url: "litcentr", account: "knowledge", telegram: true }, // літконкурси й премії для письменників і перекладачів
   // 2026-10-26 (власник: тематика — не лише гранти, а й навчання, безкоштовні події, курси й ресурси; аналіз TGStat)
-  { name: "Твій космос можливостей", url: "tviyspace", account: "knowledge", telegram: true, business: "also" }, // ~20/тиждень, з посиланнями
-  { name: "МОЖЛИВОСТІ", url: "Mozhlyvosti", account: "knowledge", telegram: true, business: "also" }, // 99K: курси, вебінари (+вакансії — фільтр відсіє)
+  { name: "Твій космос можливостей", url: "tviyspace", account: "knowledge", telegram: true, fop: "also" }, // ~20/тиждень, з посиланнями
+  { name: "МОЖЛИВОСТІ", url: "Mozhlyvosti", account: "knowledge", telegram: true, fop: "also" }, // 99K: курси, вебінари (+вакансії — фільтр відсіє)
   { name: "Просвіта", url: "ProsvitaUA", account: "knowledge", telegram: true }, // безкоштовні курси (DaVinci, дизайн…)
   { name: "Kyiv Art", url: "kyiv_art", account: "knowledge", telegram: true }, // виставки, презентації, події в Києві
   { name: "Creative Practice", url: "creativepracticeua", account: "knowledge", telegram: true }, // дизайн: навчання, події
@@ -89,20 +90,19 @@ export const sources: Source[] = [
   // НЕ взято 2026-10-26: Гончаренко центри (загальні курси не для творців), Творча рада й «Художник, малюй!» (без посилань,
   // лише роботи/уроки), Дія.Освіта (курси для держслужбовців), Український інститут книги (сайт не читається ботом).
   // 2026-10-20
-  { name: "КУЛЬТУРА.МОЖЛИВОСТІ!", url: "culture_ua", account: "knowledge", telegram: true, business: "also" }, // ~3/день: резиденції, стипендії, гранти культури
+  { name: "КУЛЬТУРА.МОЖЛИВОСТІ!", url: "culture_ua", account: "knowledge", telegram: true, fop: "also" }, // ~3/день: резиденції, стипендії, гранти культури
   { name: "УКФ щодня", url: "ucf_ua", account: "knowledge", telegram: true }, // офіційний канал УКФ, ~4/тиждень
   // Перевірено 2026-10-20 й НЕ взято: Мінекономіки (новини й кредити), КОШТ (бізнес-новини), регіональні Дія.Бізнес
   // (майже не пишуть), Громадський Простір TG (мертвий з 2024; сайт уже є), Український фонд стартапів TG (мертвий).
   { name: "ART BOT", url: "artbotme", account: "knowledge", telegram: true }, // open call для художників (рідко, але точно в ціль)
-  // 💼 Лише для бізнес-каналу (2026-10-17)
-  { name: "Грант Радар", url: "https://grantradar.com.ua/", account: "business", business: "only", linkPattern: /grantradar\.com\.ua\/hrant\/\d+-[\w-]+\/$/ },
-  { name: "Грант Радар TG", url: "granty_ukraine", account: "business", business: "only", telegram: true }, // ~5/день
-  { name: "GetGrant Бізнес", url: "https://getgrant.ua/grant-category/business/", account: "business", business: "only",
+  // 🧾 Лише ФОП-гранти (були джерелами бізнес-каналу 2026-10-17)
+  { name: "Грант Радар", url: "https://grantradar.com.ua/", account: "knowledge", fop: "only", linkPattern: /grantradar\.com\.ua\/hrant\/\d+-[\w-]+\/$/ },
+  { name: "Грант Радар TG", url: "granty_ukraine", account: "knowledge", fop: "only", telegram: true }, // ~5/день
+  { name: "GetGrant Бізнес", url: "https://getgrant.ua/grant-category/business/", account: "knowledge", fop: "only",
     linkPattern: /getgrant\.ua\/grants-and-funding\/(?![\w-]*(analiz|pidbirka|daydzhest|daidzhest|ohliad))[\w-]+\/$/ },
   // 2026-10-20: міжнародні для українського бізнесу
-  { name: "EU NEIGHBOURS East", url: "https://euneighbourseast.eu/opportunities/feed/", account: "knowledge", business: "also" }, // EU4Business та ін. для Східного партнерства
-  { name: "Український фонд стартапів", url: "https://usf.com.ua/news/", account: "business", business: "only",
-    linkPattern: /usf\.com\.ua\/[\w-]*(grant|program|konkurs|nabir|vidkryv|brave1)[\w-]*$/ },
+  { name: "EU NEIGHBOURS East", url: "https://euneighbourseast.eu/opportunities/feed/", account: "knowledge", fop: "also" }, // EU4Business та ін. для Східного партнерства
+  // Український фонд стартапів — прибрано 2026-10-31 разом з бізнес-каналом (стартапи, не ФОП)
   // НЕ взято 2026-10-20: ONE PASS (наукові консорціуми Horizon), FundingHub (сайт на JS — бот не бачить списку),
   // ПРООН і МОМ в Україні (сайти блокують бота), CSO Digital (не відповідає).
   // Перевірено для бізнесу й НЕ взято: t.me/grants_ukraine (1 пост за 3 дні, посилання на платних консультантів),

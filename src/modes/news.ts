@@ -5,7 +5,8 @@ import { filterNew, makeDuplicateChecker, recentSentTitles, record, sameAsRecent
 import { noisyReason, notCreativeReason, ruleRejectReason } from "../ruleFilter.ts";
 import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
-import { analyzeBusiness } from "../business.ts";
+import { analyzeFop } from "../fop.ts";
+import { queueFromGrant } from "../orders.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { factCheck } from "../factCheck.ts";
 import { withToolLink } from "../digest.ts";
@@ -47,20 +48,20 @@ export async function runNews(): Promise<void> {
   const recent = all.filter((a) => !a.publishedAt || a.publishedAt.getTime() >= cutoff);
   const fresh = await filterNew(recent);
 
-  // 💼 для якого каналу джерело: лише митці (за замовчуванням), "also" — ще й бізнес, "only" — лише бізнес
-  const businessMode = new Map(sources.map((s) => [s.name, s.business]));
-  const skipCreative = new Set<string>(); // url-и, які за словами явно не для митців, але можуть бути бізнес-грантом
+  // 🧾 ФОП-гранти: "also" — що не підійшло митцям, перевіряємо як грант для ФОП; "only" — лише як ФОП-грант
+  const fopMode = new Map(sources.map((s) => [s.name, s.fop]));
+  const skipCreative = new Set<string>(); // url-и з джерел лише ФОП-грантів
 
   // 1. прості правила — без GPT
   const candidates: Article[] = [];
   for (const a of fresh) {
-    const mode = businessMode.get(a.source);
-    const why = ruleRejectReason(a) ?? noisyReason(a) ?? (mode ? null : notCreativeReason(a));
+    // агро, ветерани, медицина… — не для креаторів і не «будь-який ФОП» (fop.ts), тож відсікаємо для всіх джерел
+    const why = ruleRejectReason(a) ?? noisyReason(a) ?? notCreativeReason(a);
     if (why) {
       await record(a, "rejected_rules", { reason: why });
       continue;
     }
-    if (mode === "only" || notCreativeReason(a)) skipCreative.add(a.url);
+    if (fopMode.get(a.source) === "only") skipCreative.add(a.url);
     candidates.push(a);
   }
 
@@ -93,16 +94,16 @@ export async function runNews(): Promise<void> {
       // премія Леонтовича, стипендія OSA відкинуті як «без дедлайну»). Тому GPT бачить і пост каналу, і першоджерело.
       const isTelegram = sources.find((s) => s.name === a.source)?.telegram;
       const fullText = isTelegram && a.content ? `Пост каналу:\n${a.content}\n\nСторінка першоджерела:\n${extracted?.text ?? "(не прочиталась)"}` : (extracted?.text ?? null);
-      // Спершу — канал для митців; що не підійшло й прийшло з грантового джерела — перевіряємо як бізнес-грант
+      // Спершу — як можливість для митців; що не підійшло й прийшло з грантового джерела — перевіряємо як грант для ФОП
       let analysis: Analysis | null = null;
       if (!skipCreative.has(a.url)) analysis = await analyze(a, fullText, extracted?.links);
       const creativeOk = analysis?.account === "knowledge" && analysis.score >= minScoreFor("knowledge");
-      if (!creativeOk && businessMode.get(a.source)) {
-        const biz = await analyzeBusiness(a, fullText, extracted?.links);
-        if (biz.score >= minScoreFor("business") || !analysis) analysis = biz;
-        else analysis.reason = `${analysis.reason} | бізнес: ${biz.score}/10 ${biz.reason}`;
+      if (!creativeOk && fopMode.get(a.source)) {
+        const fop = await analyzeFop(a, fullText, extracted?.links);
+        if (fop.score >= minScoreFor("knowledge") || !analysis) analysis = fop;
+        else analysis.reason = `${analysis.reason} | ${fop.score}/10 ${fop.reason}`;
       }
-      if (!analysis) throw new Error("немає аналізу"); // не буває: без аналізу для митців завжди є бізнесовий
+      if (!analysis) throw new Error("немає аналізу"); // не буває: без аналізу для митців завжди є ФОП-аналіз
 
       // Надсилаємо лише можливості; звичайні новини з медіа-джерел — "other", не шлемо
       if (analysis.account !== "other" && analysis.score >= minScoreFor(analysis.account)) {
@@ -142,6 +143,8 @@ export async function runNews(): Promise<void> {
         }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
         if (analysis.hook) await sendHook(analysis.hook);
         await record(a, "sent", { analysis }); // тільки після успішної відправки
+        // 🧾 конкурс/open call з грошима для учасника — ще й у чергу «Замовлень для креаторів»
+        if (analysis.cash_prize) await queueFromGrant(a, analysis).catch((e) => console.error("черга замовлень:", e));
         sent++;
         console.log(`✓ ${analysis.score}/10 ${a.title}`);
       } else {

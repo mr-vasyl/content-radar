@@ -8,13 +8,13 @@ import { TAGS, TAGS_PROMPT, TYPE_TAGS } from "./channels.ts";
 export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
 
 // Поріг каналу грантів — 6 (власник: «нижче 6 не беремо»). GPT пише пост від нього ж.
-export const MIN_SCORE_BY_ACCOUNT: Record<Account, number> = { knowledge: MIN_SCORE - 1, business: MIN_SCORE - 1 };
+export const MIN_SCORE_BY_ACCOUNT: Record<Account, number> = { knowledge: MIN_SCORE - 1, orders: MIN_SCORE - 1 };
 export const minScoreFor = (account: Account) => MIN_SCORE_BY_ACCOUNT[account];
 const WRITE_FROM = Math.min(...Object.values(MIN_SCORE_BY_ACCOUNT));
 
 export const STREAMS = ["Гранти", "Конкурси й премії", "Резиденції", "Стипендії", "Навчання", "Події", "Інше"] as const;
 
-export const ACCOUNTS: Record<Account, string> = { knowledge: "💰 Можливості", business: "💼 Бізнес" };
+export const ACCOUNTS: Record<Account, string> = { knowledge: "💰 Можливості", orders: "🧾 Замовлення" };
 
 // YYYY-MM-DD, що вже минув, сьогодні чи завтра → пізно (спільне з бізнес-каналом)
 export function deadlineTooLate(deadline: string | undefined): boolean {
@@ -41,6 +41,8 @@ export interface Analysis {
   foreign_restrictions?: boolean; // потрібні громадянство, посвідка чи віза іншої країни; Україну виключено
   transparent?: boolean; // зрозумілий організатор і умови, без підозрілих «вступних» схем
   always_open?: boolean; // безкоштовний курс/ресурс, доступний будь-коли (без набору й дедлайну)
+  // 🧾 переможці/учасники отримують ГРОШІ (приз, гонорар, оплачене замовлення) — такий пост іде ще й у «Замовлення для креаторів»
+  cash_prize?: boolean;
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -76,6 +78,9 @@ entry_fee — true, якщо учасник має щось платити: вс
 публікацію, каталог чи виставку (submission fee, entry fee, participation fee). Безкоштовна подача — false.
 foreign_restrictions — true, якщо подати можуть лише громадяни чи резиденти певних країн без України, або потрібні
 віза, посвідка на проживання чи громадянство іншої країни, або Україну прямо виключено. Інакше — false.
+cash_prize — true, якщо переможці чи учасники отримують ГРОШІ особисто: грошовий приз чи премія, гонорар за роботу,
+оплачене замовлення (open call з гонораром, конкурс з грошовою винагородою). Грант на проєкт, стипендія, резиденція,
+навчання, приз-річ чи «публікація/виставка» без грошей — false.
 transparent — true, якщо організатор зрозумілий (фонд, інституція, фестиваль, медіа з іменем) і умови прозорі;
 false — анонімний організатор, туманні умови, «конкурси», де переможець має щось купити чи оплатити.
 origin — ПЕРШОДЖЕРЕЛО, яке вкажемо в «За матеріалами»: якщо стаття лише передає чужу інформацію (агрегатор грантів —
@@ -109,7 +114,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector", "entry_fee", "foreign_restrictions", "transparent", "always_open"],
+  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector", "entry_fee", "foreign_restrictions", "transparent", "always_open", "cash_prize"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -127,6 +132,7 @@ const SCHEMA = {
     foreign_restrictions: { type: "boolean" },
     transparent: { type: "boolean" },
     always_open: { type: "boolean" },
+    cash_prize: { type: "boolean" },
   },
 } as const;
 

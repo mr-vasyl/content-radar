@@ -47,7 +47,7 @@ function channelSignature(account: Account): string {
 
 // Що записати про пост, щоб потім зіставити з ним твою реакцію
 export interface Track {
-  format: "news" | "saves" | "promo" | "sell";
+  format: "news" | "saves" | "promo" | "sell" | "orders";
   title: string;
   url?: string;
   source?: string;
