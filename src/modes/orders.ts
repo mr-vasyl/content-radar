@@ -46,7 +46,15 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
   const all: Article[] = [];
   for (const s of ORDER_SOURCES) {
     try {
-      all.push(...(await fetchArticles(s)));
+      const items = await fetchArticles(s);
+      // Сторінка без RSS (linkPattern) читається вперше: там висять і старі оголошення без дат — позначаємо їх баченими,
+      // а далі беремо лише нові посилання
+      if (s.linkPattern && !opts.dryRun && !(await prisma.article.count({ where: { url: { startsWith: P }, source: s.name } }))) {
+        for (const a of items) await save(a, "ord_rejected_rules", { reason: "початковий стан сторінки" });
+        console.log(`${s.name}: перше читання — ${items.length} наявних оголошень позначено баченими`);
+        continue;
+      }
+      all.push(...items);
     } catch (err) {
       console.error(`Помилка з джерелом ${s.name}:`, (err as Error).message);
     }

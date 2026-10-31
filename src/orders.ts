@@ -32,6 +32,8 @@ export const ORDER_SOURCES: Source[] = [
   S("Dribbble Jobs", "https://dribbble.com/jobs.rss"),
   S("Coroflot", "https://www.coroflot.com/jobs/rss"),
   S("We Work Remotely", "https://weworkremotely.com/categories/remote-design-jobs.rss"),
+  // 📰 Сайти замовників (сторінки без RSS; при першому читанні все наявне позначаємо як бачене — беремо лише нові)
+  S("Kyiv Independent", "https://kyivindependent.com/jobs/", { linkPattern: /^https:\/\/kyivindependent\.com\/(?!jobs|join-the-team|about|contacts|help-center|privacy|cookie|community|commercial|news-archive|newsletters|j-school)[a-z0-9-]+\/?$/ }), // редакція: freelance-редактори, контент-креатори (офіс відсіє код)
   // 🏆 Конкурси з призами (з внеском — відсіє код)
   S("Contest Watchers", "https://www.contestwatchers.com/feed/"),
   S("Contest Watchers фото", "https://www.contestwatchers.com/category/photography/feed/"),
