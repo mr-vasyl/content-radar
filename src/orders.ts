@@ -12,7 +12,7 @@ import type { Article } from "./fetchArticles.ts";
 import type { ArticleLink } from "./extractText.ts";
 import type { Source } from "./sources.ts";
 import type { Analysis } from "./summarize.ts";
-import { askJson, LANGUAGE } from "./gpt.ts";
+import { askJson, LANGUAGE, TEASER_END } from "./gpt.ts";
 import { deadlineTooLate } from "./summarize.ts";
 import { ORDER_PROF_TAGS, ORDER_TAGS, ORDER_TYPE_TAGS } from "./channels.ts";
 
@@ -305,6 +305,27 @@ export async function queueFromGrant(a: Article, analysis: Analysis): Promise<vo
       post: analysis.post, tags: ["#конкурси", ...(prof.length ? prof : ["#усім"])].join(" "), hook: JSON.stringify(meta),
     },
   });
+}
+
+// 🧵 Тизер для Threads під кожним постом (власник 2026-10-31) — з ГОТОВОГО поста (уже після фактчеку), тож нових фактів
+// не з'явиться. Формат як у тизерів грантів; кінцівку TEASER_END і чистку смайликів додає sendHook.
+export async function orderTeaser(post: string): Promise<string> {
+  const r = await askJson<{ hook: string }>(
+    `Зроби з поста Telegram-каналу «Замовлення для креаторів 🇺🇦» короткий пост-тизер для Threads українською
+(200–380 символів), який веде людей у наш Telegram:
+- перший рядок — що шукають і сума (якщо є), зрозуміло без контексту, не загадка;
+- далі 2–4 короткі пункти, кожен з нового рядка через «— »: оплата, кого шукають, формат, дедлайн (що є в пості);
+  з малої літери, в кінці «;», в останнього «.»;
+- потім одне коротке речення (кому підійде чи головний нюанс);
+- БЕЗ смайликів, хештегів, посилань і розмітки (без **зірочок**); рядок про Telegram НЕ пиши — його додасть код;
+- лише факти з поста, нічого не вигадуй;
+- порожній рядок після першого рядка і перед реченням у кінці (пункти — підряд, без порожніх рядків між ними).
+${LANGUAGE}`,
+    post.replace(/\n*🔗 \[[^\]]*\]\([^)]*\)\s*$/, ""), // без рядка з посиланням
+    "order_teaser",
+    { type: "object", additionalProperties: false, required: ["hook"], properties: { hook: { type: "string" } } },
+  );
+  return r.hook.split(TEASER_END).join("").trim();
 }
 
 // ─────────────── 📊 Ціни тижня (раз на тиждень; цифри рахує код, не GPT) ───────────────

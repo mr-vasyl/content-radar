@@ -11,10 +11,10 @@ import { ruleRejectReason } from "../ruleFilter.ts";
 import { makeDuplicateChecker } from "../dedup.ts";
 import { prefilter } from "../prefilter.ts";
 import { factCheck } from "../factCheck.ts";
-import { sendPost } from "../sendToTelegram.ts";
+import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
 import {
-  analyzeOrder, notCreativeOrder, ORDER_SOURCES, PRODUCT_IDEAS, priorityOf, productPost, rubricOf, RUBRICS, weeklyPrices,
+  analyzeOrder, notCreativeOrder, orderTeaser, ORDER_SOURCES, PRODUCT_IDEAS, priorityOf, productPost, rubricOf, RUBRICS, weeklyPrices,
   withOrderLink, type Meta, type Rubric,
 } from "../orders.ts";
 import type { RunOptions } from "./types.ts";
@@ -114,7 +114,10 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
       console.log(`✓ ${v.score}/10 [${v.kind}] ${a.title}`);
       if (opts.dryRun) {
         console.log(`\n${post}\n`);
-        if (opts.send) await sendPost(post, { tags: v.tags, account: "orders", source: v.meta.origin || a.source, lines: [`🧪 тест · ${v.kind} · ${v.score}/10`], link: { url: a.url, label: "Оригінал" } });
+        if (opts.send) {
+          await sendPost(post, { tags: v.tags, account: "orders", source: v.meta.origin || a.source, lines: [`🧪 тест · ${v.kind} · ${v.score}/10`], link: { url: a.url, label: "Оригінал" } });
+          await sendHook(await orderTeaser(post));
+        }
         continue;
       }
       await save(a, "ord_queue", { reason: v.reason, kind: v.kind, score: v.score, post, tags: v.tags, meta });
@@ -166,6 +169,13 @@ async function sendFromQueue(): Promise<void> {
     link: { url: original, label: "Оригінал" },
   }, { format: "orders", title: q.title, url: original, source: q.source, account: rubric, score: q.score ?? undefined });
   await prisma.article.update({ where: { id: q.id }, data: { status: "ord_sent" } });
+  // 🧵 тизер для Threads — окремим повідомленням під постом; збій тизера не зриває сам пост
+  try {
+    const t = await orderTeaser(q.post!);
+    if (t) await sendHook(t);
+  } catch (err) {
+    console.error("Тизер для Threads не вийшов:", (err as Error).message);
+  }
   console.log(`✓ надіслано [${rubric}] ${q.title} (у черзі лишилось ${live.length - 1})`);
 }
 
