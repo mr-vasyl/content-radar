@@ -43,6 +43,8 @@ export interface Analysis {
   always_open?: boolean; // безкоштовний курс/ресурс, доступний будь-коли (без набору й дедлайну)
   // 🧾 переможці/учасники отримують ГРОШІ (приз, гонорар, оплачене замовлення) — такий пост іде ще й у «Замовлення для креаторів»
   cash_prize?: boolean;
+  // 🎓 навчання/подія саме про творчу професію (власник 2026-10-31: загальні конференції, SEO, онлайн-ефіри — ні)
+  creative_topic?: boolean;
 }
 
 const SYSTEM_PROMPT = `${AUDIENCE}
@@ -81,6 +83,11 @@ foreign_restrictions — true, якщо подати можуть лише гр�
 cash_prize — true, якщо переможці чи учасники отримують ГРОШІ особисто: грошовий приз чи премія, гонорар за роботу,
 оплачене замовлення (open call з гонораром, конкурс з грошовою винагородою). Грант на проєкт, стипендія, резиденція,
 навчання, приз-річ чи «публікація/виставка» без грошей — false.
+creative_topic — для stream «Навчання» чи «Події»: true ЛИШЕ якщо сама тема — творча професія чи ремесло: ілюстрація,
+живопис, кіно, документалістика, сценарії, письмо й переклад, музика, фото, дизайн, театр і танець, творча журналістика,
+ігровий арт, анімація, кураторство. false — загальні конференції й тренінги (SEO, маркетинг, SMM, IT, AI загалом, бізнес,
+громади, психологія, мови), онлайн-ефіри й лекції загальної тематики, хакатони без творчого фокусу.
+Для грантів, конкурсів, резиденцій і стипендій — true.
 transparent — true, якщо організатор зрозумілий (фонд, інституція, фестиваль, медіа з іменем) і умови прозорі;
 false — анонімний організатор, туманні умови, «конкурси», де переможець має щось купити чи оплатити.
 origin — ПЕРШОДЖЕРЕЛО, яке вкажемо в «За матеріалами»: якщо стаття лише передає чужу інформацію (агрегатор грантів —
@@ -114,7 +121,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector", "entry_fee", "foreign_restrictions", "transparent", "always_open", "cash_prize"],
+  required: ["score", "stream", "account", "reason", "post", "hook", "tags", "link", "deadline", "origin", "applicants", "creative_sector", "entry_fee", "foreign_restrictions", "transparent", "always_open", "cash_prize", "creative_topic"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -133,6 +140,7 @@ const SCHEMA = {
     transparent: { type: "boolean" },
     always_open: { type: "boolean" },
     cash_prize: { type: "boolean" },
+    creative_topic: { type: "boolean" },
   },
 } as const;
 
@@ -193,6 +201,14 @@ export async function analyze(article: Article, fullText: string | null, links: 
   if (isOpportunity && !/^\d{4}-\d{2}-\d{2}$/.test(result.deadline ?? "") && !result.always_open) {
     result.reason = `грант без дедлайну — незрозуміло, чи набір відкритий — ${result.reason}`;
     result.score = Math.min(result.score, 5);
+    result.post = "";
+    result.hook = "";
+  }
+
+  // Навчання й події — лише про творчу професію (власник 2026-10-31: «перше більше гранти»; SEO-конференції, онлайн-ефіри — ні)
+  if ((result.stream === "Навчання" || result.stream === "Події") && result.creative_topic === false && result.score > 2) {
+    result.reason = `навчання/подія не про творчу професію — ${result.reason}`;
+    result.score = 2;
     result.post = "";
     result.hook = "";
   }

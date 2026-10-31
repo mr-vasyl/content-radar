@@ -19,6 +19,12 @@ const MAX_PER_RUN = 50;
 // Старіше — не новина. Деякі стрічки (Figma, Hugging Face) віддають увесь архів.
 const MAX_AGE_DAYS = 3;
 
+// Власник 2026-10-31: «перше більше гранти». Навчання й події — не більше EVENTS_PER_DAY за добу (ковзні 24 год),
+// а в межах прогону спершу надсилаємо гранти, потім конкурси, резиденції, стипендії, і лише тоді навчання й події.
+const EVENT_STREAMS = ["Навчання", "Події"];
+const EVENTS_PER_DAY = 3;
+const STREAM_ORDER = ["Гранти", "Конкурси й премії", "Резиденції", "Стипендії", "Навчання", "Події"];
+
 // Чи надсилали за 60 днів пост з тим самим посиланням на програму (withToolLink дописує «🔗 url» у кінець поста)
 async function sentWithLink(link: string): Promise<boolean> {
   const core = link.replace(/^https?:\/\/(www\.)?/, "").replace(/[?#].*$/, "").replace(/\/$/, "");
@@ -82,6 +88,8 @@ export async function runNews(): Promise<void> {
   let sent = 0;
   let failed = 0;
   const isDuplicate = makeDuplicateChecker(await recentSentTitles());
+  let events = await prisma.article.count({ where: { status: "sent", stream: { in: EVENT_STREAMS }, createdAt: { gte: new Date(Date.now() - 86400000) } } });
+  const ready: { a: Article; analysis: Analysis }[] = [];
   for (const a of batch) {
     // Той самий грант/новина з іншого сайту — без GPT і без повторного поста
     const dup = isDuplicate(a.title);
@@ -109,6 +117,11 @@ export async function runNews(): Promise<void> {
 
       // Надсилаємо лише можливості; звичайні новини з медіа-джерел — "other", не шлемо
       if (analysis.account !== "other" && analysis.score >= minScoreFor(analysis.account)) {
+        if (EVENT_STREAMS.includes(analysis.stream) && events >= EVENTS_PER_DAY) {
+          await record(a, "rejected_ai", { analysis: { ...analysis, reason: `ліміт навчання й подій (${EVENTS_PER_DAY} на добу) — ${analysis.reason}` } });
+          console.log(`· ліміт подій: ${a.title}`);
+          continue;
+        }
         // Та сама програма вже була з іншого агрегатора під іншою назвою — не шлемо (і не платимо за фактчек)
         const same = await sameAsRecent(a.title, analysis.post);
         if (same) {
@@ -134,21 +147,8 @@ export async function runNews(): Promise<void> {
         // Для Telegram-джерел a.url — це вже першоджерело (сторінка фонду, форма), для агрегаторів — сторінка з умовами.
         analysis.post = withToolLink(fc.post, analysis.link || a.url);
         if (analysis.hook) analysis.hook = fc.hook;
-        // Під лінією — лише «За матеріалами» й «Оригінал» (власник 2026-10-29: без оцінки, назви й правок фактчеку;
-        // канал видно з підпису над лінією)
-        await sendPost(analysis.post, {
-          tags: analysis.tags,
-          account: analysis.account,
-          source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
-          lines: [],
-          link: { url: a.url, label: "Оригінал" },
-        }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
-        if (analysis.hook) await sendHook(analysis.hook);
-        await record(a, "sent", { analysis }); // тільки після успішної відправки
-        // 🧾 конкурс/open call з грошима для учасника — ще й у чергу «Замовлень для креаторів»
-        if (analysis.cash_prize) await queueFromGrant(a, analysis).catch((e) => console.error("черга замовлень:", e));
-        sent++;
-        console.log(`✓ ${analysis.score}/10 ${a.title}`);
+        if (EVENT_STREAMS.includes(analysis.stream)) events++;
+        ready.push({ a, analysis }); // надсилаємо після оцінки всієї пачки — гранти першими
       } else {
         await record(a, "rejected_ai", { analysis });
         console.log(`· ${analysis.score}/10 ${a.title} — ${analysis.reason}`);
@@ -156,6 +156,31 @@ export async function runNews(): Promise<void> {
     } catch (err) {
       // не записуємо — спробуємо ще раз наступного запуску
       console.error(`✗ ${a.title}:`, err);
+      failed++;
+    }
+  }
+
+  // 3. Надсилання: гранти → конкурси → резиденції → стипендії → навчання → події; всередині — вища оцінка першою
+  const rank = (x: Analysis) => { const i = STREAM_ORDER.indexOf(x.stream); return (i < 0 ? STREAM_ORDER.length : i) * 100 - x.score; };
+  ready.sort((x, y) => rank(x.analysis) - rank(y.analysis));
+  for (const { a, analysis } of ready) {
+    try {
+      // Під лінією — лише «За матеріалами» й «Оригінал» (власник 2026-10-29: без оцінки, назви й правок фактчеку)
+      await sendPost(analysis.post, {
+        tags: analysis.tags,
+        account: analysis.account === "other" ? undefined : analysis.account,
+        source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
+        lines: [],
+        link: { url: a.url, label: "Оригінал" },
+      }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
+      if (analysis.hook) await sendHook(analysis.hook);
+      await record(a, "sent", { analysis }); // тільки після успішної відправки
+      // 🧾 конкурс/open call з грошима для учасника — ще й у чергу «Замовлень для креаторів»
+      if (analysis.cash_prize) await queueFromGrant(a, analysis).catch((e) => console.error("черга замовлень:", e));
+      sent++;
+      console.log(`✓ ${analysis.score}/10 [${analysis.stream}] ${a.title}`);
+    } catch (err) {
+      console.error(`✗ надсилання ${a.title}:`, err); // не записано — спробуємо наступного запуску
       failed++;
     }
   }
