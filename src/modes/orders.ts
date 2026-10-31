@@ -75,11 +75,17 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
     candidates.push(a);
   }
 
-  const picked = await prefilter(
-    candidates,
-    "оплачувані творчі замовлення, віддалена творча робота, конкурси з грошовими призами й бренди, що шукають UGC-креаторів, — для українських дизайнерів, ілюстраторів, фотографів, відеографів, музикантів і авторів. Офісні вакансії, продажі, менеджмент, розробка — ні.",
-    limit,
-  );
+  // Freelancehunt дає найбільше (~50 на добу), тож відбираємо окремо: половина місць — йому, половина — решті джерел
+  // (вакансії, конкурси, бренди); невикористані місця однієї групи віддаємо іншій
+  const PURPOSE =
+    "оплачувані творчі замовлення, віддалена творча робота, конкурси з грошовими призами й бренди, що шукають UGC-креаторів, — для українських дизайнерів, ілюстраторів, фотографів, відеографів, музикантів і авторів. Офісні вакансії, продажі, менеджмент, розробка — ні.";
+  const fh = candidates.filter((a) => a.source === "Freelancehunt");
+  const rest = candidates.filter((a) => a.source !== "Freelancehunt");
+  const restKeep = Math.max(Math.ceil(limit / 2), limit - fh.length);
+  const pick = async (list: Article[], keep: number) => (keep > 0 && list.length ? prefilter(list, PURPOSE, Math.min(keep, list.length)) : new Set<string>());
+  const pickedRest = await pick(rest, restKeep);
+  const pickedFh = await pick(fh, limit - pickedRest.size);
+  const picked = new Set([...pickedRest, ...pickedFh]);
   console.log(`Замовлення: у стрічках ${all.length}, свіжих ${recent.length}, нових ${fresh.length}, після правил ${candidates.length}, на оцінку ${picked.size}`);
 
   for (const a of candidates) {
