@@ -1,12 +1,13 @@
 // 🧵 Керування автопублікацією в Threads (сама публікація — у базі, див. scripts/setupThreads.ts).
 //   npm run threads -- account <назва> <токен>      додати/оновити акаунт (токен з Meta → User Token Generator)
 //   npm run threads -- import <назва> <файл.txt>    додати пости в чергу (розділювач — рядок «---»)
-//   npm run threads -- test <назва>                 опублікувати перший пост черги за хвилину
+//   npm run threads -- photo <назва> <файл.txt> [тека]  пости з випадковою картинкою, по 1 на день (тека — content/threads-images)
+//   npm run threads -- test <назва>               опублікувати перший пост черги за хвилину
 //   npm run threads -- status                       що опубліковано, що в черзі, помилки
 //   npm run threads -- pause|resume <назва>
 // Розклад (власник 2026-10-29): 5 на день, 2 між 9:00 і 18:00, 3 між 18:00 і 24:00 за Києвом, час випадковий.
 import "dotenv/config";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import pg from "pg";
 
 const LIMIT = 480; // ліміт Threads — 500 символів, лишаємо запас
@@ -187,6 +188,75 @@ async function importPlan(file: string, dry: boolean) {
   console.log(`${dry ? "Перевірка" : "✓ додано"}: ${dry ? posts.length : added} постів${dry ? "" : `, з них ланцюжків: ${chains}`}`);
 }
 
+// 🖼 Пости з картинкою (власник 2026-10-31): по одному на день на акаунт, картинка — випадкова з теки.
+// Threads бере картинку лише за публічним посиланням → кладемо в публічний кошик «threads» у Supabase Storage.
+// Потрібен SUPABASE_SERVICE_KEY у .env (Supabase → Project Settings → API Keys → service_role / secret).
+async function uploadImage(file: string): Promise<string> {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!key) throw new Error("немає SUPABASE_SERVICE_KEY у .env (Supabase → Project Settings → API Keys → service_role)");
+  const ref = process.env.DATABASE_URL!.match(/postgres\.([a-z0-9]+)[:@]/)?.[1];
+  if (!ref) throw new Error("не знайшов id проєкту Supabase у DATABASE_URL");
+  const base = `https://${ref}.supabase.co/storage/v1`;
+  await db.query("insert into storage.buckets (id, name, public) values ('threads', 'threads', true) on conflict (id) do update set public = true");
+  const name = file.replace(/\\/g, "/").split("/").at(-1)!;
+  const r = await fetch(`${base}/object/threads/${name}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": name.endsWith(".png") ? "image/png" : "image/jpeg", "x-upsert": "true" },
+    body: readFileSync(file),
+  });
+  if (!r.ok) throw new Error(`Storage не прийняв ${name}: ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return `${base}/object/public/threads/${name}`;
+}
+
+async function photoPosts(name: string, file: string, dir: string) {
+  if (!(await db.query("select 1 from threads.accounts where name = $1", [name])).rowCount) throw new Error(`немає акаунта ${name}`);
+  const raw = readFileSync(file, "utf8").replace(/^﻿/, "").replace(/\r/g, "");
+  const posts = raw.split(/\n\s*-{3,}\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const images = readdirSync(dir).filter((f) => /\.(png|jpe?g)$/i.test(f));
+  if (!images.length) throw new Error(`у ${dir} немає картинок`);
+  const urls = new Map<string, string>();
+  for (const f of images) urls.set(f, await uploadImage(`${dir}/${f}`));
+
+  // з якого дня: після останнього поста з картинкою цього акаунта, але не раніше завтра
+  const last = (await db.query("select max(scheduled_at) m from threads.posts where account = $1 and part = 0 and image_url is not null", [name])).rows[0].m as Date | null;
+  const tomorrow = new Date(Date.now() + 86400000);
+  let [y, m, d] = kyivDate(last && last.getTime() + 86400000 > tomorrow.getTime() ? new Date(last.getTime() + 86400000) : tomorrow);
+
+  let prevImage = "";
+  let added = 0;
+  for (const text of posts) {
+    const parts = splitPost(text);
+    if ((await db.query("select 1 from threads.posts where account = $1 and part = 0 and text = $2", [name, parts[0]])).rowCount) {
+      console.log(`   = вже є: «${parts[0]!.slice(0, 50)}…»`);
+      continue;
+    }
+    // час: 18:00–23:40 за Києвом (власник 2026-10-31), ≥75 хв від інших постів цього акаунта і ≥20 хв від іншого акаунта
+    const dayStart = kyiv(y, m, d, 0).getTime();
+    const near = (await db.query("select account, scheduled_at from threads.posts where part = 0 and scheduled_at between $1 and $2",
+      [new Date(dayStart - 3 * 3600000), new Date(dayStart + 27 * 3600000)])).rows as { account: string; scheduled_at: Date }[];
+    let at: Date | null = null;
+    for (let i = 0; i < 500 && !at; i++) {
+      const t = kyiv(y, m, d, rnd(18 * 60, 23 * 60 + 40));
+      if (near.every((p) => Math.abs(p.scheduled_at.getTime() - t.getTime()) >= (p.account === name ? MIN_GAP : OTHER_GAP) * 60000)) at = t;
+    }
+    if (!at) throw new Error(`не вдалось підібрати час на ${y}-${m + 1}-${d}`);
+    const pool = images.filter((f) => f !== prevImage);
+    const img = pool[rnd(0, pool.length)]!;
+    prevImage = img;
+    const root = (await db.query(
+      "insert into threads.posts (account, part, text, scheduled_at, image_url) values ($1, 0, $2, $3, $4) returning id",
+      [name, parts[0], at, urls.get(img)],
+    )).rows[0].id;
+    for (let k = 1; k < parts.length; k++)
+      await db.query("insert into threads.posts (account, root_id, part, text, status) values ($1, $2, $3, $4, 'waiting')", [name, root, k, parts[k]]);
+    console.log(`✓ ${at.toLocaleString("uk-UA", { timeZone: "Europe/Kyiv", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} ${img} (${parts.length} част.) «${parts[0]!.slice(0, 50)}…»`);
+    added++;
+    const next = new Date(Date.UTC(y, m, d + 1));
+    [y, m, d] = [next.getUTCFullYear(), next.getUTCMonth(), next.getUTCDate()];
+  }
+  console.log(`✓ ${name}: додано ${added} постів з картинкою, по одному на день`);
+}
+
 async function status() {
   console.table((await db.query(`
     select a.name, a.username, a.paused, to_char(a.token_expires at time zone 'Europe/Kyiv', 'DD.MM.YYYY') token_until,
@@ -211,6 +281,7 @@ try {
     for (const [k, v] of found) await account(k.slice("THREADS_TOKEN_".length).toLowerCase(), v!.trim());
   }
   else if (cmd === "import" && a1 && a2) await importPosts(a1, a2);
+  else if (cmd === "photo" && a1 && a2) await photoPosts(a1, a2, process.argv[5] ?? "content/threads-images");
   else if (cmd === "test" && a1) {
     const r = await db.query(
       `update threads.posts set scheduled_at = now() where id = (select id from threads.posts where account = $1 and part = 0 and status = 'queued' order by scheduled_at limit 1) returning left(text, 60) t`,

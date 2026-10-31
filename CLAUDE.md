@@ -176,3 +176,6 @@ OAuthException (2026-10-30 Meta на ~1 год дала «API access blocked» �
 Токени: `THREADS_TOKEN_1=…`, `THREADS_TOKEN_2=…` у `.env` → `npm run threads -- accounts` (назви акаунтів «1», «2»). Керування: `npm run threads -- account <назва> <токен>` | `import <назва> <файл>` (пости через рядок `---`) | `test <назва>` | `status` | `pause|resume <назва>`.
 - ⏸ 2026-10-29: генерацію постів SkyNovix (mode `promo`, Threads v4) ВИМКНЕНО — cron `content-radar-promo` прибрано
   (`scripts/setupCron.ts`), код лишився. Замість неї — готові пости власника через автопублікацію в Threads (схема `threads`).
+- 🖼 Пости з картинкою (з 2026-10-31): `npm run threads -- photo <акаунт> <файл.txt> [тека]` — по 1 на день на акаунт, 18:00–23:40 за Києвом,
+  картинка випадкова з `content/threads-images` (кошик `threads` у Supabase Storage, потрібен `SUPABASE_SERVICE_KEY` у `.env`).
+  Тексти: `content/threads-photo-1.txt`, `-2.txt` (розділювач `---`). У `threads.posts` — колонка `image_url`, `tick()` шле `media_type=IMAGE`.

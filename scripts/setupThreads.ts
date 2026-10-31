@@ -47,6 +47,7 @@ create table if not exists threads.posts (
 );
 create index if not exists posts_due on threads.posts (status, scheduled_at);
 alter table threads.accounts add column if not exists blocked_since timestamptz; -- Meta тимчасово закрила доступ
+alter table threads.posts add column if not exists image_url text; -- пост з картинкою (публічне посилання, Supabase Storage)
 
 -- Відповідь не завжди JSON (HTML-помилка, таймаут) — не падаємо
 create or replace function threads.try_json(t text) returns jsonb language plpgsql immutable as $$
@@ -140,6 +141,7 @@ begin
                   and (x.published_at > now() - interval '60 minutes' or x.status in ('creating', 'created', 'publishing'))))
            order by ps.account, ps.scheduled_at loop
     p := jsonb_build_object('media_type', 'TEXT', 'text', r.text, 'access_token', r.token);
+    if r.image_url is not null then p := p || jsonb_build_object('media_type', 'IMAGE', 'image_url', r.image_url); end if;
     if r.reply_to is not null then p := p || jsonb_build_object('reply_to_id', r.reply_to); end if;
     rid := net.http_post(
       url := 'https://graph.threads.net/v1.0/' || r.user_id || '/threads',
