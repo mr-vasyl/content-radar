@@ -2,7 +2,7 @@ import { prisma } from "../db.ts";
 import { sources } from "../sources.ts";
 import { fetchArticles, type Article } from "../fetchArticles.ts";
 import { filterNew, makeDuplicateChecker, recentSentTitles, record, sameAsRecent } from "../dedup.ts";
-import { noisyReason, notCreativeReason, ruleRejectReason } from "../ruleFilter.ts";
+import { noisyReason, notCreativeReason, onlyVeteranWord, ruleRejectReason } from "../ruleFilter.ts";
 import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
 import { analyzeFop } from "../fop.ts";
@@ -56,12 +56,14 @@ export async function runNews(): Promise<void> {
   const candidates: Article[] = [];
   for (const a of fresh) {
     // агро, ветерани, медицина… — не для креаторів і не «будь-який ФОП» (fop.ts), тож відсікаємо для всіх джерел
-    const why = ruleRejectReason(a) ?? noisyReason(a) ?? notCreativeReason(a);
+    // …крім ветеранських грантів з ФОП-джерел: вони йдуть лише на ФОП-перевірку
+    const veteranFop = !!fopMode.get(a.source) && onlyVeteranWord(a);
+    const why = ruleRejectReason(a) ?? noisyReason(a) ?? (veteranFop ? null : notCreativeReason(a));
     if (why) {
       await record(a, "rejected_rules", { reason: why });
       continue;
     }
-    if (fopMode.get(a.source) === "only") skipCreative.add(a.url);
+    if (fopMode.get(a.source) === "only" || veteranFop) skipCreative.add(a.url);
     candidates.push(a);
   }
 

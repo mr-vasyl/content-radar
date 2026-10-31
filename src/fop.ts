@@ -1,7 +1,7 @@
 // 🧾 Гранти для ФОП — у канал грантів (власник 2026-10-31: бізнес-канал не ріс і закритий; гранти, які під ФОП
 // заточені, тепер ідуть у «гранти, конкурси та можливості»). Креатори часто працюють як ФОП, тож грант, куди може
-// подати будь-який ФОП (або людина, що лише відкриває справу), їм корисний. Компанії, стартапи, агро, виробництво,
-// ветеранські програми — ні. Як і скрізь: GPT витягує факти, рішення приймає КОД.
+// подати будь-який ФОП (або людина, що лише відкриває справу), їм корисний. Гранти на власну справу для ветеранів і ВПО —
+// так (власник 2026-10-31). Компанії, стартапи, агро й фермери, виробництво — ні. Як і скрізь: GPT витягує факти, рішення приймає КОД.
 import type { Article } from "./fetchArticles.ts";
 import type { ArticleLink } from "./extractText.ts";
 import { askJson, HOOK_RULES, HOOK_SCORE, LANGUAGE, VOICE } from "./gpt.ts";
@@ -27,8 +27,8 @@ fop_ok — true, якщо подати може ФОП (фізична особ�
 false — лише юрособи, компанії певного розміру (від N працівників, оборот від N млн), стартапи-юрособи, ГО, громади.
 any_activity — true, якщо підходить будь-який вид діяльності, зокрема послуги, творчість, IT-фриланс, освіта.
 false — лише агро, фермери, переробка, виробництво, експорт товарів, енергетика, ІТ-продукти, туризм чи інша одна галузь.
-group_only — true, якщо подати можуть ЛИШЕ ветерани, їхні родини, люди з інвалідністю чи інша вузька група
-(ВПО, жінки й молодь — не вузька група: false).
+Гранти на власну справу лише для певної групи людей (ветерани та їхні родини, ВПО, жінки, молодь) — ПІДХОДЯТЬ
+(власник 2026-10-31): у пості чітко скажи, для кого саме.
 ukraine_ok — true, якщо подати може ФОП з України.
 non_repayable — true, якщо безповоротно: грант, компенсація, ваучер, приз; false — кредит, позика, лізинг, інвестиція.
 open_now — true, якщо з тексту ясно, що прийом триває зараз (дедлайн у майбутньому або «заявки приймаються постійно»).
@@ -63,7 +63,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "stream", "reason", "post", "hook", "tags", "link", "deadline", "origin", "fop_ok", "any_activity", "group_only", "ukraine_ok", "non_repayable", "open_now"],
+  required: ["score", "stream", "reason", "post", "hook", "tags", "link", "deadline", "origin", "fop_ok", "any_activity", "ukraine_ok", "non_repayable", "open_now"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
     stream: { type: "string", enum: [...STREAMS] },
@@ -76,7 +76,6 @@ const SCHEMA = {
     origin: { type: "string" },
     fop_ok: { type: "boolean" },
     any_activity: { type: "boolean" },
-    group_only: { type: "boolean" },
     ukraine_ok: { type: "boolean" },
     non_repayable: { type: "boolean" },
     open_now: { type: "boolean" },
@@ -95,7 +94,6 @@ interface FopFacts {
   origin: string;
   fop_ok: boolean;
   any_activity: boolean;
-  group_only: boolean;
   ukraine_ok: boolean;
   non_repayable: boolean;
   open_now: boolean;
@@ -122,7 +120,6 @@ export async function analyzeFop(article: Article, fullText: string | null, link
   if (deadlineTooLate(r.deadline)) cap(2, `дедлайн минув або сьогодні/завтра (${r.deadline})`);
   if (!r.fop_ok) cap(2, "не для ФОП");
   if (!r.any_activity) cap(2, "лише одна галузь (агро, виробництво…)");
-  if (r.group_only) cap(2, "лише для вузької групи");
   if (!r.ukraine_ok) cap(2, "не для України");
   if (!r.non_repayable) cap(2, "кредит/позика, не грант");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(r.deadline ?? "") && !r.open_now) cap(5, "незрозуміло, чи прийом відкритий зараз");
