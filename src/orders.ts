@@ -78,7 +78,7 @@ export const PROF_NAMES: Record<Profession, string> = {
 // Факти, що зберігаються в Article.hook (JSON)
 export interface Meta {
   prof: Profession;
-  payStatus: "amount" | "negotiable" | "unclear";
+  payStatus: "amount" | "negotiable" | "in_form" | "unclear";
   payMin: number;
   payMax: number;
   currency: string; // UAH | USD | EUR | other | ""
@@ -115,9 +115,11 @@ location — "remote" (віддалено, з будь-якого міста; д
 ukraine_ok — true, якщо людина з України може відгукнутися: українське оголошення, «worldwide», «anywhere», Європа
 (Україна в Європі), «CET ±3». false — лише США, лише певні країни без України, потрібен дозвіл на роботу в іншій країні.
 pay_status — "amount" (сума чи діапазон вказані), "negotiable" (оплату прямо передбачено, але сума за домовленістю:
-«бюджет обговорюється», «оплата за портфоліо»), "unclear" (про оплату нічого, бартер, «за досвід», «за відгук»,
+«бюджет обговорюється», «оплата за портфоліо»), "in_form" (бренд, видавництво чи студія шукає креаторів, а умови
+співпраці й оплати — в анкеті чи формі за посиланням; бартер прямо не згаданий), "unclear" (про оплату нічого, бартер, «за досвід», «за відгук»,
 «безкоштовно», «undisclosed» без інших ознак оплати).
 Проєкт на біржі фрилансу (джерело Freelancehunt) оплачуваний за природою: якщо суми немає — "negotiable".
+Хештег #оплата в пості каналу UGC Україна означає, що робота оплачувана: якщо суми немає — "negotiable".
 pay_min, pay_max — числа рівно з тексту (без пробілів; одна сума — обидва однакові; немає — 0).
 pay_currency — "UAH", "USD", "EUR", "other" або "" (немає суми). pay_period — "project" (за проєкт/замовлення), "hour",
 "month", "prize" (грошовий приз конкурсу) або "".
@@ -143,7 +145,7 @@ post — пост українською (навіть якщо оголошен
 
 <1–2 речення: що саме зробити, для кого/якого проєкту, головні вимоги>
 
-💸 Оплата: <сума й за що, як у тексті; якщо за домовленістю — «за домовленістю»; приз — «приз …»>
+💸 Оплата: <сума й за що, як у тексті; якщо за домовленістю — «за домовленістю»; якщо pay_status "in_form" — рівно «умови в анкеті бренду»; приз — «приз …»>
 👤 Кого шукають: <хто, досвід, портфоліо>
 📍 Формат: <віддалено / разово в місті …>
 ⏳ До: <дедлайн словами> — лише якщо є дедлайн, інакше цей рядок не пиши
@@ -164,7 +166,7 @@ const SCHEMA = {
     profession: { type: "string", enum: [...PROFESSIONS] },
     location: { type: "string", enum: ["remote", "city_one_off", "office"] },
     ukraine_ok: { type: "boolean" },
-    pay_status: { type: "string", enum: ["amount", "negotiable", "unclear"] },
+    pay_status: { type: "string", enum: ["amount", "negotiable", "in_form", "unclear"] },
     pay_min: { type: "number" },
     pay_max: { type: "number" },
     pay_currency: { type: "string", enum: ["UAH", "USD", "EUR", "other", ""] },
@@ -238,6 +240,8 @@ export async function analyzeOrder(a: Article, fullText: string | null, links: A
     : r.location === "office" ? "офіс чи гібрид"
     : !r.ukraine_ok ? "недоступно з України"
     : r.pay_status === "unclear" ? "оплата не підтверджена"
+    // власник 2026-10-31: бренди/UGC без суми — можна, з позначкою «умови в анкеті бренду»; для решти — ні
+    : r.pay_status === "in_form" && r.kind !== "brand_ugc" && r.kind !== "publisher_call" ? "оплата не підтверджена (умови лише в анкеті)"
     : r.entry_fee ? "платна участь"
     : r.upfront_payment ? "просять заплатити виконавця"
     : r.unpaid_test ? "велике неоплачуване тестове"
