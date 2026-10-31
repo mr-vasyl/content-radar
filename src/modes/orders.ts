@@ -75,13 +75,14 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
     candidates.push(a);
   }
 
-  // Freelancehunt дає найбільше (~50 на добу), тож відбираємо окремо: половина місць — йому, половина — решті джерел
+  // Freelancehunt — останній пріоритет (власник 2026-10-31: там треба реєструватись і змагатися з сотнями виконавців;
+  // краще пряма подача — форма бренду, сайт компанії). Тож місця на оцінку спершу — іншим джерелам, Freelancehunt — щонайменше 2
   // (вакансії, конкурси, бренди); невикористані місця однієї групи віддаємо іншій
   const PURPOSE =
     "оплачувані творчі замовлення, віддалена творча робота, конкурси з грошовими призами й бренди, що шукають UGC-креаторів, — для українських дизайнерів, ілюстраторів, фотографів, відеографів, музикантів і авторів. Офісні вакансії, продажі, менеджмент, розробка — ні.";
   const fh = candidates.filter((a) => a.source === "Freelancehunt");
   const rest = candidates.filter((a) => a.source !== "Freelancehunt");
-  const restKeep = Math.max(Math.ceil(limit / 2), limit - fh.length);
+  const restKeep = Math.max(limit - 2, limit - fh.length);
   const pick = async (list: Article[], keep: number) => (keep > 0 && list.length ? prefilter(list, PURPOSE, Math.min(keep, list.length)) : new Set<string>());
   const pickedRest = await pick(rest, restKeep);
   const pickedFh = await pick(fh, limit - pickedRest.size);
@@ -154,7 +155,9 @@ async function sendFromQueue(): Promise<void> {
   for (const w of week) done.set(w.account ?? "", (done.get(w.account ?? "") ?? 0) + 1);
   const total = week.length + 1;
   const order = (Object.keys(RUBRICS) as Rubric[]).sort((a, b) => (done.get(a) ?? 0) / total - RUBRICS[a].target - ((done.get(b) ?? 0) / total - RUBRICS[b].target));
-  const best = (r: Rubric) => live.filter((q) => rubricOf(q.stream ?? "") === r).sort((a, b) => priorityOf(b.stream!, b.score ?? 0) - priorityOf(a.stream!, a.score ?? 0))[0];
+  // Спершу — пропозиції з прямою подачею (усе, крім Freelancehunt); Freelancehunt — лише якщо більше нічого немає
+  const pool = live.some((q) => q.source !== "Freelancehunt") ? live.filter((q) => q.source !== "Freelancehunt") : live;
+  const best = (r: Rubric) => pool.filter((q) => rubricOf(q.stream ?? "") === r).sort((a, b) => priorityOf(b.stream!, b.score ?? 0) - priorityOf(a.stream!, a.score ?? 0))[0];
   const rubric = order.find((r) => best(r));
   const q = rubric && best(rubric);
   if (!q || !rubric) return;
