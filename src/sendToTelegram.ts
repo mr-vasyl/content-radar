@@ -1,7 +1,6 @@
 import { Telegram } from "telegraf";
 import { prisma } from "./db.ts";
 import { CHANNELS } from "./channels.ts";
-import { TEASER_END } from "./gpt.ts";
 import type { Account } from "./sources.ts";
 import { shortenPost, type Illustration } from "./postImage.ts";
 
@@ -74,13 +73,11 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
   if (footer?.account) tail.push(channelSignature(footer.account));
   if (tail.length) text += `\n\n${tail.join("\n")}`;
 
-  if (footer) {
-    const meta: string[] = [];
-    if (footer.source) meta.push(`За матеріалами: ${escapeHtml(footer.source)}`);
-    meta.push(...footer.lines.map(escapeHtml));
-    if (footer.link) meta.push(`<a href="${escapeHtml(footer.link.url)}">${escapeHtml(footer.link.label)}</a>`);
-    text += `${tail.length ? "\n" : "\n\n"}———\n<i>${meta.join("\n")}</i>`;
-  }
+  const meta: string[] = [];
+  if (footer?.source) meta.push(`За матеріалами: ${escapeHtml(footer.source)}`);
+  meta.push(...(footer?.lines ?? []).map(escapeHtml));
+  if (footer?.link) meta.push(`<a href="${escapeHtml(footer.link.url)}">${escapeHtml(footer.link.label)}</a>`);
+  if (meta.length) text += `${tail.length ? "\n" : "\n\n"}———\n<i>${meta.join("\n")}</i>`;
   const msg = await botFor(footer?.account).sendMessage(chatId, text, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
@@ -103,11 +100,11 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
 }
 
 // 🖼 Пост із картинкою (власник 2026-11-04): фото + підпис = готовий пост (текст, хештеги, підпис каналу) — власник
-// ПЕРЕСИЛАЄ його в канал з прихованим відправником (так переходять і картинка, і жирний текст, і посилання);
-// службове («За матеріалами», «Оригінал») — окремим повідомленням-відповіддю під ним. Підпис до фото — до 1024 символів:
-// довший пост скорочуємо (shortenPost), а якщо й так не влазить — звичайний текстовий пост без картинки.
-export async function sendImagePost(post: string, ill: Illustration | null, footer: Footer, track?: Track): Promise<void> {
-  if (!ill) return sendPost(post, footer, track);
+// ПЕРЕСИЛАЄ його в канал з прихованим відправником. Службового повідомлення під ним НЕМАЄ (власник: «таке не надсилай»).
+// Підпис до фото — до 1024 символів: довший пост скорочуємо (shortenPost), не влізло — звичайний текстовий пост.
+export async function sendImagePost(post: string, ill: Illustration | null, footer: Footer): Promise<void> {
+  const clean: Footer = { lines: [], tags: footer.tags, account: footer.account };
+  if (!ill) return sendPost(post, clean);
   const body = (p: string) => {
     let t = toTelegramHtml(stripAttribution(p));
     const tail: string[] = [];
@@ -118,24 +115,8 @@ export async function sendImagePost(post: string, ill: Illustration | null, foot
   const visible = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&(amp|lt|gt);/g, "x").length;
   let caption = body(post);
   if (visible(caption) > 1024) caption = body(await shortenPost(post, 1024 - (visible(caption) - visible(toTelegramHtml(post))) - 40));
-  if (visible(caption) > 1024) return sendPost(post, footer, track);
-
-  const bot = botFor(footer.account);
-  const photo = await bot.sendPhoto(chatId, { source: ill.image }, { caption, parse_mode: "HTML", disable_notification: true });
-  const meta: string[] = [];
-  if (footer.source) meta.push(`За матеріалами: ${escapeHtml(footer.source)}`);
-  meta.push(...footer.lines.map(escapeHtml), ill.kind === "real" ? "🖼 картинка зі сторінки" : "🖼 картка каналу");
-  if (footer.link) meta.push(`<a href="${escapeHtml(footer.link.url)}">${escapeHtml(footer.link.label)}</a>`);
-  const info = await bot.sendMessage(chatId, `<i>${meta.join("\n")}</i>`, {
-    parse_mode: "HTML", disable_notification: true, link_preview_options: { is_disabled: true },
-    reply_parameters: { message_id: photo.message_id },
-    ...(track && bot === telegram ? { reply_markup: likeKeyboard } : {}),
-  });
-  if (track && bot === telegram) {
-    await prisma.sentMessage.create({
-      data: { messageId: info.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
-    });
-  }
+  if (visible(caption) > 1024) return sendPost(post, clean);
+  await botFor(footer.account).sendPhoto(chatId, { source: ill.image }, { caption, parse_mode: "HTML", disable_notification: true });
 }
 
 // 🛍 «Продавай своє»: пост із картинкою (фото + підпис). Підпис у Telegram — до 1024 символів; довший пост або
@@ -192,17 +173,25 @@ async function sendPhotoPostVia(bot: Telegram, post: string, image: string | und
 }
 
 // 🧵 Тизер для Threads — окремим беззвучним повідомленням під постом, текст копіюється одним дотиком.
-export async function sendHook(hook: string, account?: string, end = TEASER_END): Promise<void> {
+// Власник 2026-11-04: Threads ріже перегляди постам, що ведуть з платформи — БЕЗ «у нашому Telegram», «лінк у шапці»;
+// кінцівку-заклик до коментарів пише GPT (prostirTeaser). track — 👍-кнопка й запис у SentMessage (лише головний бот).
+export async function sendHook(hook: string, account?: string, track?: Track): Promise<void> {
   let plain = hook.replace(/\*\*/g, "").trim(); // Threads розмітку не показує
-  // прибираємо заклики GPT в кінці (наш, старий «Посилання — у шапці профілю», «…у нашому Telegram»)
-  // і ставимо наш завжди однаково — окремим абзацом
-  plain = plain.replace(/(\n+[^\n]*(шапці профілю|нашому Telegram|у Telegram|в профілі)[^\n]*)+\s*$/iu, "").trim();
+  // рядки з закликом піти в Telegram / профіль — геть
+  plain = plain.split("\n").filter((l) => !/telegram|телеграм|шапц|профіл|посиланн/iu.test(l)).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   // власник 2026-10-29: без смайликів у тексті й без заголовка «Для Threads» — повідомлення копіюється як є
   plain = plain.replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]️?/gu, "").replace(/[ \t]{2,}/g, " ").replace(/ +([.,;:!?])/g, "$1").replace(/^ +| +$/gm, "");
-  plain = `${plain}\n\n${end}`;
-  await botFor(account).sendMessage(chatId, escapeHtml(plain), {
+  const bot = botFor(account);
+  const keep = track && bot === telegram;
+  const msg = await bot.sendMessage(chatId, escapeHtml(plain), {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true,
+    ...(keep ? { reply_markup: likeKeyboard } : {}),
   });
+  if (keep) {
+    await prisma.sentMessage.create({
+      data: { messageId: msg.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
+    });
+  }
 }

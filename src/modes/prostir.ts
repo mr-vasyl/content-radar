@@ -13,7 +13,7 @@ import { factCheck } from "../factCheck.ts";
 import { sendHook, sendImagePost, sendPost } from "../sendToTelegram.ts";
 import { DISC_COLOR, DISC_LABEL, deadlineText, illustrate, splitBenefit, type Illustration } from "../postImage.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
-import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, PROSTIR_TEASER_END, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, MONEY_SOURCES, RIGHTS_SOURCES, weeklyCompilation, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
+import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, MONEY_SOURCES, RIGHTS_SOURCES, weeklyCompilation, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
 import type { RunOptions } from "./types.ts";
 import { collect as collectOrders } from "./orders.ts";
 
@@ -115,7 +115,7 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
         console.log(`\n${post}\n`);
         if (opts.send) {
           await sendPost(post, { tags: v.tags, account: "prostir", source: v.meta.origin || a.source, lines: [`🧪 тест · ${v.meta.grade} · ${v.score}/10`], link: { url: a.url, label: "Оригінал" } });
-          await sendHook(await prostirTeaser(post), "prostir", PROSTIR_TEASER_END);
+          await sendHook(await prostirTeaser(post), "prostir");
         }
         continue;
       }
@@ -209,7 +209,7 @@ async function sendFromQueue(): Promise<void> {
     const ill = await picture({ pages: [m.link, original], listingOf: q.source, teaser: t, fallback: q.title, label: "Шукають авторів", color: "#3E4A61", deadline: m.deadline });
     await sendImagePost(q.post!, ill, { tags: q.tags?.split(" ").filter(Boolean), account: "prostir", source: m.origin || q.source, lines: [`💼 шукають авторів · ${q.stream} · ${q.score}/10 · ${q.source}`], link: { url: original, label: "Оригінал" } });
     await prisma.article.update({ where: { id: q.id }, data: { status: "ord_sent", hook: JSON.stringify({ ...m, sentAt: Date.now(), channel: "prostir" }) } });
-    if (t) await sendHook(t, "prostir", PROSTIR_TEASER_END);
+    if (t) await sendHook(t, "prostir");
     return console.log(`✓ Простір: 💼 [${q.stream}] ${q.title} (у черзі ${authors.length - 1})`);
   }
 
@@ -231,7 +231,7 @@ async function sendFromQueue(): Promise<void> {
   const ill = await picture({ pages: [m.link, original], listingOf: q.source, teaser: t, fallback: m.headline || q.title, label, color: DISC_COLOR[q.stream ?? ""] ?? DISC_COLOR.mixed!, deadline: m.deadline });
   await sendImagePost(q.post!, ill, { tags: q.tags?.split(" ").filter(Boolean), account: "prostir", source: m.origin || q.source, lines: [`🖼 ${m.grade} · ${q.score}/10 · знайдено на: ${q.source}`], link: { url: original, label: "Оригінал" } });
   await prisma.article.update({ where: { id: q.id }, data: { status: "pr_sent", hook: JSON.stringify({ ...m, sentAt: Date.now() }) } });
-  if (t) await sendHook(t, "prostir", PROSTIR_TEASER_END);
+  if (t) await sendHook(t, "prostir");
   console.log(`✓ Простір: 🖼 [${q.stream}] ${q.title} (у черзі ${show.length - 1})`);
 }
 

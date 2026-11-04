@@ -185,9 +185,9 @@ export async function runNews(): Promise<void> {
         source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
         lines: [],
         link: { url: a.url, label: "Оригінал" },
-      }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
+      });
       // 🧵 тизер для Threads під кожним постом, «вигода першим рядком» (власник 2026-11-04)
-      if (teaser) await sendHook(teaser);
+      if (teaser) await sendHook(teaser, undefined, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
       await record(a, "sent", { analysis }); // тільки після успішної відправки
       // 🧾 черга «Замовлень для креаторів» (queueFromGrant) — канал вимкнено 2026-11-04
       sent++;
