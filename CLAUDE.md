@@ -17,6 +17,7 @@
 | mode | коли | що |
 |---|---|---|
 | `news` | щодня 8:17–22:17, кожні 2 год | джерела → фільтри → GPT → фактчек → пост у бот (+ тизер для Threads, якщо 8+) |
+| `news` → `prostir` | одразу після news | 🎨 «Авторський простір»: збір → черга → 1 пост за прогін (≤5/добу), нд — «Дедлайни тижня» |
 | ~~`news` → `orders`~~ | вимкнено 2026-11-04 | 🧾 «Замовлення для креаторів» — мало підписників, код лишився |
 | `saves` | пт 14:47 | 💰 «Можливості тижня»: відкриті гранти тижня одним списком від найближчого дедлайну |
 
@@ -180,3 +181,25 @@ OAuthException (2026-10-30 Meta на ~1 год дала «API access blocked» �
 - 🖼 Пости з картинкою (з 2026-10-31): `npm run threads -- photo <акаунт> <файл.txt> [тека]` — по 1 на день на акаунт, 18:00–23:40 за Києвом,
   картинка випадкова з `content/threads-images` (кошик `threads` у Supabase Storage, потрібен `SUPABASE_SERVICE_KEY` у `.env`).
   Тексти: `content/threads-photo-1.txt`, `-2.txt` (розділювач `---`). У `threads.posts` — колонка `image_url`, `tick()` шле `media_type=IMAGE`.
+
+## 🎨 Канал «Авторський простір 🇺🇦» (@avtorskyi_prostir, account `prostir`, з 2026-11-04)
+Де автор може ПОКАЗАТИ чи ОПУБЛІКУВАТИ готову роботу: виставки, журнали й антології, фестивалі й покази, конкурси робіт.
+Гранти, резиденції, навчання — це канал грантів (код відсікає `result` funding/residency/education). Колишній канал замовлень
+перейменовано на цей. План і база джерел власника — `content/plan-de-pokazaty-svoie.md`, `content/de-pokazaty-dzherela.tsv`.
+- Окремий бот @Prostir_avtoriv_bot (`TELEGRAM_BOT_TOKEN_PROSTIR` у `.env` і GitHub Secrets; `botFor` у sendToTelegram.ts). Без 👍-кнопки.
+- Рішення власника: лише безкоштовна участь (так в описі каналу); SkyNovix у постах і в описі НЕ згадуємо — пости про SkyNovix він робить сам;
+  запуск одразу, без тесту — власник перевіряє кожен пост у боті.
+- `src/prostir.ts`: `PROSTIR_SOURCES` — Monographica (сторінка /fees/free/), Pixcontests RSS (платні видно в анонсі — `paidInTeaser`),
+  ARTFOND, ArtConnect (?fees=FREE), opencalls.ai, Kunsten, Indie Balkans, Booooooom RSS, TG Літцентр і ART BOT.
+  Не взято (аудит 2026-11-04): FilmFreeway, Submittable (Cloudflare), Poets & Writers (без дат), Festhome, ShutterCalls, artistcalls (JS), MusiTer, Envato.
+- `analyzeProstir` (GPT — лише факти) → КОД: не набір; грант/резиденція/навчання; `fee` paid → ні; `not_mentioned` → ні, крім
+  FREE_SOURCES (Monographica, ArtConnect), `institution` (музей, публічна галерея, фестиваль) чи `pays_author`; не для України / лише місцеві;
+  забирають права; дедлайн < післязавтра; без дедлайну й не `rolling`; score < 6. Оцінка A (платять автору або 8+) / B.
+  Посилання — лише зі статті й не сторінка-список агрегатора (`LISTINGS`). Фактчек (`noNovelty`).
+- Дублі: за заголовком і посиланням з каналом грантів (обидва боки: `sentWithLink` у news.ts бачить `pr_queue`/`pr_sent`).
+- `src/modes/prostir.ts`: черга Article `pr_queue` (url `pr:`, stream = напрям, hook = JSON Meta з deadline/grade/headline/origin/link, sentAt).
+  Попередній відбір — 6 за прогін; не вибрані НЕ відкидаються (чекають наступного прогону), сторінки без RSS не «обнуляються» — відкриті набори з
+  дедлайном через місяць цінні. Прогін → 1 пост: напрям, якого за 7 днів було найменше, не той самий, що останній; A > оцінка > дедлайн ≤7 днів.
+  Ліміт 5/добу, у черзі — до дедлайну (≤21 дня). Під кожним постом — тизер для Threads (`prostirTeaser`).
+- ⏳ «Дедлайни тижня» — нд з 12:00 (FormatRun `prostir_week`): надіслане з дедлайном у найближчі 9 днів, ≥3 пункти, без GPT.
+- `npm start -- prostir` — окремий прогін; `npm run preview prostir [send]` (`PROSTIR_LIMIT=8`) — тест без БД.
