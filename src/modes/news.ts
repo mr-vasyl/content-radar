@@ -29,7 +29,7 @@ async function sentWithLink(link: string): Promise<boolean> {
   const core = link.replace(/^https?:\/\/(www\.)?/, "").replace(/[?#].*$/, "").replace(/\/$/, "");
   if (core.split("/").length < 2) return false; // лише домен (головна сайту фонду) — не показник дубля
   const hit = await prisma.article.findFirst({
-    where: { status: "sent", createdAt: { gte: new Date(Date.now() - 60 * 86400000) }, post: { contains: core } },
+    where: { status: { in: ["sent", "pr_queue", "pr_sent"] }, createdAt: { gte: new Date(Date.now() - 60 * 86400000) }, post: { contains: core } }, // + «Авторський простір»
     select: { id: true },
   });
   return !!hit;

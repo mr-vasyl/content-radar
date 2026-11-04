@@ -1,6 +1,7 @@
 // Тестовий прогін без запису в базу. Зручно для налаштування промптів.
 //   npm run preview [N] [send]        — новини: N останніх статей з кожного джерела (за замовч. 1)
 //   npm run preview saves [send]      — 📌 збережи собі
+//   npm run preview prostir [send]    — 🎨 «Авторський простір» (PROSTIR_LIMIT=8 — скільки оцінити)
 //   npm run preview orders [send]     — 🧾 «Замовлення для креаторів» (ORDERS_LIMIT=10 — скільки оцінити)
 // "send" — ще й надіслати в бот.
 import "dotenv/config";
@@ -15,9 +16,10 @@ import { sendHook, sendPost } from "./sendToTelegram.ts";
 import { runSaves } from "./modes/saves.ts";
 import { runPromo } from "./modes/promo.ts";
 import { runOrders } from "./modes/orders.ts";
+import { runProstir } from "./modes/prostir.ts";
 import { prisma } from "./db.ts";
 
-const MODES = { saves: runSaves, promo: runPromo, orders: runOrders } as const;
+const MODES = { saves: runSaves, promo: runPromo, orders: runOrders, prostir: runProstir } as const;
 
 const arg = process.argv[2] ?? "1";
 const send = process.argv[3] === "send";

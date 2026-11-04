@@ -4,7 +4,8 @@
 // 2026-10-17…10-31 був канал «Гранти для бізнесу» — власник закрив (не ріс); ФОП-гранти тепер ідуть у канал грантів (src/fop.ts).
 // 2026-10-31: «Замовлення для креаторів» (account "orders", src/orders.ts, власні джерела ORDER_SOURCES).
 // 2026-10-19 був третій канал «AI для творців» — 2026-10-20 власник його прибрав; джерела — в src/archive/sourcesArchive.ts.
-export type Account = "knowledge" | "orders";
+// 2026-11-04: «Авторський простір» (account "prostir", src/prostir.ts, власні джерела PROSTIR_SOURCES, окремий бот).
+export type Account = "knowledge" | "orders" | "prostir";
 
 export interface Source {
   name: string; // назва платформи для підпису "за матеріалами: ..."

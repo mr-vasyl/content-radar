@@ -12,10 +12,27 @@ import { runPromo } from "./modes/promo.ts";
 import { runSell } from "./modes/sell.ts";
 import { runThreads } from "./modes/threads.ts";
 import { runOrders } from "./modes/orders.ts";
+import { runProstir } from "./modes/prostir.ts";
 
 const MODES = {
   // 🧾 «Замовлення для креаторів» ВИМКНЕНО 2026-11-04 (власник: мало підписників); код лишився — `npm start -- orders`
-  news: () => runNews(),
+  // 🎨 гранти, а одразу за ними — «Авторський простір» (з 2026-11-04; в одному прогоні, щоб не тратити хвилини GitHub на npm ci)
+  news: async () => {
+    let err: unknown = null;
+    try {
+      await runNews();
+    } catch (e) {
+      err = e;
+    }
+    try {
+      await runProstir({ dryRun: false, send: true });
+    } catch (e) {
+      console.error("Авторський простір впав:", e);
+      err ??= e;
+    }
+    if (err) throw err;
+  },
+  prostir: () => runProstir({ dryRun: false, send: true }), // 🎨 «Авторський простір»
   saves: () => runSaves({ dryRun: false, send: true }),
   // 🧵 з 2026-10-22 — Threads v3 (src/modes/threads.ts); стара генерація лишилась як режим promo_old
   promo: () => runThreads({ dryRun: false, send: true }),

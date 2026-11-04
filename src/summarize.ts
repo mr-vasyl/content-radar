@@ -8,13 +8,13 @@ import { TAGS, TAGS_PROMPT, TYPE_TAGS } from "./channels.ts";
 export const MIN_SCORE = Number(process.env.MIN_SCORE || 7);
 
 // Поріг каналу грантів — 6 (власник: «нижче 6 не беремо»). GPT пише пост від нього ж.
-export const MIN_SCORE_BY_ACCOUNT: Record<Account, number> = { knowledge: MIN_SCORE - 1, orders: MIN_SCORE - 1 };
+export const MIN_SCORE_BY_ACCOUNT: Record<Account, number> = { knowledge: MIN_SCORE - 1, orders: MIN_SCORE - 1, prostir: MIN_SCORE - 1 };
 export const minScoreFor = (account: Account) => MIN_SCORE_BY_ACCOUNT[account];
 const WRITE_FROM = Math.min(...Object.values(MIN_SCORE_BY_ACCOUNT));
 
 export const STREAMS = ["Гранти", "Конкурси й премії", "Резиденції", "Стипендії", "Навчання", "Події", "Інше"] as const;
 
-export const ACCOUNTS: Record<Account, string> = { knowledge: "💰 Можливості", orders: "🧾 Замовлення" };
+export const ACCOUNTS: Record<Account, string> = { knowledge: "💰 Можливості", orders: "🧾 Замовлення", prostir: "🎨 Авторський простір" };
 
 // YYYY-MM-DD, що вже минув, сьогодні чи завтра → пізно (спільне з бізнес-каналом)
 export function deadlineTooLate(deadline: string | undefined): boolean {

@@ -4,7 +4,8 @@ import type { Account } from "./sources.ts";
 
 export const CHANNELS: Record<Account, { name: string; username?: string }> = {
   knowledge: { name: "✍️ гранти, конкурси та можливості 🇺🇦", username: "write_teach_earn" },
-  orders: { name: "Замовлення для креаторів 🇺🇦", username: "zamovlennia_creators" }, // з 2026-10-31
+  orders: { name: "Замовлення для креаторів 🇺🇦" }, // 2026-10-31…11-04, вимкнено; канал перейменовано на «Авторський простір»
+  prostir: { name: "Авторський простір 🇺🇦", username: "avtorskyi_prostir" }, // з 2026-11-04
 };
 
 // Фіксований набір хештегів — для навігації всередині каналу грантів: ТИП можливості + ПРОФЕСІЯ.
@@ -39,3 +40,12 @@ export const ORDER_PROF_TAGS = [
   "#ілюстрація", "#дизайн", "#відео", "#анімація", "#фото", "#3D", "#музика", "#озвучка", "#тексти", "#переклад", "#геймдев", "#усім",
 ] as const;
 export const ORDER_TAGS = [...ORDER_TYPE_TAGS, ...ORDER_PROF_TAGS] as const;
+
+// 🎨 «Авторський простір»: ЩО (тип можливості) + НАПРЯМ
+export const PROSTIR_TYPE_TAGS = ["#виставки", "#публікації", "#фестивалі", "#конкурси", "#замовлення"] as const;
+export const PROSTIR_DISC_TAGS = ["#література", "#музика", "#мистецтво", "#ілюстрація", "#фото", "#кіно", "#дизайн", "#усім"] as const;
+export const PROSTIR_TAGS = [...PROSTIR_TYPE_TAGS, ...PROSTIR_DISC_TAGS] as const;
+export const PROSTIR_TAGS_PROMPT = `tags — 2–3 хештеги з цього списку (точно як написано): ${PROSTIR_TAGS.join(" ")}.
+Перший — ЩО: ${PROSTIR_TYPE_TAGS.join(" ")} (журнал, антологія, книжка — #публікації; покази фільмів, шоукейси, концерти —
+#фестивалі; премії й конкурси робіт — #конкурси). Далі 1–2 — НАПРЯМ: ${PROSTIR_DISC_TAGS.join(" ")}
+(поезія, проза, переклад — #література; кілька напрямів — #усім). Не вигадуй інших.`;

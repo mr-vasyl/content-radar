@@ -8,6 +8,9 @@ export const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
 // 🧵 Окремий бот для постів SkyNovix (власник 2026-10-22). Немає токена — пости йдуть у головний бот.
 // У SentMessage його повідомлення пишемо з МІНУСОМ (messageId = -id): у двох ботів номери повідомлень можуть збігатися.
 export const telegramSky = process.env.TELEGRAM_BOT_TOKEN_SKYNOVIX ? new Telegram(process.env.TELEGRAM_BOT_TOKEN_SKYNOVIX) : null;
+// 🎨 «Авторський простір» — окремий бот (власник 2026-11-04). Немає токена — пости йдуть у головний бот.
+export const telegramProstir = process.env.TELEGRAM_BOT_TOKEN_PROSTIR ? new Telegram(process.env.TELEGRAM_BOT_TOKEN_PROSTIR.trim()) : null;
+const botFor = (account?: string) => (account === "prostir" && telegramProstir) || telegram;
 const chatId = process.env.TELEGRAM_CHAT_ID!;
 
 // 👍-кнопка під кожним постом, який записуємо для статистики (обробляє pollReactions у reactions.ts)
@@ -77,7 +80,7 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
     if (footer.link) meta.push(`<a href="${escapeHtml(footer.link.url)}">${escapeHtml(footer.link.label)}</a>`);
     text += `${tail.length ? "\n" : "\n\n"}———\n<i>${meta.join("\n")}</i>`;
   }
-  const msg = await telegram.sendMessage(chatId, text, {
+  const msg = await botFor(footer?.account).sendMessage(chatId, text, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true, // власник попросив: пости без звуку
@@ -152,7 +155,7 @@ async function sendPhotoPostVia(bot: Telegram, post: string, image: string | und
 }
 
 // 🧵 Тизер для Threads — окремим беззвучним повідомленням під постом, текст копіюється одним дотиком.
-export async function sendHook(hook: string): Promise<void> {
+export async function sendHook(hook: string, account?: string): Promise<void> {
   let plain = hook.replace(/\*\*/g, "").trim(); // Threads розмітку не показує
   // прибираємо заклики GPT в кінці (наш, старий «Посилання — у шапці профілю», «…у нашому Telegram»)
   // і ставимо наш завжди однаково — окремим абзацом
@@ -160,7 +163,7 @@ export async function sendHook(hook: string): Promise<void> {
   // власник 2026-10-29: без смайликів у тексті й без заголовка «Для Threads» — повідомлення копіюється як є
   plain = plain.replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]️?/gu, "").replace(/[ \t]{2,}/g, " ").replace(/ +([.,;:!?])/g, "$1").replace(/^ +| +$/gm, "");
   plain = `${plain}\n\n${TEASER_END}`;
-  await telegram.sendMessage(chatId, escapeHtml(plain), {
+  await botFor(account).sendMessage(chatId, escapeHtml(plain), {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     disable_notification: true,
