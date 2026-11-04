@@ -9,6 +9,7 @@ import { analyzeFop } from "../fop.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { factCheck } from "../factCheck.ts";
 import { withToolLink } from "../digest.ts";
+import { prostirTeaser } from "../prostir.ts";
 
 // Не більше стількох статей на GPT за один запуск — щоб нове джерело не завалило бота
 // всім своїм архівом. Ті, що не влізли, нікуди не записуються й чекають наступного запуску
@@ -172,7 +173,13 @@ export async function runNews(): Promise<void> {
         lines: [],
         link: { url: a.url, label: "Оригінал" },
       }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
-      if (analysis.hook) await sendHook(analysis.hook);
+      // 🧵 тизер для Threads під кожним постом, «вигода першим рядком» (власник 2026-11-04); збій тизера не зриває пост
+      try {
+        const t = await prostirTeaser(analysis.post, "✍️ гранти, конкурси та можливості 🇺🇦");
+        if (t) await sendHook(t);
+      } catch (e) {
+        console.error("Тизер для Threads не вийшов:", (e as Error).message);
+      }
       await record(a, "sent", { analysis }); // тільки після успішної відправки
       // 🧾 черга «Замовлень для креаторів» (queueFromGrant) — канал вимкнено 2026-11-04
       sent++;
