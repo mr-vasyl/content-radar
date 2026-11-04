@@ -64,6 +64,7 @@ interface Facts {
   local_only: boolean;
   rights_grab: boolean;
   pays_author: boolean;
+  institution: boolean;
   deadline: string;
   rolling: boolean;
   headline: string;
@@ -93,6 +94,8 @@ open_to_ukraine — true, якщо подати може автор з Укра�
 local_only — true, якщо лише для жителів певного міста/штату/країни (не України) або треба особисто привезти роботу.
 rights_grab — true, якщо організатор забирає виключні права чи право власності на роботу.
 pays_author — true, якщо автор отримує гроші: гонорар, приз, оплата, продаж.
+institution — true, якщо організатор — музей, публічна чи муніципальна галерея, державна установа, університет, відомий фестиваль
+або культурний інститут; false — комерційний конкурс, приватна «галерея»-організатор конкурсів, платформа подань.
 deadline — КІНЦЕВИЙ дедлайн подачі YYYY-MM-DD рівно як у тексті; немає — порожній рядок. Сьогодні ${new Date().toISOString().slice(0, 10)}.
 rolling — true, якщо роботи приймають постійно, без дедлайну.
 headline — коротка назва українською до 70 символів (що й де), для списку дедлайнів.
@@ -113,7 +116,7 @@ score від 1 до 10 — наскільки це сильна можливіс
 — хто може подати: …;
 — що надіслати: …;
 — що отримаєте: …;
-— участь: безкоштовно;
+— участь: безкоштовно (якщо про оплату в тексті нічого — напиши «внеску в умовах немає»);
 — дедлайн: 12 листопада 2026 (або «приймають постійно»).
 
 Якщо важливо — ще одне речення-нюанс (подача англійською, дорогу оплачуєте самі, кількість робіт).
@@ -126,7 +129,7 @@ ${LANGUAGE}
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "is_call", "result", "discipline", "fee", "open_to_ukraine", "local_only", "rights_grab", "pays_author",
+  required: ["score", "is_call", "result", "discipline", "fee", "open_to_ukraine", "local_only", "rights_grab", "pays_author", "institution",
     "deadline", "rolling", "headline", "organizer", "link", "reason", "post", "tags"],
   properties: {
     score: { type: "integer", minimum: 1, maximum: 10 },
@@ -138,6 +141,7 @@ const SCHEMA = {
     local_only: { type: "boolean" },
     rights_grab: { type: "boolean" },
     pays_author: { type: "boolean" },
+    institution: { type: "boolean" },
     deadline: { type: "string" },
     rolling: { type: "boolean" },
     headline: { type: "string" },
@@ -187,7 +191,8 @@ export async function analyzeProstir(a: Article, text: string | null, links: Art
     (GRANT_CHANNEL.has(r.result) && "грант/резиденція/навчання — це канал грантів") ||
     (!SHOW.has(r.result) && "незрозуміло, що отримає автор") ||
     (r.fee === "paid" && "платна участь") ||
-    (r.fee === "not_mentioned" && !FREE_SOURCES.has(a.source) && "не сказано, що участь безкоштовна") ||
+    // про оплату нічого — довіряємо лише фільтру сайту, музеям/публічним галереям/фестивалям або коли автору платять
+    (r.fee === "not_mentioned" && !FREE_SOURCES.has(a.source) && !r.institution && !r.pays_author && "не сказано, що участь безкоштовна") ||
     (!r.open_to_ukraine && "українці не можуть подати") ||
     (r.local_only && "лише для місцевих") ||
     (r.rights_grab && "забирають права на роботу") ||
