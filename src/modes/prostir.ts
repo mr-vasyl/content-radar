@@ -12,7 +12,7 @@ import { prefilter } from "../prefilter.ts";
 import { factCheck } from "../factCheck.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
-import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, sourceSkip, STORY_SOURCES, TIP_SOURCES, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
+import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
 import type { RunOptions } from "./types.ts";
 import { collect as collectOrders } from "./orders.ts";
 import { orderTeaser } from "../orders.ts";
@@ -217,15 +217,15 @@ async function sendFromQueue(): Promise<void> {
 }
 
 // 📚 «Як подаватись» (пн, чт) і ✨ «Історії авторів» (вт, сб) — з 12:00, по одному; не вийшло — пробуємо наступного прогону
-const EDITORIAL_DAYS: Record<Editorial, string[]> = { tip: ["Mon", "Thu"], story: ["Tue", "Sat"] };
-const EDITORIAL_NAME: Record<Editorial, string> = { tip: "📚 Як подаватись", story: "✨ Історії авторів" };
+const EDITORIAL_DAYS: Record<Editorial, string[]> = { tip: ["Mon", "Thu"], story: ["Tue", "Sat"], tool: ["Wed", "Fri"] };
+const EDITORIAL_NAME: Record<Editorial, string> = { tip: "📚 Як подаватись", story: "✨ Історії авторів", tool: "🧰 Безкоштовні інструменти" };
 const X = "prx:";
 
 async function editorial(kind: Editorial, opts: RunOptions): Promise<void> {
-  const fmt = kind === "tip" ? "prostir_tip" : "prostir_story";
+  const fmt = `prostir_${kind}` as const;
   if (!opts.dryRun && !(EDITORIAL_DAYS[kind].includes(kyivWeekday()) && kyivHour() >= 12 && !(await alreadyRan(fmt, kyivDate())))) return;
   const all: Article[] = [];
-  for (const s of kind === "tip" ? TIP_SOURCES : STORY_SOURCES) {
+  for (const s of { tip: TIP_SOURCES, story: STORY_SOURCES, tool: TOOL_SOURCES }[kind]) {
     try {
       all.push(...(await fetchArticles(s)));
     } catch (err) {
@@ -235,7 +235,9 @@ async function editorial(kind: Editorial, opts: RunOptions): Promise<void> {
   const used = new Set((await prisma.article.findMany({ where: { url: { in: all.map((a) => X + a.url) } }, select: { url: true } })).map((r) => r.url.slice(X.length)));
   // NO FEE-дописи Trish Hopkinson і добірки Authors Publish — це набори, не поради й не історії
   const fresh = all.filter((a) => !used.has(a.url) && (!a.publishedAt || a.publishedAt.getTime() > Date.now() - 30 * DAY) && !/no fee|^\d+\s/i.test(a.title));
-  const purpose = kind === "tip"
+  const purpose = kind === "tool"
+    ? "безкоштовні програми, плагіни, шрифти, пензлі й ресурси для роботи художників, дизайнерів, фотографів, музикантів, письменників і 3D-авторів. Платне, огляди техніки, новини компаній, інструменти для програмістів — ні."
+    : kind === "tip"
     ? "практичні поради авторам (художники, фотографи, письменники, музиканти), як показати, опублікувати чи продати свою роботу: портфоліо, подача в журнали й на виставки, умови конкурсів і права, шахраї."
     : "реальні історії конкретних авторів про те, як вони показали, опублікували чи продали свою роботу — з деталями й висновками.";
   const picked = fresh.length ? await prefilter(fresh, purpose, Math.min(3, fresh.length)) : new Set<string>();
@@ -286,7 +288,7 @@ async function weekly(opts: RunOptions): Promise<void> {
 }
 
 export async function runProstir(opts: RunOptions): Promise<void> {
-  // PROSTIR_ONLY=tip|story — тест лише однієї редакційної рубрики
+  // PROSTIR_ONLY=tip|story|tool — тест лише однієї редакційної рубрики
   const only = process.env.PROSTIR_ONLY as Editorial | undefined;
   if (only) return editorial(only, opts);
   await collect(opts, opts.dryRun ? Number(process.env.PROSTIR_LIMIT || 8) : ANALYZE_PER_RUN);
@@ -295,6 +297,6 @@ export async function runProstir(opts: RunOptions): Promise<void> {
     await collectOrders({ dryRun: false, send: false }, 4).catch((e) => console.error("Шукають авторів:", (e as Error).message));
     await sendFromQueue();
   }
-  for (const k of ["tip", "story"] as const) await editorial(k, opts).catch((e) => console.error(EDITORIAL_NAME[k], (e as Error).message));
+  for (const k of ["tip", "story", "tool"] as const) await editorial(k, opts).catch((e) => console.error(EDITORIAL_NAME[k], (e as Error).message));
   await weekly(opts);
 }

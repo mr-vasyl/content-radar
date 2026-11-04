@@ -215,3 +215,6 @@ OAuthException (2026-10-30 Meta на ~1 год дала «API access blocked» �
   Ari's Take, DIY Musician, Artists Network, Authors Publish) / `STORY_SOURCES` (The Creative Independent, Trish Hopkinson, Jane Friedman),
   статті ≤30 днів → prefilter 3 → `editorialPost` (GPT: useful + пост) → фактчек → «🔗 Читати повністю». Використані — Article `prx:`.
   Тест: `PROSTIR_ONLY=tip|story npm run preview prostir [send]`. Рубрику «Де продавати» власник не обрав (частина майданчиків — конкуренти SkyNovix).
+  🧰 «Безкоштовні інструменти» (ср, пт; власник 2026-11-04): `TOOL_SOURCES` — Bedroom Producers Blog (плагіни), Creative Bloq,
+  MakeUseOf Creative, BlenderNation (3D), Fstoppers, MusicRadar. useful лише якщо безкоштовність прямо сказана; без платформ продажу/
+  підписок (конкуренти SkyNovix), техніки, інструментів для програмістів і загальних ШІ-чатботів. Не взято: Product Hunt (ШІ/дев), Freebiesbug (мертвий).
