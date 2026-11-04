@@ -155,14 +155,14 @@ async function sendPhotoPostVia(bot: Telegram, post: string, image: string | und
 }
 
 // 🧵 Тизер для Threads — окремим беззвучним повідомленням під постом, текст копіюється одним дотиком.
-export async function sendHook(hook: string, account?: string): Promise<void> {
+export async function sendHook(hook: string, account?: string, end = TEASER_END): Promise<void> {
   let plain = hook.replace(/\*\*/g, "").trim(); // Threads розмітку не показує
   // прибираємо заклики GPT в кінці (наш, старий «Посилання — у шапці профілю», «…у нашому Telegram»)
   // і ставимо наш завжди однаково — окремим абзацом
-  plain = plain.replace(/(\n+[^\n]*(шапці профілю|нашому Telegram|у Telegram)[^\n]*)+\s*$/iu, "").trim();
+  plain = plain.replace(/(\n+[^\n]*(шапці профілю|нашому Telegram|у Telegram|в профілі)[^\n]*)+\s*$/iu, "").trim();
   // власник 2026-10-29: без смайликів у тексті й без заголовка «Для Threads» — повідомлення копіюється як є
   plain = plain.replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]️?/gu, "").replace(/[ \t]{2,}/g, " ").replace(/ +([.,;:!?])/g, "$1").replace(/^ +| +$/gm, "");
-  plain = `${plain}\n\n${TEASER_END}`;
+  plain = `${plain}\n\n${end}`;
   await botFor(account).sendMessage(chatId, escapeHtml(plain), {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },

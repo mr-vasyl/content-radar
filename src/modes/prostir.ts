@@ -12,10 +12,9 @@ import { prefilter } from "../prefilter.ts";
 import { factCheck } from "../factCheck.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
-import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
+import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, PROSTIR_TEASER_END, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
 import type { RunOptions } from "./types.ts";
 import { collect as collectOrders } from "./orders.ts";
-import { orderTeaser } from "../orders.ts";
 
 const MAX_AGE_DAYS = 3;
 const ANALYZE_PER_RUN = 6; // 💸 повна оцінка GPT — лише для стількох за запуск
@@ -115,7 +114,7 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
         console.log(`\n${post}\n`);
         if (opts.send) {
           await sendPost(post, { tags: v.tags, account: "prostir", source: v.meta.origin || a.source, lines: [`🧪 тест · ${v.meta.grade} · ${v.score}/10`], link: { url: a.url, label: "Оригінал" } });
-          await sendHook(await prostirTeaser(post), "prostir");
+          await sendHook(await prostirTeaser(post), "prostir", PROSTIR_TEASER_END);
         }
         continue;
       }
@@ -161,8 +160,9 @@ async function liveAuthors(): Promise<Row[]> {
 
 async function teaser(post: string, kind: "show" | "authors"): Promise<void> {
   try {
-    const t = kind === "show" ? await prostirTeaser(post) : await orderTeaser(post);
-    if (t) await sendHook(t, "prostir");
+    void kind; // власник 2026-11-04: обидві рубрики — у форматі «вигода першим рядком»
+    const t = await prostirTeaser(post);
+    if (t) await sendHook(t, "prostir", PROSTIR_TEASER_END);
   } catch (err) {
     console.error("Тизер для Threads не вийшов:", (err as Error).message);
   }
