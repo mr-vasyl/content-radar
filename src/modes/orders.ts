@@ -42,7 +42,7 @@ async function save(a: Article, status: string, data: { reason: string; kind?: s
 }
 
 // 1. Збір і оцінка
-async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void> {
+export async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void> {
   const all: Article[] = [];
   for (const s of ORDER_SOURCES) {
     try {

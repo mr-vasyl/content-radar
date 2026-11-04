@@ -207,3 +207,11 @@ OAuthException (2026-10-30 Meta на ~1 год дала «API access blocked» �
   Ліміт 5/добу, у черзі — до дедлайну (≤21 дня). Під кожним постом — тизер для Threads (`prostirTeaser`).
 - ⏳ «Дедлайни тижня» — нд з 12:00 (FormatRun `prostir_week`): надіслане з дедлайном у найближчі 9 днів, ≥3 пункти, без GPT.
 - `npm start -- prostir` — окремий прогін; `npm run preview prostir [send]` (`PROSTIR_LIMIT=8`) — тест без БД.
+- 🧩 Ширше за open call (власник 2026-11-04: «тематика велика»), рубрики:
+  🖼 «Покажи своє» (pr_queue, 60%) і 💼 «Шукають авторів» (40%) — черга й збір колишнього каналу замовлень (`collect` з modes/orders.ts,
+  4 оцінки за прогін; kinds без `remote_fulltime`; Freelancehunt — коли більше нічого; надіслане — `ord_sent` з `channel: "prostir"` у hook).
+  Прогін обирає рубрику з більшим недобором до частки; ліміт 5/добу спільний.
+  📚 «Як подаватись» (пн, чт) і ✨ «Історії авторів» (вт, сб) — з 12:00, по одному: `TIP_SOURCES` (Jane Friedman, Writer's Digest,
+  Ari's Take, DIY Musician, Artists Network, Authors Publish) / `STORY_SOURCES` (The Creative Independent, Trish Hopkinson, Jane Friedman),
+  статті ≤30 днів → prefilter 3 → `editorialPost` (GPT: useful + пост) → фактчек → «🔗 Читати повністю». Використані — Article `prx:`.
+  Тест: `PROSTIR_ONLY=tip|story npm run preview prostir [send]`. Рубрику «Де продавати» власник не обрав (частина майданчиків — конкуренти SkyNovix).

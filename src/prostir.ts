@@ -9,7 +9,7 @@ import type { ArticleLink } from "./extractText.ts";
 import type { Source } from "./sources.ts";
 import { askJson, LANGUAGE, TEASER_END, VOICE } from "./gpt.ts";
 import { deadlineTooLate } from "./summarize.ts";
-import { PROSTIR_TAGS, PROSTIR_TAGS_PROMPT } from "./channels.ts";
+import { PROSTIR_DISC_TAGS, PROSTIR_TAGS, PROSTIR_TAGS_PROMPT } from "./channels.ts";
 
 // Аудит 2026-11-04 (усі читаються ботом). Не взято: FilmFreeway і Submittable (Cloudflare), Poets & Writers (журнали лише
 // за алфавітом, без дат — бот не відрізнить нове), Festhome (сторінки без назв, самі платні фестивалі), ShutterCalls й
@@ -269,4 +269,71 @@ export function weeklyDeadlines(items: { meta: Meta; url: string }[]): string | 
     .sort((x, y) => x.meta.deadline.localeCompare(y.meta.deadline))
     .map((x) => `**до ${day(x.meta.deadline)}** — [${x.meta.headline.replace(/[[\]]/g, "")}](${x.meta.link || x.url})`);
   return `**⏳ Дедлайни тижня**\n\nВстигніть подати роботи — ці набори закриваються найближчими днями:\n\n${lines.join("\n")}\n\nУсюди участь безкоштовна. Збережіть, щоб не загубити.`;
+}
+
+// ─────────── 📚 «Як подаватись» і ✨ «Історії авторів» (власник 2026-11-04: «тематика ширша, ніж open call») ───────────
+// По 1–2 на тиждень за розкладом (modes/prostir.ts). Беремо свіжі статті профільних блогів, GPT вирішує, чи з них вийде
+// корисний пост, і пише його своїми словами. Використані й відхилені статті — в Article з префіксом url «prx:».
+export const TIP_SOURCES: Source[] = [
+  S("Jane Friedman", "https://janefriedman.com/feed/"), // письменництво й видання, шахраї у видавничій справі
+  S("Writer's Digest", "https://www.writersdigest.com/feed"),
+  S("Ari's Take", "https://aristake.com/feed/"), // музиканти: просування, релізи, гроші
+  S("DIY Musician", "https://diymusician.cdbaby.com/feed/"),
+  S("Artists Network", "https://artistsnetwork.com/feed/"), // художники
+  S("Authors Publish", "https://www.authorspublish.com/feed/"),
+];
+export const STORY_SOURCES: Source[] = [
+  S("The Creative Independent", "https://thecreativeindependent.com/feed.xml"), // інтерв'ю з авторами всіх напрямів
+  S("Trish Hopkinson", "https://trishhopkinson.com/feed/"), // гостьові історії авторів про публікації
+  S("Jane Friedman", "https://janefriedman.com/feed/"),
+];
+
+export type Editorial = "tip" | "story";
+const EDITORIAL_RULES: Record<Editorial, string> = {
+  tip: `Рубрика «📚 Як подаватись»: практична порада автору, як показати, опублікувати чи продати свою роботу —
+портфоліо, artist statement, супровідний лист, як обрати журнал чи виставку, як читати умови конкурсу, права на роботи,
+як розпізнати платну «пастку» чи шахрая, як підготувати демо чи подачу на фестиваль, як говорити з видавцем чи галереєю.
+useful = true лише якщо в статті є конкретні кроки чи прийоми, які читач застосує сам. Техніка малювання, огляди техніки,
+новини індустрії, реклама курсів — false.
+Пост: **заголовок-вигода одним рядком**, 1–2 речення, навіщо це, потім 3–5 порад через «— » (конкретно, з прикладом),
+наприкінці одне речення-висновок. Порожній рядок після заголовка, після вступу й перед висновком (пункти — підряд). 600–1100 символів.`,
+  story: `Рубрика «✨ Історії авторів»: реальна історія конкретного автора (художник, фотограф, письменник, музикант,
+кіношник, дизайнер) про те, як він показав, опублікував чи продав свою роботу, — з поворотом, помилками, цифрами чи висновком,
+корисним іншим. useful = true лише якщо є конкретна людина, конкретний шлях і чого з нього можна навчитись.
+Загальні роздуми без історії, некрологи, новини, реклама — false.
+Пост: **заголовок — суть історії одним рядком** (хто й що зробив), 2–3 короткі абзаци історії з деталями,
+наприкінці — «Що з цього взяти:» і 2–3 короткі пункти через «— ». 700–1200 символів.`,
+};
+
+export interface EditorialPost {
+  useful: boolean;
+  reason: string;
+  post: string;
+  tags: string[];
+}
+
+export async function editorialPost(kind: Editorial, a: Article, text: string): Promise<EditorialPost> {
+  const r = await askJson<EditorialPost>(
+    `Ти редактор українського Telegram-каналу «Авторський простір 🇺🇦» для художників, ілюстраторів, фотографів,
+письменників, музикантів, кіношників і дизайнерів. Тобі дають статтю (часто англійською).
+${EDITORIAL_RULES[kind]}
+reason — одне речення українською: чому так.
+${PROSTIR_TAGS_PROMPT.replace(/Перший — ЩО[^]*?Далі 1–2 — НАПРЯМ: /, "Лише НАПРЯМ (1–2): ")}
+Якщо useful = false — post порожній рядок.
+Вимоги до поста: перекажи своїми словами, не перекладай дослівно; ім'я автора й назви — як в оригіналі; жирним лише заголовок;
+без посилань і хештегів (посилання додасть код); не згадуй інші платформи для продажу й підписок.
+${VOICE}
+${LANGUAGE}`,
+    `Джерело: ${a.source}\nЗаголовок: ${a.title}\n\n${text.slice(0, 7000)}`,
+    `prostir_${kind}`,
+    {
+      type: "object", additionalProperties: false, required: ["useful", "reason", "post", "tags"],
+      properties: {
+        useful: { type: "boolean" }, reason: { type: "string" }, post: { type: "string" },
+        tags: { type: "array", minItems: 1, maxItems: 2, items: { type: "string", enum: [...PROSTIR_DISC_TAGS] } },
+      },
+    },
+  );
+  if (r.useful && !r.post.trim()) r.useful = false;
+  return r;
 }
