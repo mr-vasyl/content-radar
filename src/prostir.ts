@@ -132,7 +132,8 @@ score від 1 до 10 — наскільки це сильна можливіс
 — що надіслати: …;
 — що отримаєте: …;
 — участь: безкоштовно (якщо про оплату в тексті нічого — напиши «внеску в умовах немає»);
-— дедлайн: 12 листопада 2026 (або «приймають постійно»).
+— дедлайн: 12 листопада 2026 (або «приймають постійно»);
+— додаткові витрати: доставка роботи, друк, рамування, дорога чи проживання — ЛИШЕ якщо про них є в тексті; немає — цей рядок не пиши.
 
 Якщо важливо — ще одне речення-нюанс (подача англійською, дорогу оплачуєте самі, кількість робіт).
 Вимоги: 400–900 символів; лише факти з тексту, нічого не додумуй; жирним лише назву; без посилань, хештегів і емодзі
@@ -310,8 +311,44 @@ export const TOOL_SOURCES: Source[] = [
   S("MusicRadar", "https://www.musicradar.com/feeds.xml"),
 ];
 
-export type Editorial = "tip" | "story" | "tool";
+// 💰 «Як заробляти» і ⚖️ «Права й просування» (власник 2026-11-04: «додавай, що вважаєш правильним» після чорновика
+// «професійне медіа для незалежних авторів»; дослідження Cedos: маркетинг 54%, авторське право 24% серед потреб)
+export const MONEY_SOURCES: Source[] = [
+  S("Jane Friedman", "https://janefriedman.com/feed/"),
+  S("The Creative Penn", "https://www.thecreativepenn.com/feed/"),
+  S("ALLi", "https://selfpublishingadvice.org/feed/"),
+  S("Ari's Take", "https://aristake.com/feed/"),
+  S("DIY Musician", "https://diymusician.cdbaby.com/feed/"),
+];
+export const RIGHTS_SOURCES: Source[] = [
+  S("Authors Guild", "https://authorsguild.org/feed/"),
+  S("Creative Commons", "https://creativecommons.org/feed/"),
+  S("Jane Friedman", "https://janefriedman.com/feed/"),
+  S("Buffer", "https://buffer.com/resources/rss/"),
+  S("Social Media Examiner", "https://www.socialmediaexaminer.com/feed/"),
+  S("PetaPixel", "https://petapixel.com/feed/"), // справи про крадіжку фото й права
+];
+// Платформи-конкуренти SkyNovix у тексті поста — не можна (як у Threads, власник 2026-10-25)
+export const COMPETITOR_NAME =
+  /\b(Substack|Patreon|Gumroad|Ko-?fi|Etsy|Amazon|KDP|Kindle Unlimited|Kickstarter|beehiiv|ConvertKit|Teachable|Kajabi|Podia|Bandcamp|Boosty|OnlyFans|Fourthwall|Lemon ?Squeezy|Buy Me a Coffee|Memberful)\b|Сабстек|Патреон|Амазон|Етсі|Кікстартер/i;
+
+export type Editorial = "tip" | "story" | "tool" | "money" | "rights";
 const EDITORIAL_RULES: Record<Editorial, string> = {
+  money: `Рубрика «💰 Як заробляти на своєму»: конкретний спосіб, яким автор заробляє на ВЛАСНИХ роботах — ліцензування,
+роялті, продаж прав і перекладів, комісійні замовлення й ціни на них, власний цифровий продукт, підписка читачів, виступи.
+useful = true лише якщо є конкретний прийом, цифри чи кейс, які читач може застосувати. Новини індустрії, звіти компаній,
+загальні мотиваційні тексти — false. Стаття, побудована навколо однієї платформи продажу чи підписок (Amazon KDP,
+Patreon, Substack, Etsy тощо), — false. Назви таких платформ у пості НЕ згадуй.
+Пост: **заголовок — вигода чи цифра одним рядком**, порожній рядок, 1–2 речення про суть, порожній рядок,
+3–5 пунктів через «— » (як саме, з прикладом), порожній рядок, одне речення-висновок. 600–1100 символів.`,
+  rights: `Рубрика «⚖️ Права й просування»: практичне пояснення конкретної ситуації — пункт договору з видавцем, галереєю
+чи замовником, види ліцензій, виключні права, що робити, коли вкрали роботу, ШІ й навчання на роботах авторів, як захистити
+авторство; АБО конкретний прийом, як автору знайти аудиторію (портфоліо в соцмережах, розсилка, співпраця, медіа).
+useful = true лише якщо читач після поста знає, що робити в конкретній ситуації. Загальний маркетинг для бізнесу, ШІ-агенти,
+реклама, новини судів без висновку для автора — false. Законодавство іншої країни — лише якщо висновок корисний і українцю
+(тоді скажи, що це приклад з іншої країни). Платформи продажу й підписок не згадуй.
+Пост: **заголовок — ситуація чи питання одним рядком**, порожній рядок, 1–2 речення, порожній рядок, 3–5 пунктів через «— »,
+порожній рядок, одне речення-висновок. 600–1100 символів.`,
   tool: `Рубрика «🧰 Безкоштовні інструменти»: програма, плагін, сервіс, шрифт, набір пензлів чи ресурсів, корисний у РОБОТІ
 художнику, ілюстратору, дизайнеру, фотографу, відеографу, музиканту, письменнику чи 3D-автору.
 useful = true лише якщо: в статті ПРЯМО сказано, що інструмент безкоштовний або має безкоштовну версію (і що в ній є);
@@ -366,5 +403,35 @@ ${LANGUAGE}`,
     },
   );
   if (r.useful && !r.post.trim()) r.useful = false;
+  if (r.useful && COMPETITOR_NAME.test(r.post)) {
+    r.useful = false;
+    r.reason = `згадано платформу-конкурента SkyNovix — ${r.reason}`;
+  }
   return r;
+}
+
+// 📋 «Добірка тижня» (субота): напрям, у якому за 14 днів надіслано найбільше ще відкритих можливостей (≥4), одним списком.
+// Без GPT — лише те, що вже пройшло перевірку. Немає 4 в одному напрямі — беремо найкращі з усіх («для всіх авторів»).
+const DISC_WHO: Record<string, string> = {
+  literature: "письменників і поетів", music: "музикантів", art: "художників та ілюстраторів", photo: "фотографів",
+  film: "кіношників", design: "дизайнерів", mixed: "авторів різних напрямів",
+};
+const RESULT_WORD: Record<string, string> = {
+  publication: "публікація", exhibition: "виставка", screening: "показ", performance: "виступ", sale: "продаж",
+  commission: "оплачуване замовлення", prize: "приз",
+};
+export function weeklyCompilation(items: { meta: Meta; url: string; discipline: string }[]): string | null {
+  const byDisc = new Map<string, typeof items>();
+  for (const x of items) byDisc.set(x.discipline, [...(byDisc.get(x.discipline) ?? []), x]);
+  const best = [...byDisc.entries()].filter(([d]) => d !== "mixed").sort((a, b) => b[1].length - a[1].length)[0];
+  const [who, list] = best && best[1].length >= 4 ? [DISC_WHO[best[0]] ?? "авторів", best[1]] : ["всіх авторів", items];
+  if (list.length < 4) return null;
+  const months = ["січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"];
+  const day = (d: string) => (d ? `до ${Number(d.slice(8, 10))} ${months[Number(d.slice(5, 7)) - 1]}` : "приймають постійно");
+  const top = list
+    .sort((x, y) => (x.meta.grade === y.meta.grade ? (x.meta.deadline || "9").localeCompare(y.meta.deadline || "9") : x.meta.grade === "A" ? -1 : 1))
+    .slice(0, 7);
+  const lines = top.map((x, i) => `${i + 1}. [${x.meta.headline.replace(/[[\]]/g, "")}](${x.meta.link || x.url}) — ${RESULT_WORD[x.meta.result] ?? "можливість"}, ${day(x.meta.deadline)}`);
+  const word = top.length % 10 === 1 && top.length % 100 !== 11 ? "можливість" : [2, 3, 4].includes(top.length % 10) && ![12, 13, 14].includes(top.length % 100) ? "можливості" : "можливостей";
+  return `**📋 Добірка тижня: ${top.length} ${word} для ${who}**\n\nУсе відкрите зараз і з безкоштовною участю — збережіть, щоб подати вчасно:\n\n${lines.join("\n")}\n\nДеталі кожної — за посиланням або в наших постах цього тижня.`;
 }

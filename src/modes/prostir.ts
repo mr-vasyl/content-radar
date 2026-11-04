@@ -12,13 +12,13 @@ import { prefilter } from "../prefilter.ts";
 import { factCheck } from "../factCheck.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
-import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, PROSTIR_TEASER_END, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
+import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, PROSTIR_TEASER_END, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, MONEY_SOURCES, RIGHTS_SOURCES, weeklyCompilation, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
 import type { RunOptions } from "./types.ts";
 import { collect as collectOrders } from "./orders.ts";
 
 const MAX_AGE_DAYS = 3;
 const ANALYZE_PER_RUN = 6; // 💸 повна оцінка GPT — лише для стількох за запуск
-const DAILY_CAP = 5; // власник: 3–5 на день
+const DAILY_CAP = 4; // оголошень на добу (+1 стаття за розкладом) — баланс ~60/40, 2026-11-04
 const DAY = 86400000;
 const P = "pr:";
 
@@ -217,15 +217,16 @@ async function sendFromQueue(): Promise<void> {
 }
 
 // 📚 «Як подаватись» (пн, чт) і ✨ «Історії авторів» (вт, сб) — з 12:00, по одному; не вийшло — пробуємо наступного прогону
-const EDITORIAL_DAYS: Record<Editorial, string[]> = { tip: ["Mon", "Thu"], story: ["Tue", "Sat"], tool: ["Wed", "Fri"] };
-const EDITORIAL_NAME: Record<Editorial, string> = { tip: "📚 Як подаватись", story: "✨ Історії авторів", tool: "🧰 Безкоштовні інструменти" };
+// по одній статті на день: пн поради, вт історія, ср інструмент, чт заробіток, пт права й просування (сб — добірка, нд — дедлайни)
+const EDITORIAL_DAYS: Record<Editorial, string[]> = { tip: ["Mon"], story: ["Tue"], tool: ["Wed"], money: ["Thu"], rights: ["Fri"] };
+const EDITORIAL_NAME: Record<Editorial, string> = { tip: "📚 Як подаватись", story: "✨ Історії авторів", tool: "🧰 Безкоштовні інструменти", money: "💰 Як заробляти", rights: "⚖️ Права й просування" };
 const X = "prx:";
 
 async function editorial(kind: Editorial, opts: RunOptions): Promise<void> {
   const fmt = `prostir_${kind}` as const;
   if (!opts.dryRun && !(EDITORIAL_DAYS[kind].includes(kyivWeekday()) && kyivHour() >= 12 && !(await alreadyRan(fmt, kyivDate())))) return;
   const all: Article[] = [];
-  for (const s of { tip: TIP_SOURCES, story: STORY_SOURCES, tool: TOOL_SOURCES }[kind]) {
+  for (const s of { tip: TIP_SOURCES, story: STORY_SOURCES, tool: TOOL_SOURCES, money: MONEY_SOURCES, rights: RIGHTS_SOURCES }[kind]) {
     try {
       all.push(...(await fetchArticles(s)));
     } catch (err) {
@@ -235,7 +236,11 @@ async function editorial(kind: Editorial, opts: RunOptions): Promise<void> {
   const used = new Set((await prisma.article.findMany({ where: { url: { in: all.map((a) => X + a.url) } }, select: { url: true } })).map((r) => r.url.slice(X.length)));
   // NO FEE-дописи Trish Hopkinson і добірки Authors Publish — це набори, не поради й не історії
   const fresh = all.filter((a) => !used.has(a.url) && (!a.publishedAt || a.publishedAt.getTime() > Date.now() - 30 * DAY) && !/no fee|^\d+\s/i.test(a.title));
-  const purpose = kind === "tool"
+  const purpose = kind === "money"
+    ? "конкретні способи, якими автори (письменники, музиканти, художники, фотографи) заробляють на власних роботах: ліцензування, роялті, замовлення й ціни, власний продукт, підписка читачів. Новини індустрії й звіти компаній — ні."
+    : kind === "rights"
+    ? "практичні пояснення для авторів про права (договори, ліцензії, крадіжка робіт, ШІ й авторство) або конкретні прийоми, як автору знайти аудиторію. Загальний бізнес-маркетинг і ШІ-агенти — ні."
+    : kind === "tool"
     ? "безкоштовні програми, плагіни, шрифти, пензлі й ресурси для роботи художників, дизайнерів, фотографів, музикантів, письменників і 3D-авторів. Платне, огляди техніки, новини компаній, інструменти для програмістів — ні."
     : kind === "tip"
     ? "практичні поради авторам (художники, фотографи, письменники, музиканти), як показати, опублікувати чи продати свою роботу: портфоліо, подача в журнали й на виставки, умови конкурсів і права, шахраї."
@@ -274,6 +279,21 @@ async function editorial(kind: Editorial, opts: RunOptions): Promise<void> {
   console.log(`${EDITORIAL_NAME[kind]}: нічого корисного — спробую наступного прогону`);
 }
 
+// 📋 Добірка тижня — субота з 12:00
+async function compilation(opts: RunOptions): Promise<void> {
+  if (!opts.dryRun && !(kyivWeekday() === "Sat" && kyivHour() >= 12 && !(await alreadyRan("prostir_digest", isoWeek())))) return;
+  const open = kyivDate(new Date(Date.now() + 2 * DAY));
+  const rows = await prisma.article.findMany({ where: { url: { startsWith: P }, status: "pr_sent", createdAt: { gte: new Date(Date.now() - 30 * DAY) } } });
+  const items = rows
+    .map((r) => ({ meta: metaOf(r.hook), url: r.url.slice(P.length), discipline: r.stream ?? "mixed" }))
+    .filter((x) => (x.meta.sentAt ?? 0) > Date.now() - 14 * DAY && (x.meta.rolling || x.meta.deadline >= open));
+  const post = weeklyCompilation(items);
+  if (opts.dryRun) return console.log(post ? `\n${post}` : "\n📋 Добірка тижня: замало постів");
+  if (post) await sendPost(post, { tags: ["#добірка"], account: "prostir", lines: [] });
+  console.log(post ? "📋 Добірка тижня надіслана" : "📋 Добірка тижня: замало — пропускаю");
+  await markRan("prostir_digest", isoWeek());
+}
+
 // 3. ⏳ Дедлайни тижня — неділя з 12:00
 async function weekly(opts: RunOptions): Promise<void> {
   if (!opts.dryRun && !(kyivWeekday() === "Sun" && kyivHour() >= 12 && !(await alreadyRan("prostir_week", isoWeek())))) return;
@@ -288,8 +308,9 @@ async function weekly(opts: RunOptions): Promise<void> {
 }
 
 export async function runProstir(opts: RunOptions): Promise<void> {
-  // PROSTIR_ONLY=tip|story|tool — тест лише однієї редакційної рубрики
+  // PROSTIR_ONLY=tip|story|tool|money|rights|digest — тест лише однієї редакційної рубрики
   const only = process.env.PROSTIR_ONLY as Editorial | undefined;
+  if ((only as string) === "digest") return compilation(opts);
   if (only) return editorial(only, opts);
   await collect(opts, opts.dryRun ? Number(process.env.PROSTIR_LIMIT || 8) : ANALYZE_PER_RUN);
   if (!opts.dryRun) {
@@ -297,6 +318,7 @@ export async function runProstir(opts: RunOptions): Promise<void> {
     await collectOrders({ dryRun: false, send: false }, 4).catch((e) => console.error("Шукають авторів:", (e as Error).message));
     await sendFromQueue();
   }
-  for (const k of ["tip", "story", "tool"] as const) await editorial(k, opts).catch((e) => console.error(EDITORIAL_NAME[k], (e as Error).message));
+  for (const k of ["tip", "story", "tool", "money", "rights"] as const) await editorial(k, opts).catch((e) => console.error(EDITORIAL_NAME[k], (e as Error).message));
+  await compilation(opts);
   await weekly(opts);
 }
