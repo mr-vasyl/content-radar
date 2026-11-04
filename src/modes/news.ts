@@ -6,7 +6,8 @@ import { noisyReason, notCreativeReason, onlyVeteranWord, ruleRejectReason } fro
 import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
 import { analyzeFop } from "../fop.ts";
-import { sendHook, sendPost } from "../sendToTelegram.ts";
+import { sendHook, sendImagePost } from "../sendToTelegram.ts";
+import { deadlineText, illustrate, splitBenefit, STREAM_COLOR } from "../postImage.ts";
 import { factCheck } from "../factCheck.ts";
 import { withToolLink } from "../digest.ts";
 import { prostirTeaser } from "../prostir.ts";
@@ -166,20 +167,27 @@ export async function runNews(): Promise<void> {
   for (const { a, analysis } of ready) {
     try {
       // Під лінією — лише «За матеріалами» й «Оригінал» (власник 2026-10-29: без оцінки, назви й правок фактчеку)
-      await sendPost(analysis.post, {
+      // 🧵 тизер — до поста: його перший рядок (вигода) іде ще й на брендову картку
+      let teaser = "";
+      try {
+        teaser = await prostirTeaser(analysis.post, "✍️ гранти, конкурси та можливості 🇺🇦");
+      } catch (e) {
+        console.error("Тизер для Threads не вийшов:", (e as Error).message);
+      }
+      // 🖼 картинка (власник 2026-11-04): справжня зі сторінки програми, інакше картка каналу з вигодою й дедлайном
+      const ill = await illustrate([analysis.link, a.url].filter(Boolean), sources.find((s) => s.name === a.source && !s.telegram)?.url, {
+        channel: "Гранти, конкурси та можливості", label: analysis.stream, ...splitBenefit(teaser.split("\n")[0] || a.title),
+        footer: deadlineText(analysis.deadline), handle: "@write_teach_earn", color: STREAM_COLOR[analysis.stream] ?? "#22577A",
+      });
+      await sendImagePost(analysis.post, ill, {
         tags: analysis.tags,
         account: analysis.account === "other" ? undefined : analysis.account,
         source: analysis.origin?.trim() || a.source, // першоджерело, а не посередник (ГУРТ, TLDR…)
         lines: [],
         link: { url: a.url, label: "Оригінал" },
       }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
-      // 🧵 тизер для Threads під кожним постом, «вигода першим рядком» (власник 2026-11-04); збій тизера не зриває пост
-      try {
-        const t = await prostirTeaser(analysis.post, "✍️ гранти, конкурси та можливості 🇺🇦");
-        if (t) await sendHook(t);
-      } catch (e) {
-        console.error("Тизер для Threads не вийшов:", (e as Error).message);
-      }
+      // 🧵 тизер для Threads під кожним постом, «вигода першим рядком» (власник 2026-11-04)
+      if (teaser) await sendHook(teaser);
       await record(a, "sent", { analysis }); // тільки після успішної відправки
       // 🧾 черга «Замовлень для креаторів» (queueFromGrant) — канал вимкнено 2026-11-04
       sent++;

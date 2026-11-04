@@ -3,6 +3,7 @@ import { prisma } from "./db.ts";
 import { CHANNELS } from "./channels.ts";
 import { TEASER_END } from "./gpt.ts";
 import type { Account } from "./sources.ts";
+import { shortenPost, type Illustration } from "./postImage.ts";
 
 export const telegram = new Telegram(process.env.TELEGRAM_BOT_TOKEN!);
 // 🧵 Окремий бот для постів SkyNovix (власник 2026-10-22). Немає токена — пости йдуть у головний бот.
@@ -97,6 +98,42 @@ export async function sendPost(post: string, footer?: Footer, track?: Track): Pr
         account: track.account ?? null,
         score: track.score ?? null,
       },
+    });
+  }
+}
+
+// 🖼 Пост із картинкою (власник 2026-11-04): фото + підпис = готовий пост (текст, хештеги, підпис каналу) — власник
+// ПЕРЕСИЛАЄ його в канал з прихованим відправником (так переходять і картинка, і жирний текст, і посилання);
+// службове («За матеріалами», «Оригінал») — окремим повідомленням-відповіддю під ним. Підпис до фото — до 1024 символів:
+// довший пост скорочуємо (shortenPost), а якщо й так не влазить — звичайний текстовий пост без картинки.
+export async function sendImagePost(post: string, ill: Illustration | null, footer: Footer, track?: Track): Promise<void> {
+  if (!ill) return sendPost(post, footer, track);
+  const body = (p: string) => {
+    let t = toTelegramHtml(stripAttribution(p));
+    const tail: string[] = [];
+    if (footer.tags?.length) tail.push(escapeHtml(footer.tags.join(" ")));
+    if (footer.account) tail.push(channelSignature(footer.account));
+    return tail.length ? `${t}\n\n${tail.join("\n")}` : t;
+  };
+  const visible = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&(amp|lt|gt);/g, "x").length;
+  let caption = body(post);
+  if (visible(caption) > 1024) caption = body(await shortenPost(post, 1024 - (visible(caption) - visible(toTelegramHtml(post))) - 40));
+  if (visible(caption) > 1024) return sendPost(post, footer, track);
+
+  const bot = botFor(footer.account);
+  const photo = await bot.sendPhoto(chatId, { source: ill.image }, { caption, parse_mode: "HTML", disable_notification: true });
+  const meta: string[] = [];
+  if (footer.source) meta.push(`За матеріалами: ${escapeHtml(footer.source)}`);
+  meta.push(...footer.lines.map(escapeHtml), ill.kind === "real" ? "🖼 картинка зі сторінки" : "🖼 картка каналу");
+  if (footer.link) meta.push(`<a href="${escapeHtml(footer.link.url)}">${escapeHtml(footer.link.label)}</a>`);
+  const info = await bot.sendMessage(chatId, `<i>${meta.join("\n")}</i>`, {
+    parse_mode: "HTML", disable_notification: true, link_preview_options: { is_disabled: true },
+    reply_parameters: { message_id: photo.message_id },
+    ...(track && bot === telegram ? { reply_markup: likeKeyboard } : {}),
+  });
+  if (track && bot === telegram) {
+    await prisma.sentMessage.create({
+      data: { messageId: info.message_id, format: track.format, title: track.title, url: track.url ?? null, source: track.source ?? null, account: track.account ?? null, score: track.score ?? null },
     });
   }
 }

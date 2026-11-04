@@ -10,7 +10,8 @@ import { ruleRejectReason } from "../ruleFilter.ts";
 import { makeDuplicateChecker } from "../dedup.ts";
 import { prefilter } from "../prefilter.ts";
 import { factCheck } from "../factCheck.ts";
-import { sendHook, sendPost } from "../sendToTelegram.ts";
+import { sendHook, sendImagePost, sendPost } from "../sendToTelegram.ts";
+import { DISC_COLOR, DISC_LABEL, deadlineText, illustrate, splitBenefit, type Illustration } from "../postImage.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
 import { analyzeProstir, editorialPost, paidInTeaser, prostirTeaser, PROSTIR_TEASER_END, sourceSkip, STORY_SOURCES, TIP_SOURCES, TOOL_SOURCES, MONEY_SOURCES, RIGHTS_SOURCES, weeklyCompilation, type Editorial, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
 import type { RunOptions } from "./types.ts";
@@ -158,15 +159,27 @@ async function liveAuthors(): Promise<Row[]> {
   return live.filter((q) => q.source !== "Freelancehunt" && (q.stream !== "one_off" && q.stream !== "digital_product" || (metaOf(q.hook) as { payStatus?: string }).payStatus === "amount") && (q.score ?? 0) >= 7);
 }
 
-async function teaser(post: string, kind: "show" | "authors"): Promise<void> {
+// 🧵 Тизер пишемо ДО поста: його перший рядок («€2 000 за фотосерію. Участь безкоштовна.») — ще й текст брендової картки
+async function makeTeaser(post: string): Promise<string> {
   try {
-    void kind; // власник 2026-11-04: обидві рубрики — у форматі «вигода першим рядком»
-    const t = await prostirTeaser(post);
-    if (t) await sendHook(t, "prostir", PROSTIR_TEASER_END);
+    return await prostirTeaser(post);
   } catch (err) {
     console.error("Тизер для Threads не вийшов:", (err as Error).message);
+    return "";
   }
 }
+
+// 🖼 Картинка: справжня зі сторінки організатора/оголошення, інакше брендова картка з вигодою (postImage.ts)
+async function picture(o: { pages: string[]; listingOf: string; teaser: string; fallback: string; label: string; color: string; deadline?: string }): Promise<Illustration | null> {
+  const listing = [...PROSTIR_SOURCES, ...TIP_SOURCES, ...STORY_SOURCES, ...TOOL_SOURCES, ...MONEY_SOURCES, ...RIGHTS_SOURCES].find((s) => s.name === o.listingOf)?.url;
+  const benefit = splitBenefit(o.teaser.split("\n")[0] || o.fallback);
+  return illustrate(o.pages, listing, {
+    channel: "Авторський простір", label: o.label, ...benefit, footer: deadlineText(o.deadline ?? ""), handle: "@avtorskyi_prostir", color: o.color,
+  });
+}
+const RESULT_LABEL: Record<string, string> = {
+  publication: "Публікація", exhibition: "Виставка", screening: "Показ", performance: "Виступ", sale: "Продаж", commission: "Замовлення", prize: "Конкурс",
+};
 
 async function sendFromQueue(): Promise<void> {
   const sent = (await prisma.article.findMany({
@@ -192,9 +205,11 @@ async function sendFromQueue(): Promise<void> {
     const q = authors.sort((a, b) => rank(b) - rank(a))[0]!;
     const m = metaOf(q.hook);
     const original = q.url.slice(4).replace(/^grant:/, "");
-    await sendPost(q.post!, { tags: q.tags?.split(" ").filter(Boolean), account: "prostir", source: m.origin || q.source, lines: [`💼 шукають авторів · ${q.stream} · ${q.score}/10 · ${q.source}`], link: { url: original, label: "Оригінал" } });
+    const t = await makeTeaser(q.post!);
+    const ill = await picture({ pages: [m.link, original], listingOf: q.source, teaser: t, fallback: q.title, label: "Шукають авторів", color: "#3E4A61", deadline: m.deadline });
+    await sendImagePost(q.post!, ill, { tags: q.tags?.split(" ").filter(Boolean), account: "prostir", source: m.origin || q.source, lines: [`💼 шукають авторів · ${q.stream} · ${q.score}/10 · ${q.source}`], link: { url: original, label: "Оригінал" } });
     await prisma.article.update({ where: { id: q.id }, data: { status: "ord_sent", hook: JSON.stringify({ ...m, sentAt: Date.now(), channel: "prostir" }) } });
-    await teaser(q.post!, "authors");
+    if (t) await sendHook(t, "prostir", PROSTIR_TEASER_END);
     return console.log(`✓ Простір: 💼 [${q.stream}] ${q.title} (у черзі ${authors.length - 1})`);
   }
 
@@ -210,9 +225,13 @@ async function sendFromQueue(): Promise<void> {
   pool.sort((a, b) => (perDisc.get(a) ?? 0) - (perDisc.get(b) ?? 0) || Math.max(...show.filter((q) => q.stream === b).map(rank)) - Math.max(...show.filter((q) => q.stream === a).map(rank)));
   const q = show.filter((x) => (x.stream ?? "") === pool[0]).sort((a, b) => rank(b) - rank(a))[0]!;
   const m = metaOf(q.hook);
-  await sendPost(q.post!, { tags: q.tags?.split(" ").filter(Boolean), account: "prostir", source: m.origin || q.source, lines: [`🖼 ${m.grade} · ${q.score}/10 · знайдено на: ${q.source}`], link: { url: q.url.slice(P.length), label: "Оригінал" } });
+  const original = q.url.slice(P.length);
+  const t = await makeTeaser(q.post!);
+  const label = `${DISC_LABEL[q.stream ?? ""] ?? "Для всіх"} · ${RESULT_LABEL[m.result] ?? "Open call"}`;
+  const ill = await picture({ pages: [m.link, original], listingOf: q.source, teaser: t, fallback: m.headline || q.title, label, color: DISC_COLOR[q.stream ?? ""] ?? DISC_COLOR.mixed!, deadline: m.deadline });
+  await sendImagePost(q.post!, ill, { tags: q.tags?.split(" ").filter(Boolean), account: "prostir", source: m.origin || q.source, lines: [`🖼 ${m.grade} · ${q.score}/10 · знайдено на: ${q.source}`], link: { url: original, label: "Оригінал" } });
   await prisma.article.update({ where: { id: q.id }, data: { status: "pr_sent", hook: JSON.stringify({ ...m, sentAt: Date.now() }) } });
-  await teaser(q.post!, "show");
+  if (t) await sendHook(t, "prostir", PROSTIR_TEASER_END);
   console.log(`✓ Простір: 🖼 [${q.stream}] ${q.title} (у черзі ${show.length - 1})`);
 }
 
@@ -221,6 +240,7 @@ async function sendFromQueue(): Promise<void> {
 const EDITORIAL_DAYS: Record<Editorial, string[]> = { tip: ["Mon"], story: ["Tue"], tool: ["Wed"], money: ["Thu"], rights: ["Fri"] };
 const EDITORIAL_NAME: Record<Editorial, string> = { tip: "📚 Як подаватись", story: "✨ Історії авторів", tool: "🧰 Безкоштовні інструменти", money: "💰 Як заробляти", rights: "⚖️ Права й просування" };
 const X = "prx:";
+const EDITORIAL_COLOR: Record<Editorial, string> = { tip: "#2F5D62", story: "#7B3F61", tool: "#3F4E8C", money: "#2E6B3F", rights: "#5C4B3B" };
 
 async function editorial(kind: Editorial, opts: RunOptions): Promise<void> {
   const fmt = `prostir_${kind}` as const;
@@ -271,7 +291,9 @@ async function editorial(kind: Editorial, opts: RunOptions): Promise<void> {
       if (opts.send) await sendPost(post, { tags: r.tags, account: "prostir", source: a.source, lines: [`🧪 тест · ${EDITORIAL_NAME[kind]}`], link: { url: a.url, label: "Оригінал" } });
       return;
     }
-    await sendPost(post, { tags: r.tags, account: "prostir", source: a.source, lines: [EDITORIAL_NAME[kind]], link: { url: a.url, label: "Оригінал" } });
+    const head = (fc.post.match(/^\*\*(.+?)\*\*/)?.[1] ?? a.title).slice(0, 90);
+    const ill = await picture({ pages: [a.url], listingOf: a.source, teaser: head, fallback: a.title, label: EDITORIAL_NAME[kind].replace(/^\S+\s/, ""), color: EDITORIAL_COLOR[kind] });
+    await sendImagePost(post, ill, { tags: r.tags, account: "prostir", source: a.source, lines: [EDITORIAL_NAME[kind]], link: { url: a.url, label: "Оригінал" } });
     await mark("prx_sent", r.reason, post);
     await markRan(fmt, kyivDate());
     return console.log(`✓ ${EDITORIAL_NAME[kind]}: ${a.title}`);
@@ -289,7 +311,7 @@ async function compilation(opts: RunOptions): Promise<void> {
     .filter((x) => (x.meta.sentAt ?? 0) > Date.now() - 14 * DAY && (x.meta.rolling || x.meta.deadline >= open));
   const post = weeklyCompilation(items);
   if (opts.dryRun) return console.log(post ? `\n${post}` : "\n📋 Добірка тижня: замало постів");
-  if (post) await sendPost(post, { tags: ["#добірка"], account: "prostir", lines: [] });
+  if (post) await sendImagePost(post, await picture({ pages: [], listingOf: "", teaser: "Добірка тижня. Усе відкрите й безкоштовне.", fallback: "", label: "Добірка", color: "#22577A" }), { tags: ["#добірка"], account: "prostir", lines: [] });
   console.log(post ? "📋 Добірка тижня надіслана" : "📋 Добірка тижня: замало — пропускаю");
   await markRan("prostir_digest", isoWeek());
 }
@@ -302,7 +324,7 @@ async function weekly(opts: RunOptions): Promise<void> {
   const items = rows.map((r) => ({ meta: metaOf(r.hook), url: r.url.slice(P.length) })).filter((x) => x.meta.deadline > from && x.meta.deadline <= to);
   const post = weeklyDeadlines(items);
   if (opts.dryRun) return console.log(post ? `\n${post}` : "\n⏳ Дедлайни тижня: замало постів");
-  if (post) await sendPost(post, { tags: ["#дедлайни"], account: "prostir", lines: [] });
+  if (post) await sendImagePost(post, await picture({ pages: [], listingOf: "", teaser: "Дедлайни тижня. Встигніть подати роботи.", fallback: "", label: "Дедлайни", color: "#8C2F39" }), { tags: ["#дедлайни"], account: "prostir", lines: [] });
   console.log(post ? "⏳ Дедлайни тижня надіслано" : "⏳ Дедлайни тижня: замало — пропускаю");
   await markRan("prostir_week", isoWeek());
 }
