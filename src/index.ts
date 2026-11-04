@@ -14,22 +14,8 @@ import { runThreads } from "./modes/threads.ts";
 import { runOrders } from "./modes/orders.ts";
 
 const MODES = {
-  // гранти, а одразу за ними — 🧾 «Замовлення для креаторів» (в одному прогоні, щоб не тратити хвилини GitHub на npm ci)
-  news: async () => {
-    let newsErr: unknown = null;
-    try {
-      await runNews();
-    } catch (err) {
-      newsErr = err;
-    }
-    try {
-      await runOrders({ dryRun: false, send: true });
-    } catch (err) {
-      console.error("Замовлення впали:", err);
-      newsErr ??= err;
-    }
-    if (newsErr) throw newsErr;
-  },
+  // 🧾 «Замовлення для креаторів» ВИМКНЕНО 2026-11-04 (власник: мало підписників); код лишився — `npm start -- orders`
+  news: () => runNews(),
   saves: () => runSaves({ dryRun: false, send: true }),
   // 🧵 з 2026-10-22 — Threads v3 (src/modes/threads.ts); стара генерація лишилась як режим promo_old
   promo: () => runThreads({ dryRun: false, send: true }),

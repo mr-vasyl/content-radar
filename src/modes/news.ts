@@ -6,7 +6,6 @@ import { noisyReason, notCreativeReason, onlyVeteranWord, ruleRejectReason } fro
 import { extractArticle } from "../extractText.ts";
 import { analyze, minScoreFor, MIN_SCORE_BY_ACCOUNT, type Analysis } from "../summarize.ts";
 import { analyzeFop } from "../fop.ts";
-import { queueFromGrant } from "../orders.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { factCheck } from "../factCheck.ts";
 import { withToolLink } from "../digest.ts";
@@ -175,8 +174,7 @@ export async function runNews(): Promise<void> {
       }, { format: "news", title: a.title, url: a.url, source: a.source, account: analysis.account, score: analysis.score });
       if (analysis.hook) await sendHook(analysis.hook);
       await record(a, "sent", { analysis }); // тільки після успішної відправки
-      // 🧾 конкурс/open call з грошима для учасника — ще й у чергу «Замовлень для креаторів»
-      if (analysis.cash_prize) await queueFromGrant(a, analysis).catch((e) => console.error("черга замовлень:", e));
+      // 🧾 черга «Замовлень для креаторів» (queueFromGrant) — канал вимкнено 2026-11-04
       sent++;
       console.log(`✓ ${analysis.score}/10 [${analysis.stream}] ${a.title}`);
     } catch (err) {
