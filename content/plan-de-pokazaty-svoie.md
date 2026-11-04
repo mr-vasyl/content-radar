@@ -85,3 +85,18 @@ ARTFOND (каталог open calls, ~62 можливості), CallOpen.art (11 
 Помітки: Muck Rack і Submittable записані двічі (фактично 58 різних); Gumroad, Adobe Stock, Shutterstock, Creative Market,
 Envato, Fab, Unity — постійні майданчики, а не стрічки оголошень (лише для добірок/освітніх постів); Gumroad і подібні —
 конкуренти SkyNovix, обережно.
+
+## Технічний аудит Claude (2026-11-04, curl із сервера)
+- Відкриваються без проблем (200): CallOpen.art, Kunsten, Літцентр, MusiTer, Indie Balkans, Monographica, ShutterCalls,
+  Festhome, ARTFOND, ArtConnect, Poets & Writers, artistcalls, Booooooom, TheArtList, Pixcontests, Collect Art, opencalls.ai.
+- Cloudflare 403: FilmFreeway, Submittable Discover — автоматично не читаються.
+- RSS: Monographica `/feed.xml` (50 записів, нові щодня), Pixcontests `/rss.xml` (50, щодня, у тексті є fee і місто),
+  Booooooom `/feed/` (блог, open calls — лише частина).
+- Сторінки з посиланнями на оголошення в HTML (linkPattern): ARTFOND `/uk/opportunities/…`, ArtConnect `/opportunity/…`
+  (є фільтр `?fees=FREE`), opencalls.ai `/opencalls/…`, MusiTer `/opportunities/external/…`, Festhome `/festival/…`,
+  P&W `/literary_magazines/…`, Літцентр `/news/…`.
+- JS-рендер (список у HTML не видно): ShutterCalls, artistcalls; CallOpen віддає лише організації — треба окремо дивитись.
+- ⚠️ Внески: Monographica (фото) — 19 платних проти 11 безкоштовних; Pixcontests — більшість $10–35 і багато локальних
+  (США, конкретне місто). Фестивалі кіно майже всі платні. MusiTer — здебільше оркестрові вакансії з переїздом.
+  → Після фільтрів «безкоштовно + доступно українцю + не грант» реальний потік — орієнтовно 2–4 на день, переважно
+  візуальне мистецтво/фото й література; музика й кіно — рідко.
