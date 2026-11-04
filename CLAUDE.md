@@ -208,7 +208,7 @@ OAuthException (2026-10-30 Meta на ~1 год дала «API access blocked» �
 - ⏳ «Дедлайни тижня» — нд з 12:00 (FormatRun `prostir_week`): надіслане з дедлайном у найближчі 9 днів, ≥3 пункти, без GPT.
 - `npm start -- prostir` — окремий прогін; `npm run preview prostir [send]` (`PROSTIR_LIMIT=8`) — тест без БД.
 - 🧩 Ширше за open call (власник 2026-11-04: «тематика велика»), рубрики:
-  🖼 «Покажи своє» (pr_queue, 60%) і 💼 «Шукають авторів» (40%) — черга й збір колишнього каналу замовлень (`collect` з modes/orders.ts,
+  🖼 «Покажи своє» (pr_queue, 80%) і 💼 «Шукають авторів» (20% — власник: «ми не work.ua»; лише оцінка 7+, разові — з сумою, без контрактів і Freelancehunt) — черга й збір колишнього каналу замовлень (`collect` з modes/orders.ts,
   4 оцінки за прогін; kinds без `remote_fulltime`; Freelancehunt — коли більше нічого; надіслане — `ord_sent` з `channel: "prostir"` у hook).
   Прогін обирає рубрику з більшим недобором до частки; ліміт 5/добу спільний.
   📚 «Як подаватись» (пн, чт) і ✨ «Історії авторів» (вт, сб) — з 12:00, по одному: `TIP_SOURCES` (Jane Friedman, Writer's Digest,

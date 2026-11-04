@@ -127,8 +127,10 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
 }
 
 // 2. Один пост з черги: 🖼 «Покажи своє» (pr_queue) або 💼 «Шукають авторів» (ord_queue — код колишнього каналу замовлень)
-const RUBRIC_TARGET = { show: 0.6, authors: 0.4 }; // власник 2026-11-04: канал ширший за open call
-const AUTHOR_KINDS = ["digital_product", "one_off", "brand_ugc", "publisher_call", "remote_contract", "contest_prize"]; // без повних ставок
+// власник 2026-11-04: канал ширший за open call, але «ми не work.ua» — замовлень ~20% (≈1 на день)
+const RUBRIC_TARGET = { show: 0.8, authors: 0.2 };
+// лише запити на ТВОРЧУ роботу автора: без ставок і контрактів (це вакансії), Freelancehunt — ні (біржа, сотні конкурентів)
+const AUTHOR_KINDS = ["digital_product", "one_off", "brand_ugc", "publisher_call", "contest_prize"];
 
 type Row = Awaited<ReturnType<typeof prisma.article.findMany>>[number];
 
@@ -153,7 +155,8 @@ async function liveAuthors(): Promise<Row[]> {
     if (expired) await prisma.article.update({ where: { id: q.id }, data: { status: "ord_expired" } });
     else live.push(q);
   }
-  return live.some((q) => q.source !== "Freelancehunt") ? live.filter((q) => q.source !== "Freelancehunt") : live;
+  // разове замовлення — лише з названою сумою; видавництва, бренди й конкурси — і без неї
+  return live.filter((q) => q.source !== "Freelancehunt" && (q.stream !== "one_off" && q.stream !== "digital_product" || (metaOf(q.hook) as { payStatus?: string }).payStatus === "amount") && (q.score ?? 0) >= 7);
 }
 
 async function teaser(post: string, kind: "show" | "authors"): Promise<void> {
