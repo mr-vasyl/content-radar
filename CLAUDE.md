@@ -190,7 +190,11 @@ OAuthException (2026-10-30 Meta на ~1 год дала «API access blocked» �
 - Рішення власника: лише безкоштовна участь (так в описі каналу); SkyNovix у постах і в описі НЕ згадуємо — пости про SkyNovix він робить сам;
   запуск одразу, без тесту — власник перевіряє кожен пост у боті.
 - `src/prostir.ts`: `PROSTIR_SOURCES` — Monographica (сторінка /fees/free/), Pixcontests RSS (платні видно в анонсі — `paidInTeaser`),
-  ARTFOND, ArtConnect (?fees=FREE), opencalls.ai, Kunsten, Indie Balkans, Booooooom RSS, TG Літцентр і ART BOT.
+  ARTFOND, ArtConnect (?fees=FREE), opencalls.ai, Kunsten, Indie Balkans, Booooooom RSS, TG Літцентр і ART BOT;
+  друга хвиля (2026-11-04): Authors Publish і Trish Hopkinson (література, лише безкоштовна подача; `sourceSkip`: без добірок і лише «NO FEE»),
+  ArtRabbit (усі напрями; без вакансій/резиденцій), Arts Thread (конкурси дизайну). Виставки «для членів» — `sourceSkip`.
+  Перевірено й НЕ взято: Sound and Music, Short Film Depot (JS), Click for Festivals (RSS порожній), Creative Boom/Cineuropa (Cloudflare),
+  українські TG-канали open call — мертві з 2022 (artopencall, ukrainianphotographers); українське йде через канал грантів.
   Не взято (аудит 2026-11-04): FilmFreeway, Submittable (Cloudflare), Poets & Writers (без дат), Festhome, ShutterCalls, artistcalls (JS), MusiTer, Envato.
 - `analyzeProstir` (GPT — лише факти) → КОД: не набір; грант/резиденція/навчання; `fee` paid → ні; `not_mentioned` → ні, крім
   FREE_SOURCES (Monographica, ArtConnect), `institution` (музей, публічна галерея, фестиваль) чи `pays_author`; не для України / лише місцеві;

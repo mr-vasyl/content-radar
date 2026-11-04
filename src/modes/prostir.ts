@@ -12,7 +12,7 @@ import { prefilter } from "../prefilter.ts";
 import { factCheck } from "../factCheck.ts";
 import { sendHook, sendPost } from "../sendToTelegram.ts";
 import { alreadyRan, isoWeek, markRan } from "../formatLog.ts";
-import { analyzeProstir, paidInTeaser, prostirTeaser, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
+import { analyzeProstir, paidInTeaser, prostirTeaser, sourceSkip, PROSTIR_SOURCES, weeklyDeadlines, withProstirLink, type Meta } from "../prostir.ts";
 import type { RunOptions } from "./types.ts";
 
 const MAX_AGE_DAYS = 3;
@@ -72,7 +72,7 @@ async function collect(opts: RunOptions, limit = ANALYZE_PER_RUN): Promise<void>
   const candidates: Article[] = [];
   for (const a of fresh) {
     const dup = isDup(a.title);
-    const why = ruleRejectReason(a) ?? paidInTeaser(a) ?? (dup ? `дубль: ${dup}` : null) ?? ((await prisma.article.findFirst({ where: { url: a.url, status: "sent" }, select: { id: true } })) ? "уже в каналі грантів" : null);
+    const why = ruleRejectReason(a) ?? sourceSkip(a) ?? paidInTeaser(a) ?? (dup ? `дубль: ${dup}` : null) ?? ((await prisma.article.findFirst({ where: { url: a.url, status: "sent" }, select: { id: true } })) ? "уже в каналі грантів" : null);
     if (why) {
       if (!opts.dryRun) await save(a, "pr_rejected_rules", { reason: why });
       continue;

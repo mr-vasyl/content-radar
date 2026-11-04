@@ -25,10 +25,25 @@ export const PROSTIR_SOURCES: Source[] = [
   S("Kunsten", "https://www.kunsten.be/en/calls/", { linkPattern: /kunsten\.be\/en\/calls\/[\w-]+\/$/ }), // міжнародні calls: музика, сцена, фото…
   S("Indie Balkans", "https://indiebalkans.com/open-calls/", { linkPattern: /indiebalkans\.com\/(?!open-calls\/)[\w-]+-open-call\/$/ }), // музичні шоукейси
   S("Booooooom", "https://www.booooooom.com/feed/"), // власні премії й прийом робіт (блог — решту відсіє попередній відбір)
+  // ➕ 2026-11-04 (друга хвиля, дірки — література й дизайн)
+  S("Authors Publish", "https://www.authorspublish.com/feed/"), // журнали для письменників; публікують лише безкоштовну подачу
+  S("Trish Hopkinson", "https://trishhopkinson.com/feed/"), // поезія й проза: беремо лише «NO FEE submission call» (sourceSkip)
+  S("ArtRabbit", "https://www.artrabbit.com/artist-opportunities", { linkPattern: /artrabbit\.com\/artist-opportunities\/\d{4}\/[a-z]+\/[\w-]+$/ }), // усі напрями, внесок позначено
+  S("Arts Thread", "https://www.artsthread.com/competitions/", { linkPattern: /artsthread\.com\/competitions\/[\w-]+$/ }), // конкурси дизайну від брендів
   // 🇺🇦 Українські радари — те, що забрав канал грантів, сюди не піде (дубль за посиланням і заголовком)
   S("Літцентр", "litcentr", { telegram: true }),
   S("ART BOT", "artbotme", { telegram: true }),
 ];
+
+// Правила окремих джерел — до GPT
+export function sourceSkip(a: Article): string | null {
+  // виставки «для членів» спілки чи галереї — платне членство й зазвичай місцеві (Tulsa Artists' Coalition, RBSA Friends)
+  if (/\bmembers?['’]?\s*(show|exhibition|salon)|\bfriends exhibition\b/i.test(a.title)) return "лише для членів спілки/галереї";
+  if (a.source === "Authors Publish" && /^\d+\s/.test(a.title)) return "добірка кількох наборів, а не один";
+  if (a.source === "Trish Hopkinson" && !/no fee/i.test(a.title)) return "не «NO FEE submission call»";
+  if (a.source === "ArtRabbit" && /^(Job|Artist in Residence|Fellowship|Funding|Course|Residency)\b/i.test(a.title)) return "вакансія/резиденція/грант — не сюди";
+  return null;
+}
 
 // Внесок видно вже в анонсі («Entry fee: $25» у Pixcontests) — відкидаємо до GPT
 export function paidInTeaser(a: Article): string | null {
@@ -164,7 +179,7 @@ export interface Verdict {
 }
 
 // Джерела, де безкоштовність гарантує сам фільтр сайту — там «про оплату не сказано» теж означає «безкоштовно»
-const FREE_SOURCES = new Set(["Monographica", "ArtConnect"]);
+const FREE_SOURCES = new Set(["Monographica", "ArtConnect", "Authors Publish", "Trish Hopkinson"]);
 const bare = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
 const LISTINGS = new Set(PROSTIR_SOURCES.map((s) => bare(s.url)));
 
